@@ -1,0 +1,32 @@
+BUGS
+- pause resume button needs better alignment    
+- progress bar isnt smooth
+- dont allow the same avatar to be picked by multiple players
+
+ENHANCEMENTS
+- answer received text should be under the "submitted" button
+- Add "Rocket Quiz" to title bar
+- add a delay after the last person submits before showing results so its not instant
+- the wrong answer red screen should be more red
+- add round number
+
+FEATURES
+- scoring:
+    - show how many players got the answer correct out of total players
+    - show the player list with their avatars as a list
+    - one second later show who got it correct and who got it wrong and showing their answers
+    - one second later show the leaderboard update animation with their base scones
+    - one second larer show the leaderboard update animation with their bonus scores
+
+- host extra time control    
+- player extra time request (later)
+    - add an option to request for an extra 15 seconds on the player view
+    - if everyone requests it, add 15 seconds to the timer. 
+    - show a small counter of how many people have requested extra time on the host view.
+- game pause
+    - add a text on player view like "host is upto something..."
+    - grey out the back during game pause on the player view
+- sound effects
+    - ticking sound during last 5 seconds
+    - sound when time is up
+    - sound when answer is submitted

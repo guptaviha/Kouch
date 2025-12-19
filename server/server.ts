@@ -30,12 +30,14 @@ interface Player {
   name: string;
   score: number;
   socket: Socket;
+  avatar?: string;
 }
 
 interface Host {
   id: string;
   name: string;
   socket: Socket;
+  avatar?: string;
 }
 
 interface Room {
@@ -47,6 +49,10 @@ interface Room {
   roundIndex: number;
   roundStart?: number;
   timers: { round?: NodeJS.Timeout; next?: NodeJS.Timeout };
+  // pause support
+  paused?: boolean;
+  nextTimerEndsAt?: number | null;
+  pauseRemainingMs?: number | null;
   answers: Map<string, SubmittedAnswer>;
 }
 
@@ -74,23 +80,38 @@ const ROUND_DURATION_MS = 30_000; // 30s per round
 const BETWEEN_ROUND_MS = 10_000; // 10s pause between rounds (result screen)
 // Scoring: base points + time bonus
 const BASE_POINTS = 100;
-const MAX_TIME_BONUS = 900; // maximum bonus if answered instantly
+const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
 
 const rooms = new Map<string, Room>();
 
 function genCode(): string {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let s = '';
-  for (let i = 0; i < 4; i++) s += letters[Math.floor(Math.random() * letters.length)];
-  return s;
+  let codeStr = '';
+  for (let i = 0; i < 4; i++) codeStr += letters[Math.floor(Math.random() * letters.length)];
+  return codeStr;
 }
 
 function makeId(): string {
   return Math.random().toString(36).slice(2, 9);
 }
 
-function cleanPlayerForWire(p: Player) {
-  return { id: p.id, name: p.name, score: p.score };
+const AVATAR_KEYS = [
+  'BsRobot', 'SiProbot', 'PiDogFill', 'BiSolidCat', 'MdElderlyWoman', 'MdPregnantWoman',
+  'GiPyromaniac', 'TbMichelinBibGourmand', 'TbMoodCrazyHappy', 'GiMonkey', 'GiBatMask',
+  'GiSpiderMask', 'GiNinjaHead', 'VscSnake', 'GiSharkBite', 'GiDinosaurRex', 'GiSeaDragon',
+  'MdCatchingPokemon', 'GiDirectorChair', 'RiAliensLine', 'GiWitchFlight', 'FaUserAstronaut', 'GiBirdTwitter'
+];
+
+function pickAvatar() {
+  const avatarIndex = Math.floor(Math.random() * AVATAR_KEYS.length);
+  const avatarKey = AVATAR_KEYS[avatarIndex];
+  // Debug: log chosen avatar (index + key) to help trace avatar assignment
+  console.log('pickAvatar ->', { avatarIndex, avatarKey });
+  return avatarKey;
+}
+
+function cleanPlayerForWire(player: Player) {
+  return { id: player.id, name: player.name, score: player.score, avatar: player.avatar };
 }
 
 function broadcast(room: Room, msg: any) {
@@ -127,8 +148,8 @@ function leaderboardFor(room: Room) {
 }
 
 function startRound(room: Room) {
-  const qi = room.roundIndex;
-  if (qi >= QUESTIONS.length) {
+  const currentRoundIndex = room.roundIndex;
+  if (currentRoundIndex >= QUESTIONS.length) {
     room.state = 'finished';
     broadcast(room, { type: 'final_leaderboard', roomCode: room.code, leaderboard: leaderboardFor(room) });
     return;
@@ -143,8 +164,8 @@ function startRound(room: Room) {
     type: 'game_state',
     state: room.state,
     roomCode: room.code,
-    roundIndex: qi,
-    question: QUESTIONS[qi].question,
+    roundIndex: currentRoundIndex,
+    question: QUESTIONS[currentRoundIndex].question,
     timerEndsAt: roundEnd,
   });
 
@@ -153,8 +174,8 @@ function startRound(room: Room) {
 
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
-  const qi = room.roundIndex;
-  const correctAnswer = QUESTIONS[qi].answer.toLowerCase().trim();
+  const currentRoundIndex = room.roundIndex;
+  const correctAnswer = QUESTIONS[currentRoundIndex].answer.toLowerCase().trim();
 
   const results: Array<{
     playerId: string;
@@ -199,12 +220,15 @@ function endRound(room: Room) {
 
   room.state = 'round_result';
   const nextEndsAt = Date.now() + BETWEEN_ROUND_MS;
+  room.nextTimerEndsAt = nextEndsAt;
   broadcast(room, {
     type: 'round_result',
     roomCode: room.code,
-    roundIndex: qi,
+    roundIndex: currentRoundIndex,
     results,
     leaderboard: leaderboardFor(room),
+    // include the correct answer so hosts can display it
+    correctAnswer: QUESTIONS[currentRoundIndex].answer,
     nextTimerEndsAt: nextEndsAt,
     nextTimerDurationMs: BETWEEN_ROUND_MS,
   });
@@ -223,38 +247,39 @@ function endRound(room: Room) {
 
 function handleMessage(socket: Socket, msg: any) {
   console.log('Received message:', msg);
-  let m = msg;
+  let messageObj = msg;
   if (typeof msg === 'string') {
     try {
-      m = JSON.parse(msg);
+      messageObj = JSON.parse(msg);
     } catch (e) {
       socket.emit('server', { type: 'error', message: 'invalid json' });
       return;
     }
   }
 
-  const t = m && m.type;
-  if (!t) return;
+  const msgType = messageObj && messageObj.type;
+  if (!msgType) return;
 
-  const send = (s: Socket | null | undefined, payload: any) => {
-    if (s && s.connected) s.emit('server', payload);
+  const send = (sock: Socket | null | undefined, payload: any) => {
+    if (sock && sock.connected) sock.emit('server', payload);
   };
 
-  if (t === 'create_room') {
-    const name = m.name || 'Host';
+  if (msgType === 'create_room') {
+    const name = messageObj.name || 'Host';
     const code = (() => {
-      let c = genCode();
-      while (rooms.has(c)) c = genCode();
-      return c;
+      let newCode = genCode();
+      while (rooms.has(newCode)) newCode = genCode();
+      return newCode;
     })();
 
     const hostId = makeId();
-    const room: Room = {
+      const hostAvatar = pickAvatar();
+      const room: Room = {
       code,
       players: new Map(),
       state: 'lobby',
       hostId,
-      host: { id: hostId, name, socket },
+        host: { id: hostId, name, socket, avatar: hostAvatar },
       roundIndex: 0,
       timers: {},
       answers: new Map(),
@@ -264,13 +289,13 @@ function handleMessage(socket: Socket, msg: any) {
 
     socket.data = { roomCode: code, hostId };
 
-    send(socket, { type: 'room_created', roomCode: code, player: { id: hostId, name, score: 0 } });
+    send(socket, { type: 'room_created', roomCode: code, player: { id: hostId, name, score: 0, avatar: hostAvatar } });
     broadcastLobby(room);
     return;
   }
 
-  if (t === 'join') {
-    const { roomCode, name } = m;
+  if (msgType === 'join') {
+    const { roomCode, name } = messageObj;
     const room = rooms.get(roomCode);
     if (!room) {
       send(socket, { type: 'error', message: 'room not found' });
@@ -281,7 +306,9 @@ function handleMessage(socket: Socket, msg: any) {
       return;
     }
     const playerId = makeId();
-    const playerObj: Player = { id: playerId, name: name || 'Player', socket, score: 0 };
+    console.log('Assigning avatar to new player:', playerId);
+    const playerObj: Player = { id: playerId, name: name || 'Player', socket, score: 0, avatar: pickAvatar() };
+    console.log('New player avatar:', playerObj);
     room.players.set(playerId, playerObj);
     socket.data = { roomCode, playerId };
     send(socket, { type: 'joined', roomCode, player: cleanPlayerForWire(playerObj) });
@@ -289,8 +316,8 @@ function handleMessage(socket: Socket, msg: any) {
     return;
   }
 
-  if (t === 'start_game') {
-    const { roomCode, playerId } = m;
+  if (msgType === 'start_game') {
+    const { roomCode, playerId } = messageObj;
     const room = rooms.get(roomCode);
     if (!room) return;
     if (room.hostId !== playerId) {
@@ -302,8 +329,51 @@ function handleMessage(socket: Socket, msg: any) {
     return;
   }
 
-  if (t === 'submit_answer') {
-    const { roomCode, playerId, answer } = m;
+  if (msgType === 'pause_game') {
+    const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
+    const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
+    if (!room) return;
+    // only host may pause
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can pause' });
+      return;
+    }
+    if (room.state === 'round_result') {
+      // compute remaining time until next round (use nextTimerEndsAt if set, otherwise default)
+      const remaining = room.nextTimerEndsAt ? room.nextTimerEndsAt - Date.now() : BETWEEN_ROUND_MS;
+      room.pauseRemainingMs = Math.max(0, remaining);
+      // clear any scheduled next timer if present
+      if (room.timers.next) {
+        clearTimeout(room.timers.next);
+        room.timers.next = undefined;
+      }
+      room.paused = true;
+      console.log('pause_game ->', { roomCode: room.code, remainingMs: room.pauseRemainingMs });
+      broadcast(room, { type: 'game_paused', roomCode: room.code, pauseRemainingMs: room.pauseRemainingMs });
+    }
+    return;
+  }
+
+  if (msgType === 'resume_game') {
+    const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
+    const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
+    if (!room) return;
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can resume' });
+      return;
+    }
+    if (room.state === 'round_result' && room.paused) {
+      const toWait = room.pauseRemainingMs != null ? room.pauseRemainingMs : BETWEEN_ROUND_MS;
+      room.paused = false;
+      room.nextTimerEndsAt = Date.now() + toWait;
+      room.timers.next = setTimeout(() => startRound(room), toWait);
+      broadcast(room, { type: 'game_resumed', roomCode: room.code, nextTimerEndsAt: room.nextTimerEndsAt });
+    }
+    return;
+  }
+
+  if (msgType === 'submit_answer') {
+    const { roomCode, playerId, answer } = messageObj;
     const room = rooms.get(roomCode);
     if (!room || room.state !== 'playing') return;
     const player = room.players.get(playerId);
@@ -312,6 +382,10 @@ function handleMessage(socket: Socket, msg: any) {
     const timeTaken = Date.now() - (room.roundStart || Date.now());
     room.answers.set(playerId, { answer: String(answer || ''), timeTaken });
     send(player.socket, { type: 'answer_received', roundIndex: room.roundIndex });
+    // notify host/other clients that this player has answered so UI can update
+    try {
+      broadcast(room, { type: 'player_answered', roomCode: room.code, playerId });
+    } catch (e) {}
     // If all players have answered, end the round early
     try {
       if (room.answers.size === room.players.size) {
@@ -331,7 +405,34 @@ function handleMessage(socket: Socket, msg: any) {
     return;
   }
 
-  if (t === 'ping') {
+  if (msgType === 'reset_game') {
+    const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
+    const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
+    if (!room) return;
+    // only host can reset
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can reset game' });
+      return;
+    }
+    // reset game state back to lobby
+    room.state = 'lobby';
+    room.roundIndex = 0;
+    room.nextTimerEndsAt = null;
+    room.pauseRemainingMs = null;
+    room.paused = false;
+    // clear timers
+    if (room.timers.round) { clearTimeout(room.timers.round); room.timers.round = undefined; }
+    if (room.timers.next) { clearTimeout(room.timers.next); room.timers.next = undefined; }
+    // reset player scores
+    for (const player of room.players.values()) {
+      player.score = 0;
+    }
+    // notify everyone
+    broadcastLobby(room);
+    return;
+  }
+
+  if (msgType === 'ping') {
     send(socket, { type: 'pong' });
     return;
   }
@@ -381,7 +482,7 @@ io.on('connection', (socket: Socket) => {
       if (firstKey) {
         const promoted = room.players.get(firstKey)!;
         room.hostId = promoted.id;
-        room.host = { id: promoted.id, name: promoted.name, socket: promoted.socket };
+        room.host = { id: promoted.id, name: promoted.name, socket: promoted.socket, avatar: promoted.avatar };
         room.players.delete(firstKey);
         if (promoted.socket) promoted.socket.data = { roomCode: room.code, hostId: promoted.id };
         try {

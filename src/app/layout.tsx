@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ["latin"] });
  * Exporting this metadata object is enough for Next.JS to pick it up for the page and SEO.
  */
 export const metadata: Metadata = {
-    title: "Kouch",
+    title: "KouchParty",
     description: "couch player games for the insane.",
 };
 

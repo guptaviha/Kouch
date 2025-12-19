@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kouch",
+    name: "KouchParty",
     short_name: "Kouch",
     description: "couch player games for the insane.",
     start_url: '/',

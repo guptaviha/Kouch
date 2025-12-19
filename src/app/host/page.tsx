@@ -1,14 +1,18 @@
 "use client";
 
+import { Laptop, Sofa } from 'lucide-react';
+import PlayerAvatar from '@/components/player-avatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
+const ROUND_DURATION_MS = 30_000; // same as server
 
-type Player = { id: string; name: string; score: number };
+type Player = { id: string; name: string; score: number; avatar?: string };
 
 export type RoomStates = 'lobby' | 'playing' | 'round_result' | 'finished';
 
@@ -17,6 +21,7 @@ export default function HostPage() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
   const [state, setState] = useState<RoomStates>('lobby');
   const [question, setQuestion] = useState<string | null>(null);
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
@@ -25,6 +30,11 @@ export default function HostPage() {
   const [roundResults, setRoundResults] = useState<any>(null);
   const [nextTimerDurationMs, setNextTimerDurationMs] = useState<number | null>(null);
   const timerRef = useRef<number | null>(null);
+  const splashTimerRef = useRef<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const pauseTimerRef = useRef<number | null>(null);
+  const [pauseRemainingMs, setPauseRemainingMs] = useState<number | null>(null);
+  const [playAgainPending, setPlayAgainPending] = useState(false);
 
   useEffect(() => {
     const s = io(SERVER, { path: '/ws' });
@@ -35,10 +45,24 @@ export default function HostPage() {
       if (msg.type === 'room_created') {
         setRoomCode(msg.roomCode);
         setPlayer(msg.player);
+        // hide the intro only after server confirms the room was created
+        setShowIntro(false);
+        // if Play Again flow requested a new room, auto-start the new game
+        if (playAgainPending) {
+          setPlayAgainPending(false);
+          try {
+            // directly instruct server to start the newly created room
+            s.emit('message', { type: 'start_game', roomCode: msg.roomCode, playerId: msg.player.id });
+          } catch (e) { }
+        }
       }
       if (msg.type === 'lobby_update') {
         setPlayers(msg.players || []);
         setState(msg.state || 'lobby');
+      }
+      if (msg.type === 'player_answered') {
+        const pid = msg.playerId as string;
+        setAnsweredPlayers((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
       }
       if (msg.type === 'game_state') {
         setState('playing');
@@ -46,6 +70,8 @@ export default function HostPage() {
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults(null);
+        // reset answered players for the new round
+        setAnsweredPlayers([]);
       }
       if (msg.type === 'round_result') {
         setState('round_result');
@@ -59,9 +85,23 @@ export default function HostPage() {
         setState('finished');
         setRoundResults({ final: msg.leaderboard });
       }
+      if (msg.type === 'game_paused') {
+        setPaused(true);
+        if (typeof msg.pauseRemainingMs === 'number') {
+          setPauseRemainingMs(msg.pauseRemainingMs);
+          setCountdown(Math.max(0, Math.ceil(msg.pauseRemainingMs / 1000)));
+        }
+      }
+      if (msg.type === 'game_resumed') {
+        setPaused(false);
+        // if server provided nextTimerEndsAt, update timer
+        if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
+        setPauseRemainingMs(null);
+      }
     });
 
     return () => {
+      if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current);
       s.disconnect();
     };
   }, []);
@@ -72,12 +112,21 @@ export default function HostPage() {
       setQrDataUrl(null);
       return;
     }
-    // Build an origin suitable for LAN devices. If served from localhost, replace with the LAN IP
+    // Build an origin suitable for LAN devices. If served from localhost, allow an
+    // override via NEXT_PUBLIC_LAN_HOST. If that's not set, fall back to the
+    // current window hostname (useful when the page is already served from the
+    // host's LAN IP). This avoids a hardcoded IP baked into the source.
     let originForQr = '';
     if (typeof window !== 'undefined') {
       const { protocol, hostname, port } = window.location;
-      // If served from localhost, use the LAN IP so phones on the same network can connect
-      const LAN_HOST = process.env.NEXT_PUBLIC_LAN_HOST || '192.168.5.193';
+      // Prefer an explicit env override (set NEXT_PUBLIC_LAN_HOST when developing
+      // so phones can reach the dev machine). However, if that env var is set to
+      // a loopback value like "localhost" or "127.0.0.1" it won't help remote
+      // devices — in that case fall back to the page hostname (which will be the
+      // LAN IP when the page is opened via http://<host-ip>:3000).
+      const envLan = process.env.NEXT_PUBLIC_LAN_HOST;
+      const invalidLoopbacks = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+      const LAN_HOST = envLan && !invalidLoopbacks.includes(envLan) ? envLan : window.location.hostname;
       const hostForQr = (hostname === 'localhost' || hostname === '127.0.0.1') ? LAN_HOST : hostname;
       const portPart = port ? `:${port}` : '';
       originForQr = `${protocol}//${hostForQr}${portPart}`;
@@ -89,6 +138,15 @@ export default function HostPage() {
   }, [roomCode]);
 
   useEffect(() => {
+    if (paused) {
+      // when paused, freeze the countdown — already set by pause handler
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
     if (!timerEndsAt) {
       setCountdown(0);
       if (timerRef.current) {
@@ -97,6 +155,7 @@ export default function HostPage() {
       }
       return;
     }
+
     function tick() {
       const rem = Math.max(0, Math.ceil(((timerEndsAt || 0) - Date.now()) / 1000));
       setCountdown(rem);
@@ -112,6 +171,7 @@ export default function HostPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -127,80 +187,277 @@ export default function HostPage() {
     socket.emit('message', { type: 'start_game', roomCode, playerId: player.id });
   };
 
+  const pauseGame = () => {
+    if (!socket || !roomCode || !player) return;
+    socket.emit('message', { type: 'pause_game' });
+  };
+
+  const resumeGame = () => {
+    if (!socket || !roomCode || !player) return;
+    socket.emit('message', { type: 'resume_game' });
+  };
+
+  const resetGame = () => {
+    if (!socket || !roomCode || !player) return;
+    // reset current game, then create a fresh room and auto-start it
+    socket.emit('message', { type: 'reset_game', roomCode, playerId: player.id });
+    // request server to create a new room for us and mark pending to auto-start
+    setPlayAgainPending(true);
+    socket.emit('message', { type: 'create_room', name: 'Host' });
+  };
+
   if (!mounted) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Kouch — Host</h1>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto relative">
+
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-3">
+          <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
+          <h1 className="text-2xl font-bold m-0">KouchParty</h1>
+        </div>
+
+        {roomCode ? (
+          <div className="text-right text-xs flex items-center gap-3">
+            <div className="flex flex-col items-center">
+              <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{roomCode}</span>
+              <span className="text-xs mt-1">Code</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col items-center">
+                <Laptop size={24} />
+                <span className="text-xs mt-1">Host</span>
+              </div>
+
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Home page tagline + how to play + big start button */}
+      {showIntro && (
+        <div className="mb-6 text-center">
+          <p className="text-lg font-medium">couch party games for friends</p>
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+            <h3 className="font-semibold mb-1">How to play</h3>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Get some friends with phones.</li>
+              <li>Start a party on a screen everyone can see.</li>
+              <li>Enjoy.</li>
+            </ol>
+          </div>
+
+        </div>
+      )}
+
+      {paused && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-white/80 dark:bg-black/70 backdrop-blur-sm rounded p-6">
+            <div className="text-4xl font-extrabold">Game Paused</div>
+          </div>
+        </div>
+      )}
 
       {!roomCode ? (
-        <div>
-          <p className="mb-4">Create a room to host the quiz.</p>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={createRoom}>Create Room</button>
+        <div className='text-center'>
+          <ActionButton onClick={createRoom}>Start Party</ActionButton>
         </div>
       ) : (
         <div>
-          <div className="mb-4">
-            <strong>Room:</strong> <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{roomCode}</span>
-            {qrDataUrl && (
-              <div className="mt-3 flex items-center gap-4">
-                <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white p-1 rounded shadow" />
-                <div>
-                  <p className="text-sm">Scan to join</p>
-                  <div className="flex items-center gap-2">
-                    <a className="text-xs text-blue-600 underline break-all" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ?? `/player?code=${roomCode}`}</a>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <strong>State:</strong> {state}
-          </div>
-
-          <div className="mb-4">
-            <h3 className="font-semibold">Players</h3>
-            <ul>
-              {players.map((p) => (
-                <li key={p.id}>{p.name} — {p.score} pts</li>
-              ))}
-            </ul>
-          </div>
-
           {state === 'lobby' && (
-            <Button variant="default" onClick={startGame}>Start Game</Button>
-          )}
-
-          {state === 'playing' && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Question</h2>
-                  <p className="text-sm text-gray-600">Round {roundIndex != null ? roundIndex + 1 : '—'}</p>
+            <div className="mb-4">
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {/* QR / scan / URL column */}
+                <div className="w-full md:w-1/2 flex flex-col items-center">
+                  {qrDataUrl ? (
+                    <div className="mt-3 flex flex-col items-center gap-3">
+                      <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white p-1 rounded shadow" />
+                      <p className="text-sm">Scan to join</p>
+                      <a target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline break-all text-center" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ?? `/player?code=${roomCode}`}</a>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-sm text-gray-600">QR not available</div>
+                  )}
                 </div>
-                <div className="text-4xl font-extrabold">{roundIndex != null ? `Round ${roundIndex + 1}` : ''}</div>
+
+                {/* Players column */}
+                <div className="my-auto w-full md:w-1/2">
+                  {players.length === 0 ? (
+                    <div className="mb-4 p-4 rounded bg-gray-50 dark:bg-gray-900 text-center">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Waiting for players to join</p>
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <h3 className="font-semibold">Players</h3>
+                      <AnimatePresence>
+                        <ul className="mt-3 grid grid-cols-4 gap-4 justify-center">
+                          {players.map((p) => (
+                            <motion.li
+                              key={p.id}
+                              initial={{ opacity: 0, scale: 0.96 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.96 }}
+                              transition={{ duration: 0.22 }}
+                              layout
+                              className="flex flex-col items-center justify-center"
+                            >
+                              <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-transparent">
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <PlayerAvatar avatarKey={p.avatar} size={40} />
+                                </div>
+                              </div>
+                              <div className="mt-2 text-sm text-center truncate w-20 text-white">{p.name}</div>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="mb-2">{question}</p>
-              <p className="text-sm text-gray-600">Time remaining: {countdown}s</p>
+
+
+              <div className='mt-6 text-center'>
+                <ActionButton onClick={startGame} disabled={players.length === 0}>Start Game</ActionButton>
+              </div>
             </div>
           )}
 
-          {state === 'round_result' && roundResults && (
-            <div className="mt-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 rounded">
-              <h2 className="text-lg font-semibold">Round Results</h2>
-              {timerEndsAt && nextTimerDurationMs && (
-                <div className="my-3">
+          {state === 'playing' && (
+            <>
+              {/* players' answer status strip (moved to bottom of the page for better layout) */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">Question</h2>
+                  </div>
+                </div>
+                <p className="mb-2">{question}</p>
+              </div>
+
+              {/* Round progress bar at bottom of the playing card */}
+              {timerEndsAt && (
+                <div className="mt-4">
                   <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
                     <div
-                      className="h-3 bg-green-500 transition-all"
+                      className={
+                        `h-3 bg-green-500 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`
+                      }
                       style={{
                         width: `${Math.max(
                           0,
                           Math.min(
                             100,
                             Math.round(
-                              ((nextTimerDurationMs - Math.max(0, timerEndsAt - Date.now())) / nextTimerDurationMs) * 100
+                              (100 * (
+                                (paused && pauseRemainingMs != null)
+                                  ? (ROUND_DURATION_MS - pauseRemainingMs)
+                                  : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                              )) / ROUND_DURATION_MS
+                            )
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Time remaining: {countdown}s</p>
+                </div>
+              )}
+              {/* Player avatars below the timer (round view) */}
+              {players.length > 0 && (
+                <div className="mt-4 flex items-center justify-center gap-4">
+                  {players.map((p) => {
+                    const answered = answeredPlayers.includes(p.id);
+                    return (
+                      <div key={p.id} className="flex flex-col items-center text-xs w-20">
+                        <motion.div
+                          initial={false}
+                          animate={answered ? { scale: 0.92, opacity: 1 } : { scale: 1, opacity: 0.45 }}
+                          transition={{ duration: 0.22 }}
+                          className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"
+                        >
+                          <div className={`${answered ? '' : 'filter grayscale opacity-40'} w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800`}>
+                            <PlayerAvatar avatarKey={p.avatar} size={36} />
+                          </div>
+                        </motion.div>
+                        <div className={`mt-1 truncate w-full text-center ${answered ? 'text-white' : 'text-gray-400'}`}>{p.name}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {state === 'round_result' && roundResults && (
+            <div className="mt-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 rounded relative">
+              {/* Pause / Resume controls for host only */}
+              <div className="absolute right-4 top-4">
+                {!paused ? (
+                  <Button variant="destructive" onClick={pauseGame}>Pause</Button>
+                ) : (
+                  <Button variant="default" onClick={resumeGame}>Resume</Button>
+                )}
+              </div>
+              <h2 className="text-lg font-semibold">Round Results</h2>
+
+              {/* Show the correct answer prominently at the top */}
+              {roundResults.correctAnswer && (
+                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded">
+                  <p className="text-sm text-gray-700 dark:text-gray-200">Answer</p>
+                  <div className="text-2xl font-bold">{roundResults.correctAnswer}</div>
+                </div>
+              )}
+
+              <div className="mt-3">
+                <h3 className="font-semibold">Leaderboard</h3>
+                <ol className="mt-2">
+                  {(roundResults.leaderboard || []).map((p: any) => (
+                    <li key={p.id}>{p.name} — {p.score} pts</li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Results table without time column */}
+              <div className="mt-4 overflow-auto">
+                <table className="w-full mt-2 text-sm table-fixed">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="pb-2">Player</th>
+                      <th className="pb-2">Answer</th>
+                      <th className="pb-2">Correct</th>
+                      <th className="pb-2">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(roundResults.results || []).map((r: any) => (
+                      <tr key={r.playerId} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className="py-2">{r.name}</td>
+                        <td className="py-2">{r.answer ?? '—'}</td>
+                        <td className="py-2">{r.correct ? 'Yes' : 'No'}</td>
+                        <td className="py-2">{r.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Progress bar moved to bottom and smoother transition */}
+              {timerEndsAt && nextTimerDurationMs && (
+                <div className="mt-4">
+                  <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
+                    <div
+                      className="h-3 bg-green-500 transition-all duration-300 ease-linear"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            Math.round(
+                              // when paused, use pauseRemainingMs to compute elapsed
+                              paused && pauseRemainingMs != null
+                                ? ((nextTimerDurationMs - pauseRemainingMs) / nextTimerDurationMs) * 100
+                                : ((nextTimerDurationMs - Math.max(0, (timerEndsAt || 0) - Date.now())) / nextTimerDurationMs) * 100
                             )
                           )
                         )}%`,
@@ -210,36 +467,6 @@ export default function HostPage() {
                   <p className="text-xs text-gray-600 mt-1">Next question in {countdown}s</p>
                 </div>
               )}
-              <table className="w-full mt-2 text-sm table-fixed">
-                <thead>
-                  <tr className="text-left">
-                    <th className="pb-2">Player</th>
-                    <th className="pb-2">Answer</th>
-                    <th className="pb-2">Correct</th>
-                    <th className="pb-2">Time (ms)</th>
-                    <th className="pb-2">Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(roundResults.results || []).map((r: any) => (
-                    <tr key={r.playerId} className="border-t border-gray-100 dark:border-gray-800">
-                      <td className="py-2">{r.name}</td>
-                      <td className="py-2">{r.answer ?? '—'}</td>
-                      <td className="py-2">{r.correct ? 'Yes' : 'No'}</td>
-                      <td className="py-2">{r.timeTaken ?? '—'}</td>
-                      <td className="py-2">{r.points}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="mt-4">
-                <h3 className="font-semibold">Leaderboard</h3>
-                <ol className="mt-2">
-                  {(roundResults.leaderboard || []).map((p: any) => (
-                    <li key={p.id}>{p.name} — {p.score} pts</li>
-                  ))}
-                </ol>
-              </div>
             </div>
           )}
 
@@ -251,8 +478,12 @@ export default function HostPage() {
                   <li key={p.id}>{p.name} — {p.score} pts</li>
                 ))}
               </ol>
+              <div className="mt-4">
+                <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={resetGame}>Play Again</button>
+              </div>
             </div>
           )}
+          {/* (sticky footer removed) */}
         </div>
       )}
     </motion.div>
