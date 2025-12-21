@@ -219,15 +219,16 @@ export default function HostPage() {
 
       {/* Home page tagline + how to play + big start button */}
       {showIntro && (
-        <div className="mb-6 text-center">
-          <p className="text-xl font-medium">couch party games for friends</p>
-          <div className="w-2/3 mx-auto mt-5 text-lg text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-800 p-2 rounded">
-            <h3 className="font-semibold mb-1">How to play</h3>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Get some friends with phones.</li>
-              <li>Choose a game pack.</li>
-              <li>Start a party on a screen everyone can see.</li>
-              <li>Decimate your friends!</li>
+        <div className="mb-10 text-center">
+          <p className="text-2xl text-gray-400 dark:text-gray-500 font-medium tracking-tight mb-8">couch party games for friends</p>
+
+          <div className="w-full max-w-2xl mx-auto border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl p-8 bg-gray-50/50 dark:bg-gray-900/50">
+            <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-gray-200">How to play</h3>
+            <ol className="list-decimal list-inside space-y-3 text-gray-600 dark:text-gray-400 text-left w-fit mx-auto">
+              <li className="pl-2">Get some friends with phones</li>
+              <li className="pl-2">Choose a game pack below</li>
+              <li className="pl-2">Start a party on a screen everyone can see</li>
+              <li className="pl-2">Decimate your friends!</li>
             </ol>
           </div>
 
@@ -269,49 +270,83 @@ export default function HostPage() {
         <div>
           {state === 'lobby' && (
             <div className="mb-4">
-              <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="flex flex-col md:flex-row gap-6 items-stretch">
 
                 {/* QR / scan / URL column */}
-                <div className="w-full md:w-1/2 flex flex-col items-center m-3">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="w-full md:w-1/2 flex flex-col items-center"
+                >
                   {qrDataUrl ? (
-                    <div className="flex flex-col items-center gap-3 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
-                      <p className="text-lg">Scan to join</p>
-                      <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white rounded shadow" />
-                      <a target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline break-all text-center" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ?? `/player?code=${roomCode}`}</a>
+                    <div className="flex flex-col items-center gap-4 rounded-xl p-8 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 w-full max-w-sm h-full justify-center">
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-2">Join the party</p>
+                        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 mb-1">{roomCode}</h3>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl shadow-inner border border-gray-200">
+                        <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-48 h-48 rounded-lg" />
+                      </div>
+
+                      <div className="w-full text-center">
+                        <p className="text-gray-500 text-sm mb-1">or visit</p>
+                        <div className="bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 inline-block">
+                          <a target="_blank" rel="noreferrer" className="text-sm font-mono text-blue-600 dark:text-blue-400 font-medium break-all" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl?.replace(/^https?:\/\//, '') ?? `.../player?code=${roomCode}`}</a>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-600">QR not available</div>
+                    <div className="text-sm text-gray-600">Generating QR code...</div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Players column */}
-                <div className="w-full md:w-1/2 m-3">
-                  <div className="rounded bg-gray-50 dark:bg-gray-900 text-center">
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="w-full md:w-1/2"
+                >
+                  <div className="rounded-xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 p-8 min-h-[400px] flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Players</h3>
+                      <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold">{players.length} joined</span>
+                    </div>
+
                     {players.length === 0 ? (
-
-                      <p className=" text-sm text-gray-600 dark:text-gray-300">Waiting for players to join</p>
-
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50">
+                        <p className="text-lg font-medium text-gray-400 dark:text-gray-500 mb-2">Waiting for players...</p>
+                        <p className="text-sm text-gray-400">Scan the QR code to allow friends to join!</p>
+                      </div>
                     ) : (
-                      <div>
-                        <h3 className="font-semibold">Players</h3>
-                        <AnimatePresence>
-                          <ul className="mt-3 grid grid-cols-4 gap-4 justify-center">
-                            {players.map((p) => (
+                      <div className="flex-1 overflow-auto">
+                        <AnimatePresence mode='popLayout'>
+                          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {players.map((p, i) => (
                               <motion.li
                                 key={p.id}
-                                initial={{ opacity: 0, scale: 0.96 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.96 }}
-                                transition={{ duration: 0.22 }}
                                 layout
-                                className="flex flex-col items-center justify-center"
+                                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                                className="p-3 rounded-lg"
                               >
-                                <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-transparent">
-                                  <div className="w-full h-full flex items-center justify-center">
+                                <motion.div
+                                  animate={{ y: [0, -6, 0] }}
+                                  transition={{
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                    delay: i * 0.2
+                                  }}
+                                  className="flex flex-col items-center w-full"
+                                >
+                                  <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-transparent mb-2">
                                     <PlayerAvatar avatarKey={p.avatar} size={40} />
                                   </div>
-                                </div>
-                                <div className="mt-2 text-sm text-center truncate w-20 text-white">{p.name}</div>
+                                  <div className="text-sm font-medium text-center truncate w-full px-1 text-gray-700 dark:text-gray-200">{p.name}</div>
+                                </motion.div>
                               </motion.li>
                             ))}
                           </ul>
@@ -319,13 +354,18 @@ export default function HostPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
+
               </div>
 
-
-              <div className='mt-6 text-center'>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className='mt-10 text-center'
+              >
                 <ActionButton onClick={startGame} disabled={players.length === 0}>Start Game</ActionButton>
-              </div>
+              </motion.div>
             </div>
           )}
 

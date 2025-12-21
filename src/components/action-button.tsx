@@ -17,7 +17,7 @@ export default function ActionButton({ children, variant = 'primary', className 
   const cls = `${base} ${variants[variant] ?? variants.primary} ${className}`;
 
   return (
-    <button className={cls} {...props}>
+    <button className={`${cls} disabled:opacity-50 disabled:cursor-not-allowed`} {...props}>
       {children}
     </button>
   );
