@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sofa } from 'lucide-react';
+import Header from '@/components/header';
 import { io, Socket } from 'socket.io-client';
 import { RoomStates } from '../host/page';
 import useLocalStorage from '@/hooks/useLocalStorage';
@@ -194,29 +194,7 @@ export default function PlayerPage() {
   return (
     <div className="p-6 max-w-md mx-auto relative">
 
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-3">
-          <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
-          <h1 className="text-2xl font-bold m-0">KouchParty</h1>
-        </div>
-        {/* room label / code on the right of the header */}
-        {roomCode ? (
-          <div className="text-right text-xs flex items-center gap-3">
-            <div className="flex flex-col items-center">
-              <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{roomCode}</span>
-              <span className="text-xs mt-1">Code</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {playerAvatar ? (
-                <div className="flex flex-col items-center">
-                  <PlayerAvatar avatarKey={playerAvatar} size={24} />
-                  <span className="text-xs mt-1">{name || 'Player'}</span>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <Header roomCode={roomCode || null} avatarKey={playerAvatar} name={name ?? null} role="player" />
 
       {paused && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
@@ -225,8 +203,6 @@ export default function PlayerPage() {
           </div>
         </div>
       )}
-
-        {/* Round splash removed on player view; host shows the splash */}
 
       {!joined ? (
         <div>
@@ -239,8 +215,6 @@ export default function PlayerPage() {
         </div>
       ) : (
         <div>
-          {/* When player has joined but the game is still in the lobby, show a
-              friendly waiting message instead of exposing the room code. */}
           {state === 'lobby' ? (
             <div className="mb-4 p-4 rounded bg-gray-50 dark:bg-gray-900 text-center">
               <p className="text-lg font-medium">Waiting for host to start game</p>
@@ -257,7 +231,6 @@ export default function PlayerPage() {
                   </div>
                 </div>
                 <p className="mb-2">{question}</p>
-                {/* time remaining moved below the progress bar */}
                 <input
                   className="w-full mb-2 p-2 border rounded"
                   value={answer}
@@ -358,7 +331,6 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
 
   return (
     <div className={`mt-4 p-4 rounded ${flash ?? ''}`}> 
-      {/* Answer at top */}
       <div className="mb-3">
         <p className="text-sm text-gray-600 dark:text-gray-300">Your answer</p>
         <div className="text-2xl font-bold">{my ? (my.answer ?? '—') : '—'}</div>
@@ -399,7 +371,6 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
         </table>
       </div>
 
-      {/* Progress bar at bottom */}
       {timerEndsAt && nextTimerDurationMs && (
         <div className="mt-4">
           <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">

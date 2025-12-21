@@ -1,7 +1,7 @@
 "use client";
 
-import { Laptop, Sofa } from 'lucide-react';
 import PlayerAvatar from '@/components/player-avatar';
+import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -211,28 +211,7 @@ export default function HostPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto relative">
 
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-3">
-          <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
-          <h1 className="text-2xl font-bold m-0">KouchParty</h1>
-        </div>
-
-        {roomCode ? (
-          <div className="text-right text-xs flex items-center gap-3">
-            <div className="flex flex-col items-center">
-              <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{roomCode}</span>
-              <span className="text-xs mt-1">Code</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col items-center">
-                <Laptop size={24} />
-                <span className="text-xs mt-1">Host</span>
-              </div>
-
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <Header roomCode={roomCode} avatarKey={player?.avatar} name={player?.name ?? null} role="host" />
 
       {/* Home page tagline + how to play + big start button */}
       {showIntro && (
@@ -267,52 +246,55 @@ export default function HostPage() {
           {state === 'lobby' && (
             <div className="mb-4">
               <div className="flex flex-col md:flex-row gap-6 items-start">
+
                 {/* QR / scan / URL column */}
-                <div className="w-full md:w-1/2 flex flex-col items-center">
+                <div className="w-full md:w-1/2 flex flex-col items-center m-3">
                   {qrDataUrl ? (
-                    <div className="mt-3 flex flex-col items-center gap-3">
-                      <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white p-1 rounded shadow" />
-                      <p className="text-sm">Scan to join</p>
+                    <div className="flex flex-col items-center gap-3 rounded-lg p-4 bg-gray-900">
+                      <p className="text-lg">Scan to join</p>
+                      <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white rounded shadow" />
                       <a target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline break-all text-center" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ?? `/player?code=${roomCode}`}</a>
                     </div>
                   ) : (
-                    <div className="mt-3 text-sm text-gray-600">QR not available</div>
+                    <div className="text-sm text-gray-600">QR not available</div>
                   )}
                 </div>
 
                 {/* Players column */}
-                <div className="my-auto w-full md:w-1/2">
-                  {players.length === 0 ? (
-                    <div className="mb-4 p-4 rounded bg-gray-50 dark:bg-gray-900 text-center">
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Waiting for players to join</p>
-                    </div>
-                  ) : (
-                    <div className="mb-4">
-                      <h3 className="font-semibold">Players</h3>
-                      <AnimatePresence>
-                        <ul className="mt-3 grid grid-cols-4 gap-4 justify-center">
-                          {players.map((p) => (
-                            <motion.li
-                              key={p.id}
-                              initial={{ opacity: 0, scale: 0.96 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.96 }}
-                              transition={{ duration: 0.22 }}
-                              layout
-                              className="flex flex-col items-center justify-center"
-                            >
-                              <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-transparent">
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <PlayerAvatar avatarKey={p.avatar} size={40} />
+                <div className="w-full md:w-1/2 m-3">
+                  <div className="rounded bg-gray-50 dark:bg-gray-900 text-center">
+                    {players.length === 0 ? (
+
+                      <p className=" text-sm text-gray-600 dark:text-gray-300">Waiting for players to join</p>
+
+                    ) : (
+                      <div>
+                        <h3 className="font-semibold">Players</h3>
+                        <AnimatePresence>
+                          <ul className="mt-3 grid grid-cols-4 gap-4 justify-center">
+                            {players.map((p) => (
+                              <motion.li
+                                key={p.id}
+                                initial={{ opacity: 0, scale: 0.96 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.96 }}
+                                transition={{ duration: 0.22 }}
+                                layout
+                                className="flex flex-col items-center justify-center"
+                              >
+                                <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-transparent">
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <PlayerAvatar avatarKey={p.avatar} size={40} />
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="mt-2 text-sm text-center truncate w-20 text-white">{p.name}</div>
-                            </motion.li>
-                          ))}
-                        </ul>
-                      </AnimatePresence>
-                    </div>
-                  )}
+                                <div className="mt-2 text-sm text-center truncate w-20 text-white">{p.name}</div>
+                              </motion.li>
+                            ))}
+                          </ul>
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -442,7 +424,7 @@ export default function HostPage() {
                 </table>
               </div>
 
-              {/* Progress bar moved to bottom and smoother transition */}
+              {/* Progress bar */}
               {timerEndsAt && nextTimerDurationMs && (
                 <div className="mt-4">
                   <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
@@ -483,7 +465,6 @@ export default function HostPage() {
               </div>
             </div>
           )}
-          {/* (sticky footer removed) */}
         </div>
       )}
     </motion.div>
