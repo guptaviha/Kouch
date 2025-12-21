@@ -24,6 +24,7 @@ export default function HostPage() {
   const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
   const [state, setState] = useState<RoomStates>('lobby');
   const [question, setQuestion] = useState<string | null>(null);
+  const [questionImage, setQuestionImage] = useState<string | null>(null);
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
   const [roundIndex, setRoundIndex] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
@@ -35,6 +36,7 @@ export default function HostPage() {
   const pauseTimerRef = useRef<number | null>(null);
   const [pauseRemainingMs, setPauseRemainingMs] = useState<number | null>(null);
   const [playAgainPending, setPlayAgainPending] = useState(false);
+  const [selectedPack, setSelectedPack] = useState<string | null>(null);
 
   useEffect(() => {
     const s = io(SERVER, { path: '/ws' });
@@ -67,8 +69,10 @@ export default function HostPage() {
       if (msg.type === 'game_state') {
         setState('playing');
         setQuestion(msg.question || null);
+        setQuestionImage(msg.image || null);
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
+        setRoundResults(null);
         setRoundResults(null);
         // reset answered players for the new round
         setAnsweredPlayers([]);
@@ -179,7 +183,7 @@ export default function HostPage() {
 
   const createRoom = () => {
     if (!socket) return;
-    socket.emit('message', { type: 'create_room', name: 'Host' });
+    socket.emit('message', { type: 'create_room', name: 'Host', pack: selectedPack });
   };
 
   const startGame = () => {
@@ -216,13 +220,14 @@ export default function HostPage() {
       {/* Home page tagline + how to play + big start button */}
       {showIntro && (
         <div className="mb-6 text-center">
-          <p className="text-lg font-medium">couch party games for friends</p>
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-xl font-medium">couch party games for friends</p>
+          <div className="w-2/3 mx-auto mt-5 text-lg text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-800 p-2 rounded">
             <h3 className="font-semibold mb-1">How to play</h3>
             <ol className="list-decimal list-inside space-y-1">
               <li>Get some friends with phones.</li>
+              <li>Choose a game pack.</li>
               <li>Start a party on a screen everyone can see.</li>
-              <li>Enjoy.</li>
+              <li>Decimate your friends!</li>
             </ol>
           </div>
 
@@ -238,8 +243,27 @@ export default function HostPage() {
       )}
 
       {!roomCode ? (
-        <div className='text-center'>
-          <ActionButton onClick={createRoom}>Start Party</ActionButton>
+        <div className='flex flex-col items-center gap-8 w-full'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            <div
+              onClick={() => setSelectedPack('general')}
+              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'general' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700'}`}
+            >
+              <h3 className="text-xl font-bold mb-2">General Trivia</h3>
+              <p className="text-gray-600 dark:text-gray-400">Classic brain teasers to test your knowledge.</p>
+            </div>
+            <div
+              onClick={() => setSelectedPack('rebus')}
+              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'rebus' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700'}`}
+            >
+              <h3 className="text-xl font-bold mb-2">Rebus Puzzles</h3>
+              <p className="text-gray-600 dark:text-gray-400">Visual word puzzles. Say what you see!</p>
+            </div>
+          </div>
+
+          <div className={`transition-all duration-500 ${selectedPack ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+            <ActionButton onClick={createRoom}>Start Party</ActionButton>
+          </div>
         </div>
       ) : (
         <div>
@@ -250,7 +274,7 @@ export default function HostPage() {
                 {/* QR / scan / URL column */}
                 <div className="w-full md:w-1/2 flex flex-col items-center m-3">
                   {qrDataUrl ? (
-                    <div className="flex flex-col items-center gap-3 rounded-lg p-4 bg-gray-900">
+                    <div className="flex flex-col items-center gap-3 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                       <p className="text-lg">Scan to join</p>
                       <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-44 h-44 bg-white rounded shadow" />
                       <a target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline break-all text-center" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ?? `/player?code=${roomCode}`}</a>
@@ -314,7 +338,12 @@ export default function HostPage() {
                     <h2 className="text-lg font-semibold">Question</h2>
                   </div>
                 </div>
-                <p className="mb-2">{question}</p>
+                <p className="mb-2 text-xl font-medium">{question}</p>
+                {questionImage && (
+                  <div className="my-6 flex justify-center">
+                    <img src={questionImage} alt="Puzzle" className="max-h-64 rounded-lg shadow-md border border-gray-100 dark:border-gray-800" />
+                  </div>
+                )}
               </div>
 
               {/* Round progress bar at bottom of the playing card */}

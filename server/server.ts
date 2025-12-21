@@ -54,6 +54,7 @@ interface Room {
   nextTimerEndsAt?: number | null;
   pauseRemainingMs?: number | null;
   answers: Map<string, SubmittedAnswer>;
+  selectedPack: string;
 }
 
 const NEXT_TARGET = process.env.NEXT_TARGET || 'http://localhost:3000';
@@ -70,11 +71,19 @@ const server = http.createServer((req, res) => {
 });
 
 // Hardcoded questions (3 rounds)
-const QUESTIONS = [
-  { question: 'What is the capital of France?', answer: 'paris' },
-  { question: 'What is 5 + 7?', answer: '12' },
-  { question: 'Which planet is known as the Red Planet?', answer: 'mars' },
-];
+// Hardcoded questions (3 rounds)
+const PACKS: Record<string, { question: string; answer: string; image?: string }[]> = {
+  general: [
+    { question: 'What is the capital of France?', answer: 'paris' },
+    { question: 'What is 5 + 7?', answer: '12' },
+    { question: 'Which planet is known as the Red Planet?', answer: 'mars' },
+  ],
+  rebus: [
+    { question: 'Solve the rebus puzzle!', answer: 'starfish', image: '/rebus-1.png' },
+    { question: 'Solve the rebus puzzle!', answer: 'buttercup', image: '/rebus-2.png' },
+    { question: 'Solve the rebus puzzle!', answer: 'fireman', image: '/rebus-3.png' },
+  ]
+};
 
 const ROUND_DURATION_MS = 30_000; // 30s per round
 const BETWEEN_ROUND_MS = 10_000; // 10s pause between rounds (result screen)
@@ -149,7 +158,8 @@ function leaderboardFor(room: Room) {
 
 function startRound(room: Room) {
   const currentRoundIndex = room.roundIndex;
-  if (currentRoundIndex >= QUESTIONS.length) {
+  const pack = PACKS[room.selectedPack] || PACKS['general'];
+  if (currentRoundIndex >= pack.length) {
     room.state = 'finished';
     broadcast(room, { type: 'final_leaderboard', roomCode: room.code, leaderboard: leaderboardFor(room) });
     return;
@@ -165,7 +175,8 @@ function startRound(room: Room) {
     state: room.state,
     roomCode: room.code,
     roundIndex: currentRoundIndex,
-    question: QUESTIONS[currentRoundIndex].question,
+    question: pack[currentRoundIndex].question,
+    image: pack[currentRoundIndex].image, // send image URL if available
     timerEndsAt: roundEnd,
   });
 
@@ -175,7 +186,8 @@ function startRound(room: Room) {
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
   const currentRoundIndex = room.roundIndex;
-  const correctAnswer = QUESTIONS[currentRoundIndex].answer.toLowerCase().trim();
+  const pack = PACKS[room.selectedPack] || PACKS['general'];
+  const correctAnswer = pack[currentRoundIndex].answer.toLowerCase().trim();
 
   const results: Array<{
     playerId: string;
@@ -228,14 +240,14 @@ function endRound(room: Room) {
     results,
     leaderboard: leaderboardFor(room),
     // include the correct answer so hosts can display it
-    correctAnswer: QUESTIONS[currentRoundIndex].answer,
+    correctAnswer: pack[currentRoundIndex].answer,
     nextTimerEndsAt: nextEndsAt,
     nextTimerDurationMs: BETWEEN_ROUND_MS,
   });
 
   room.roundIndex++;
 
-  if (room.roundIndex < QUESTIONS.length) {
+  if (room.roundIndex < pack.length) {
     room.timers.next = setTimeout(() => startRound(room), BETWEEN_ROUND_MS);
   } else {
     room.timers.next = setTimeout(() => {
@@ -266,6 +278,7 @@ function handleMessage(socket: Socket, msg: any) {
 
   if (msgType === 'create_room') {
     const name = messageObj.name || 'Host';
+    const pack = messageObj.pack || 'general'; // Default to general if not specified
     const code = (() => {
       let newCode = genCode();
       while (rooms.has(newCode)) newCode = genCode();
@@ -273,16 +286,17 @@ function handleMessage(socket: Socket, msg: any) {
     })();
 
     const hostId = makeId();
-      const hostAvatar = pickAvatar();
-      const room: Room = {
+    const hostAvatar = pickAvatar();
+    const room: Room = {
       code,
       players: new Map(),
       state: 'lobby',
       hostId,
-        host: { id: hostId, name, socket, avatar: hostAvatar },
+      host: { id: hostId, name, socket, avatar: hostAvatar },
       roundIndex: 0,
       timers: {},
       answers: new Map(),
+      selectedPack: pack,
     };
 
     rooms.set(code, room);
@@ -385,7 +399,7 @@ function handleMessage(socket: Socket, msg: any) {
     // notify host/other clients that this player has answered so UI can update
     try {
       broadcast(room, { type: 'player_answered', roomCode: room.code, playerId });
-    } catch (e) {}
+    } catch (e) { }
     // If all players have answered, end the round early
     try {
       if (room.answers.size === room.players.size) {
@@ -487,7 +501,7 @@ io.on('connection', (socket: Socket) => {
         if (promoted.socket) promoted.socket.data = { roomCode: room.code, hostId: promoted.id };
         try {
           room.host.socket.emit('server', { type: 'host_promoted', roomCode: room.code, hostId: promoted.id });
-        } catch (e) {}
+        } catch (e) { }
       } else {
         Object.values(room.timers || {}).forEach((t) => clearTimeout(t));
         rooms.delete(room.code);
