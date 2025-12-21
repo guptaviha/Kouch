@@ -30,3 +30,8 @@ FEATURES
     - ticking sound during last 5 seconds
     - sound when time is up
     - sound when answer is submitted
+
+## Code improvements
+- Add types all across the app
+- Custom components for buttons, modals, etc. to avoid code duplication
+- Shared state in a global store (like Redux or Zustand) to avoid prop drilling
