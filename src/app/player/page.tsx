@@ -6,6 +6,8 @@ import Header from '@/components/header';
 import { RoomStates } from '@/lib/store/types';
 import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
+// use shared CountUp component
+import CountUp from '@/components/count-up';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -524,18 +526,4 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
     </div>
   );
 }
-function CountUp({ from, to, duration = 1.5, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
-  const [value, setValue] = useState(from);
 
-  useEffect(() => {
-    const controls = animate(from, to, {
-      duration,
-      delay,
-      onUpdate: (v) => setValue(Math.round(v)),
-      ease: "easeOut"
-    });
-    return controls.stop;
-  }, [from, to, duration, delay]);
-
-  return <>{value}</>;
-}

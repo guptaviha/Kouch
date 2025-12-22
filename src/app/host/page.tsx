@@ -9,6 +9,9 @@ import { motion, AnimatePresence, animate } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
+// use shared CountUp component
+import CountUp from '@/components/count-up';
+
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 const ROUND_DURATION_MS = 30_000; // same as server
@@ -629,20 +632,4 @@ export default function HostPage() {
       )}
     </motion.div>
   );
-}
-
-function CountUp({ from, to, duration = 1.5, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
-  const [value, setValue] = useState(from);
-
-  useEffect(() => {
-    const controls = animate(from, to, {
-      duration,
-      delay,
-      onUpdate: (v) => setValue(Math.round(v)),
-      ease: "easeOut"
-    });
-    return controls.stop;
-  }, [from, to, duration, delay]);
-
-  return <>{value}</>;
 }
