@@ -17,6 +17,13 @@ export default function Home() {
         router.push('/host');
     };
 
+    const scrollToGames = () => {
+        const gamesSection = document.getElementById('games-section');
+        if (gamesSection) {
+            gamesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -90,12 +97,10 @@ export default function Home() {
                 </motion.p>
                 
                 <motion.div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto" variants={itemVariants}>
-                    <Link href="/host" className="w-full sm:w-auto">
-                        <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                            <Laptop className="mr-2 w-5 h-5" />
-                            Host Party
-                        </Button>
-                    </Link>
+                    <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" onClick={scrollToGames}>
+                        <Laptop className="mr-2 w-5 h-5" />
+                        Host Party
+                    </Button>
                     <Link href="/player" className="w-full sm:w-auto">
                         <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 h-auto hover:bg-secondary/80">
                             <Smartphone className="mr-2 w-5 h-5" />
@@ -165,7 +170,7 @@ export default function Home() {
             </section>
 
             {/* Games Section */}
-            <section className="py-24 relative overflow-hidden">
+            <section id="games-section" className="py-24 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 relative z-10">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
