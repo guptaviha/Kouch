@@ -8,6 +8,7 @@ import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence, animate } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 
@@ -96,8 +97,8 @@ export default function HostPage() {
         setQuestionImage(msg.image || null);
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-  setRoundResults(null);
-  setRoundResults(null);
+        setRoundResults(null);
+        setRoundResults(null);
         // reset answered players for the new round
         setAnsweredPlayers([]);
       }
@@ -125,6 +126,9 @@ export default function HostPage() {
         // if server provided nextTimerEndsAt, update timer
         if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
         setPauseRemainingMs(null);
+      }
+      if (msg.type === 'timer_updated') {
+        if (msg.timerEndsAt) setTimerEndsAt(msg.timerEndsAt);
       }
     });
 
@@ -210,6 +214,11 @@ export default function HostPage() {
   const startGame = () => {
     if (!socket || !roomCode || !player) return;
     socket.emit('message', { type: 'start_game', roomCode, playerId: player.id });
+  };
+
+  const extendTimer = () => {
+    if (!socket || !roomCode) return;
+    socket.emit('message', { type: 'extend_timer', roomCode, hostId: player?.id });
   };
 
   const pauseGame = () => {
@@ -400,7 +409,19 @@ export default function HostPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-8 text-center"
               >
-                <div className="mb-6">
+                <div className="mb-6 relative">
+                  {!paused && (
+                    <div className="absolute top-0 right-0 z-20">
+                      <Button
+                        onClick={extendTimer}
+                        variant="outline"
+                        size="sm"
+                        className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+                      >
+                        +15s
+                      </Button>
+                    </div>
+                  )}
                   <h2 className="text-sm font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
                   <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{question}</p>
                 </div>
@@ -421,28 +442,22 @@ export default function HostPage() {
                 {/* Round progress bar at bottom of the playing card */}
                 {timerEndsAt && (
                   <div className="mt-8 px-4">
-                    <div className="w-full h-4 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
-                      <div
-                        className={
-                          `h-full bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`
-                        }
-                        style={{
-                          width: `${Math.max(
-                            0,
-                            Math.min(
-                              100,
-                              Math.round(
-                                (100 * (
-                                  (paused && pauseRemainingMs != null)
-                                    ? (ROUND_DURATION_MS - pauseRemainingMs)
-                                    : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                                )) / ROUND_DURATION_MS
-                              )
-                            )
-                          )}%`,
-                        }}
-                      />
-                    </div>
+                    <Progress
+                      value={Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          Math.round(
+                            (100 * (
+                              (paused && pauseRemainingMs != null)
+                                ? (ROUND_DURATION_MS - pauseRemainingMs)
+                                : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                            )) / ROUND_DURATION_MS
+                          )
+                        )
+                      )}
+                      className={`h-4 [&>div]:bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? '[&>div]:transition-none' : '[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-linear'}`}
+                    />
                     <p className="text-sm font-medium text-gray-500 mt-2">Time remaining: {countdown}s</p>
                   </div>
                 )}

@@ -55,6 +55,7 @@ interface Room {
   pauseRemainingMs?: number | null;
   answers: Map<string, SubmittedAnswer>;
   selectedPack: string;
+  timerEndsAt?: number;
 }
 
 const NEXT_TARGET = process.env.NEXT_TARGET || 'http://localhost:3000';
@@ -170,6 +171,7 @@ function startRound(room: Room) {
   room.answers = new Map<string, SubmittedAnswer>();
 
   const roundEnd = room.roundStart + ROUND_DURATION_MS;
+  room.timerEndsAt = roundEnd;
   broadcast(room, {
     type: 'game_state',
     state: room.state,
@@ -446,6 +448,38 @@ function handleMessage(socket: Socket, msg: any) {
     }
     // notify everyone
     broadcastLobby(room);
+    return;
+  }
+
+  if (msgType === 'extend_timer') {
+    const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
+    const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
+    if (!room) return;
+    // only host can extend
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can extend timer' });
+      return;
+    }
+
+    if (room.state !== 'playing' || !room.timers.round) {
+      send(socket, { type: 'error', message: 'can only extend timer during a round' });
+      return;
+    }
+
+    const EXTENSION_MS = 15_000;
+
+    // If we don't have timerEndsAt tracked yet (e.g. server restarted mid-game but memory persisted? unlikely), fallback
+    const currentEnd = room.timerEndsAt || (Date.now() + 1000);
+    const newEnd = currentEnd + EXTENSION_MS;
+    room.timerEndsAt = newEnd;
+
+    // Reschedule
+    if (room.timers.round) clearTimeout(room.timers.round);
+    const remaining = Math.max(0, newEnd - Date.now());
+    room.timers.round = setTimeout(() => endRound(room), remaining);
+
+    console.log(`Timer extended by ${EXTENSION_MS}ms. New end: ${newEnd}`);
+    broadcast(room, { type: 'timer_updated', roomCode: room.code, timerEndsAt: newEnd });
     return;
   }
 

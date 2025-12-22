@@ -7,6 +7,7 @@ import { io, Socket } from 'socket.io-client';
 import { RoomStates } from '@/lib/store/types';
 import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
+import { Progress } from '@/components/ui/progress';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -145,6 +146,11 @@ export default function PlayerPage() {
         setPauseRemainingMs(null);
         return;
       }
+
+      if (msg.type === 'timer_updated') {
+        if (msg.timerEndsAt) setTimerEndsAt(msg.timerEndsAt);
+        return;
+      }
     });
 
     // prefill room code from URL param if present
@@ -190,8 +196,9 @@ export default function PlayerPage() {
   }, [timerEndsAt, paused]);
 
   const joinRoom = () => {
+    setStatusMessage(null);
     if (!socket) return;
-        if (!roomCode || !name) {
+    if (!roomCode || !name) {
       setStatusMessage('Enter name and room code');
       return;
     }
@@ -201,7 +208,7 @@ export default function PlayerPage() {
   const submitAnswer = () => {
     if (!socket || !playerId || !roomCode || paused) return;
     socket.emit('message', { type: 'submit_answer', roomCode, playerId, answer });
-  setStatusMessage('Waiting for other players to answer...');
+    setStatusMessage('Waiting for other players to answer...');
     // clear the input so the player can see their answer was submitted
     setAnswer('');
     // disable further submits until next round
@@ -219,6 +226,12 @@ export default function PlayerPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
             <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
+            <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
+              <span>Host is up to something</span>
+              <span className="animate-bounce delay-75">.</span>
+              <span className="animate-bounce delay-150">.</span>
+              <span className="animate-bounce delay-300">.</span>
+            </div>
           </div>
         </div>
       )}
@@ -251,7 +264,7 @@ export default function PlayerPage() {
                 placeholder="ABCD"
                 maxLength={4}
                 value={roomCode ?? ''}
-                onChange={(e) => setRoomCode(e.target.value)}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
               />
             </div>
 
@@ -264,13 +277,13 @@ export default function PlayerPage() {
             </button>
           </div>
 
-      {statusMessage && (
+          {statusMessage && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-center text-sm font-medium"
             >
-        {statusMessage}
+              {statusMessage}
             </motion.div>
           )}
         </motion.div>
@@ -331,52 +344,34 @@ export default function PlayerPage() {
                 }}
               />
 
-              <button
+              {!submitted ? <button
                 onClick={submitAnswer}
                 disabled={submitted || !answer.trim()}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95 ${submitted
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px]'
-                  }`}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px]`}
               >
-                {submitted ? 'Answer Submitted' : 'Submit Answer'}
+                Submit Answer
               </button>
+                : null}
 
-              {submitted && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg text-center text-sm font-medium"
-                >
-                  Waiting for other players...
-                </motion.div>
-              )}
-
-              {/* Progress bar for the active round (bottom) */}
+              {/* Progress bar for the active round */}
               {timerEndsAt && (
                 <div className="mt-8">
-                  <div className="w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className={
-                        `h-full bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`
-                      }
-                      style={{
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            Math.round(
-                              (100 * (
-                                (paused && pauseRemainingMs != null)
-                                  ? (ROUND_DURATION_MS - pauseRemainingMs)
-                                  : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                              )) / ROUND_DURATION_MS
-                            )
-                          )
-                        )}%`,
-                      }}
-                    />
-                  </div>
+                  <Progress
+                    value={Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        Math.round(
+                          (100 * (
+                            (paused && pauseRemainingMs != null)
+                              ? (ROUND_DURATION_MS - pauseRemainingMs)
+                              : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                          )) / ROUND_DURATION_MS
+                        )
+                      )
+                    )}
+                    className={`h-3 bg-gray-100 dark:bg-gray-800 [&>div]:bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? '[&>div]:transition-none' : '[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-linear'}`}
+                  />
                   <p className="text-xs text-gray-500 mt-2 font-medium text-right">Time remaining: {countdown}s</p>
                 </div>
               )}
@@ -498,7 +493,7 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Your Answer</p>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{my?.answer ?? '—'}</div>
           <div className="mt-4 text-sm font-medium text-gray-500">
-            {isCorrect ? `+${my?.points || 0} points` : 'Do better next time!'}
+            {isCorrect ? `+${my?.points || 0} points` : 'Better luck next time!'}
           </div>
         </div>
       </motion.div>
