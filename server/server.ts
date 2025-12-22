@@ -410,7 +410,10 @@ function handleMessage(socket: Socket, msg: any) {
         }
         // ensure we only end if currently playing
         if (room.state === 'playing') {
-          endRound(room);
+          // Add a slight delay before showing results for better UX
+          setTimeout(() => {
+            if (room.state === 'playing') endRound(room);
+          }, 1500);
         }
       }
     } catch (e) {

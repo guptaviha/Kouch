@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence, animate } from 'framer-motion';
 import Header from '@/components/header';
 import { io, Socket } from 'socket.io-client';
 import { RoomStates } from '@/lib/store/types';
@@ -207,90 +207,171 @@ export default function PlayerPage() {
       <Header roomCode={roomCode || null} avatarKey={playerAvatar} name={name ?? null} role="player" />
 
       {paused && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-white/80 dark:bg-black/70 backdrop-blur-sm rounded p-6">
-            <div className="text-3xl font-extrabold">Game Paused</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+          <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
+            <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
           </div>
         </div>
       )}
 
       {!joined ? (
-        <div>
-          <label className="block mb-2">Name</label>
-          <input className="w-full mb-3 p-2 border rounded" value={name} onChange={(e) => setName(e.target.value)} />
-          <label className="block mb-2">Room Code</label>
-          <input className="w-full mb-3 p-2 border rounded" value={roomCode ?? ''} onChange={(e) => setRoomCode(e.target.value)} />
-          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={joinRoom}>Join</button>
-          {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-6 md:p-8"
+        >
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Join the Party</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1.5 text-xs font-bold uppercase tracking-widest text-gray-500">Nickname</label>
+              <input
+                className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-lg"
+                placeholder="e.g. Maverick"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1.5 text-xs font-bold uppercase tracking-widest text-gray-500">Room Code</label>
+              <input
+                className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono font-bold text-lg uppercase tracking-wider"
+                placeholder="ABCD"
+                maxLength={4}
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+              />
+            </div>
+
+            <button
+              className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={joinRoom}
+              disabled={!name.trim() || roomCode.length < 4}
+            >
+              Join Game
+            </button>
+          </div>
+
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-center text-sm font-medium"
+            >
+              {message}
+            </motion.div>
+          )}
+        </motion.div>
       ) : (
         <div>
           {state === 'lobby' ? (
-            <div className="mb-4 p-4 rounded bg-gray-50 dark:bg-gray-900 text-center">
-              <p className="text-lg font-medium">Waiting for host to start game</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-8 text-center flex flex-col items-center"
+            >
+              <div className="mb-6 relative">
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2 overflow-hidden shadow-inner">
+                    <PlayerAvatar avatarKey={playerAvatar} size={80} />
+                  </div>
+                </motion.div>
+                <div className="absolute -bottom-2 w-16 h-2 bg-black/10 rounded-[100%] blur-sm left-1/2 -translate-x-1/2 animate-pulse" />
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Hello, {name}!
+              </h2>
+              <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
+                <span>Waiting for host to start</span>
+                <span className="animate-bounce delay-75">.</span>
+                <span className="animate-bounce delay-150">.</span>
+                <span className="animate-bounce delay-300">.</span>
+              </div>
+            </motion.div>
           ) : (
             null
           )}
 
           {state === 'playing' && (
-              <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 rounded">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold">Question</h2>
-                  </div>
-                </div>
-                <p className="mb-2">{question}</p>
-                <input
-                  className="w-full mb-2 p-2 border rounded"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Type answer"
-                  disabled={submitted}
-                />
-                <button
-                  onClick={submitAnswer}
-                  disabled={submitted}
-                  className={submitted
-                    ? 'px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed opacity-80'
-                    : 'px-4 py-2 bg-green-600 text-white rounded hover:brightness-90'
-                  }
-                >
-                  {submitted ? 'Submitted' : 'Submit'}
-                </button>
-                {submitted && (
-                  <p className="mt-3 text-sm text-gray-600">Waiting for other players to answer...</p>
-                )}
-
-                {/* Progress bar for the active round (bottom) */}
-                {timerEndsAt && (
-                  <div className="mt-4">
-                    <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
-                      <div
-                        className={
-                          `h-3 bg-green-500 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`
-                        }
-                        style={{
-                              width: `${Math.max(
-                                0,
-                                Math.min(
-                                  100,
-                                  Math.round(
-                                    (100 * (
-                                      (paused && pauseRemainingMs != null)
-                                        ? (ROUND_DURATION_MS - pauseRemainingMs)
-                                        : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                                    )) / ROUND_DURATION_MS
-                                    )
-                                )
-                              )}%`,
-                        }}
-                      />
-                    </div>
-                        <p className="text-xs text-gray-600 mt-1">Time remaining: {countdown}s</p>
-                  </div>
-                )}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-6 md:p-8"
+            >
+              <div className="mb-6">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{question}</p>
               </div>
+
+              <input
+                className="w-full mb-4 p-4 text-lg border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 bg-gray-50 dark:bg-gray-900 transition-colors"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Type your answer..."
+                disabled={submitted}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitAnswer();
+                }}
+              />
+
+              <button
+                onClick={submitAnswer}
+                disabled={submitted || !answer.trim()}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95 ${submitted
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px]'
+                  }`}
+              >
+                {submitted ? 'Answer Submitted' : 'Submit Answer'}
+              </button>
+
+              {submitted && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg text-center text-sm font-medium"
+                >
+                  Waiting for other players...
+                </motion.div>
+              )}
+
+              {/* Progress bar for the active round (bottom) */}
+              {timerEndsAt && (
+                <div className="mt-8">
+                  <div className="w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className={
+                        `h-full bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`
+                      }
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            Math.round(
+                              (100 * (
+                                (paused && pauseRemainingMs != null)
+                                  ? (ROUND_DURATION_MS - pauseRemainingMs)
+                                  : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                              )) / ROUND_DURATION_MS
+                            )
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 font-medium text-right">Time remaining: {countdown}s</p>
+                </div>
+              )}
+            </motion.div>
           )}
 
           {state === 'round_result' && roundResults && (
@@ -306,14 +387,73 @@ export default function PlayerPage() {
             />
           )}
 
-          {state === 'finished' && leaderboard && (
-            <div className="mt-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 rounded">
-              <h3 className="font-semibold">Final Leaderboard</h3>
-              <ol className="mt-2">
-                {(leaderboard || []).map((p: any) => (
-                  <li key={p.id}>{p.name} — {p.score} pts</li>
-                ))}
-              </ol>
+          {state === 'finished' && roundResults && (
+            <div className="mt-8 w-full max-w-lg mx-auto text-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8"
+              >
+                <h2 className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">Game Over!</h2>
+                <p className="text-gray-500 font-medium">Here are the final standings</p>
+              </motion.div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                {/* Winner Spotlight */}
+                {(roundResults.final || [])[0] && (
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-900/20 dark:to-gray-900 p-8 border-b border-gray-100 dark:border-gray-800 flex flex-col items-center"
+                  >
+                    <div className="relative mb-4">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-4xl animate-bounce">👑</div>
+                      <div className="w-24 h-24 rounded-full bg-yellow-100 dark:bg-yellow-900/40 p-1 ring-4 ring-yellow-400/30">
+                        <PlayerAvatar avatarKey={(roundResults.final || [])[0].avatar} size={88} />
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-white dark:border-gray-900">
+                        1
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{(roundResults.final || [])[0].name}</h3>
+                    <div className="text-yellow-600 dark:text-yellow-400 font-bold bg-yellow-100 dark:bg-yellow-900/30 px-4 py-1 rounded-full text-sm">
+                      {(roundResults.final || [])[0].score} points
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Runners Up */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
+                  <ol className="space-y-2">
+                    {(roundResults.final || []).slice(1).map((p: any, i: number) => (
+                      <motion.li
+                        key={p.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + (i * 0.1) }}
+                        className={`flex items-center p-3 rounded-xl shadow-sm border ${p.id === playerId
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-500/20'
+                            : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
+                          }`}
+                      >
+                        <div className="font-bold text-gray-400 w-6 text-left">{i + 2}</div>
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0 mr-3 overflow-hidden">
+                          <PlayerAvatar avatarKey={p.avatar} size={32} />
+                        </div>
+                        <div className="flex-1 text-left font-bold text-gray-900 dark:text-gray-100">
+                          {p.name} {p.id === playerId && '(You)'}
+                        </div>
+                        <div className="font-bold text-gray-600 dark:text-gray-400">{p.score} pts</div>
+                      </motion.li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+
+              <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
+                Waiting for host to restart...
+              </div>
             </div>
           )}
 
@@ -325,67 +465,98 @@ export default function PlayerPage() {
 }
 
 function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurationMs, countdown, setMessage, paused, pauseRemainingMs }: any) {
-  const [flash, setFlash] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!playerId) return;
-    const my = (roundResults.results || []).find((r: any) => r.playerId === playerId);
-    if (!my) return;
-    if (my.correct) setFlash('bg-green-100 dark:bg-green-900');
-    else setFlash('bg-red-100 dark:bg-red-900');
-    const t = window.setTimeout(() => setFlash(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [roundResults, playerId]);
-
   const my = playerId ? (roundResults.results || []).find((r: any) => r.playerId === playerId) : null;
+  const isCorrect = my?.correct;
 
   return (
-    <div className={`mt-4 p-4 rounded ${flash ?? ''}`}> 
-      <div className="mb-3">
-        <p className="text-sm text-gray-600 dark:text-gray-300">Your answer</p>
-        <div className="text-2xl font-bold">{my ? (my.answer ?? '—') : '—'}</div>
-        <p className="text-sm mt-1">{my ? (my.correct ? 'Correct' : 'Incorrect') : ''}</p>
-      </div>
+    <div className="mt-4 w-full">
+      {/* Your Result Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`rounded-xl shadow-xl overflow-hidden mb-6 border-2 ${isCorrect
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400'
+          : 'bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-400'
+          }`}
+      >
+        <div className={`p-4 text-center ${isCorrect ? 'bg-green-500' : 'bg-red-500'
+          }`}>
+          <h2 className="text-white text-lg font-bold uppercase tracking-widest">
+            {isCorrect ? 'Correct!' : 'Incorrect'}
+          </h2>
+        </div>
+        <div className="p-6 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Your Answer</p>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{my?.answer ?? '—'}</div>
+          <div className="mt-4 text-sm font-medium text-gray-500">
+            {isCorrect ? `+${my?.points || 0} points` : 'Do better next time!'}
+          </div>
+        </div>
+      </motion.div>
 
-      {/* Leaderboard */}
-      <div>
-        <h3 className="font-semibold">Leaderboard</h3>
-        <ol className="mt-2">
-          {(roundResults.leaderboard || []).map((p: any) => (
-            <li key={p.id}>{p.name} — {p.score} pts</li>
-          ))}
-        </ol>
-      </div>
+      {/* Leaderboard Card */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
+        <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">Leaderboard</h3>
+        <div className="space-y-3">
+          <AnimatePresence>
+            {(roundResults.leaderboard || []).map((p: any, index: number) => {
+              const result = roundResults.results.find((r: any) => r.playerId === p.id);
+              const pointsEarned = result?.points || 0;
+              const previousScore = p.score - pointsEarned;
+              // Highlight current player
+              const isMe = p.id === playerId;
 
-      {/* Results breakdown without time */}
-      <div className="mt-4">
-        <table className="w-full mt-2 text-sm table-fixed">
-          <thead>
-            <tr className="text-left">
-              <th className="pb-2">Player</th>
-              <th className="pb-2">Answer</th>
-              <th className="pb-2">Correct</th>
-              <th className="pb-2">Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(roundResults.results || []).map((r: any) => (
-              <tr key={r.playerId} className="border-t border-gray-100 dark:border-gray-800">
-                <td className="py-2">{r.name}</td>
-                <td className="py-2">{r.answer ?? '—'}</td>
-                <td className="py-2">{r.correct ? 'Yes' : 'No'}</td>
-                <td className="py-2">{r.points}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              return (
+                <motion.div
+                  key={p.id}
+                  layout
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`flex items-center p-3 rounded-lg ${isMe
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                    : 'bg-gray-50 dark:bg-gray-800/50 border border-transparent'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 mr-3 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <PlayerAvatar avatarKey={p.avatar} size={32} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold truncate ${isMe ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                        {p.name} {isMe && '(You)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right flex flex-col items-end">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                      <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />
+                    </div>
+                    {pointsEarned > 0 && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5 + (index * 0.1) }}
+                        className="text-[10px] font-bold text-green-600 dark:text-green-400"
+                      >
+                        +{pointsEarned}
+                      </motion.span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
 
       {timerEndsAt && nextTimerDurationMs && (
-        <div className="mt-4">
-          <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden">
+        <div className="mt-8 px-4">
+          <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
-              className={`h-3 bg-green-500 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`}
+              className={`h-3 bg-blue-500 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`}
               style={{
                 width: `${Math.max(
                   0,
@@ -403,9 +574,24 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
               }}
             />
           </div>
-          <p className="text-xs text-gray-600 mt-1">Next question in {countdown}s</p>
+          <p className="text-xs text-center text-gray-500 mt-2 font-medium">Next round in {countdown}s</p>
         </div>
       )}
     </div>
   );
+}
+function CountUp({ from, to, duration = 1.5, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
+  const [value, setValue] = useState(from);
+
+  useEffect(() => {
+    const controls = animate(from, to, {
+      duration,
+      delay,
+      onUpdate: (v) => setValue(Math.round(v)),
+      ease: "easeOut"
+    });
+    return controls.stop;
+  }, [from, to, duration, delay]);
+
+  return <>{value}</>;
 }
