@@ -4,7 +4,7 @@ import PlayerAvatar from '@/components/player-avatar';
 import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/lib/store';
-import { RoomStates } from '@/lib/store/types';
+import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence, animate } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -14,17 +14,13 @@ import QRCode from 'qrcode';
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 const ROUND_DURATION_MS = 30_000; // same as server
 
-type Player = { id: string; name: string; score: number; avatar?: string };
-
-// RoomStates is defined in a shared type file: '@/lib/store/types'
-
 export default function HostPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [player, setPlayer] = useState<Player | null>(null);
+  const [player, setPlayer] = useState<PlayerInfo | null>(null);
   // roomCode and players moved into the central store
   const roomCode = useGameStore((s) => s.roomCode);
   const setRoomCode = useGameStore((s) => s.setRoomCode);
-  const players = useGameStore((s) => s.players as Player[]);
+  const players = useGameStore((s) => s.players as PlayerInfo[]);
   const setPlayers = useGameStore((s) => s.setPlayers);
   const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
   // game state and question are now stored in the central zustand store
@@ -37,18 +33,33 @@ export default function HostPage() {
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
   const [questionImage, setQuestionImage] = useState<string | null>(null);
-  const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
-  const [roundIndex, setRoundIndex] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState<number>(0);
-  const [roundResults, setRoundResults] = useState<any>(null);
-  const [nextTimerDurationMs, setNextTimerDurationMs] = useState<number | null>(null);
+  // timer/round state moved to store
+  const timerEndsAt = useGameStore((s) => s.timerEndsAt);
+  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
+  const roundIndex = useGameStore((s) => s.roundIndex);
+  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
+  const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
+  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
+  const countdown = useGameStore((s) => s.countdown);
+  const setCountdown = useGameStore((s) => s.setCountdown);
+  const roundResults = useGameStore((s) => s.roundResults);
+  const setRoundResults = useGameStore((s) => s.setRoundResults);
+  const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
+  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
   const timerRef = useRef<number | null>(null);
   const splashTimerRef = useRef<number | null>(null);
-  const [paused, setPaused] = useState(false);
-  const pauseTimerRef = useRef<number | null>(null);
-  const [pauseRemainingMs, setPauseRemainingMs] = useState<number | null>(null);
+  // paused is stored in the central game slice now
+  const paused = useGameStore((s) => s.paused);
+  const setPaused = useGameStore((s) => s.setPaused);
   const [playAgainPending, setPlayAgainPending] = useState(false);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  // host UI state moved to host slice
+  const qrDataUrl = useGameStore((s) => s.qrDataUrl);
+  const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
+  const joinUrl = useGameStore((s) => s.joinUrl);
+  const setJoinUrl = useGameStore((s) => s.setJoinUrl);
+  const showIntro = useGameStore((s) => s.showIntro);
+  const setShowIntro = useGameStore((s) => s.setShowIntro);
 
   useEffect(() => {
     const s = io(SERVER, { path: '/ws' });
@@ -85,8 +96,8 @@ export default function HostPage() {
         setQuestionImage(msg.image || null);
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        setRoundResults(null);
-        setRoundResults(null);
+  setRoundResults(null);
+  setRoundResults(null);
         // reset answered players for the new round
         setAnsweredPlayers([]);
       }
@@ -183,12 +194,9 @@ export default function HostPage() {
       if (timerRef.current) window.clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [timerEndsAt]);
+  }, [timerEndsAt, paused]);
 
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     setMounted(true);

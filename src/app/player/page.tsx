@@ -5,7 +5,6 @@ import { motion, AnimatePresence, animate } from 'framer-motion';
 import Header from '@/components/header';
 import { io, Socket } from 'socket.io-client';
 import { RoomStates } from '@/lib/store/types';
-import useLocalStorage from '@/hooks/useLocalStorage';
 import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
 
@@ -24,10 +23,14 @@ export default function PlayerPage() {
   // roomCode moved into central store
   const roomCode = useGameStore((s) => s.roomCode);
   const setRoomCode = useGameStore((s) => s.setRoomCode);
-  const [name, setName] = useLocalStorage<string>('playerName', '');
-  const [joined, setJoined] = useState(false);
-  const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerAvatar, setPlayerAvatar] = useState<string | undefined>(undefined);
+  const name = useGameStore((s) => s.name);
+  const setName = useGameStore((s) => s.setName);
+  const joined = useGameStore((s) => s.joined);
+  const setJoined = useGameStore((s) => s.setJoined);
+  const playerId = useGameStore((s) => s.playerId);
+  const setPlayerId = useGameStore((s) => s.setPlayerId);
+  const playerAvatar = useGameStore((s) => s.playerAvatar);
+  const setPlayerAvatar = useGameStore((s) => s.setPlayerAvatar);
   // use central zustand store for lobby / current question
   const gameStateValue = useGameStore((s) => s.state);
   const setGameState = useGameStore((s) => s.setState);
@@ -37,21 +40,30 @@ export default function PlayerPage() {
   // store uses shared RoomStates directly
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
-  const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
-  const [pauseRemainingMs, setPauseRemainingMs] = useState<number | null>(null);
-  const [roundIndex, setRoundIndex] = useState<number | null>(null);
-  const [answer, setAnswer] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<any>(null);
-  const [roundResults, setRoundResults] = useState<any>(null);
-  const [nextTimerDurationMs, setNextTimerDurationMs] = useState<number | null>(null);
+  // timer/round state moved to store
+  const timerEndsAt = useGameStore((s) => s.timerEndsAt);
+  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
+  const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
+  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
+  const roundIndex = useGameStore((s) => s.roundIndex);
+  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
+  const countdown = useGameStore((s) => s.countdown);
+  const setCountdown = useGameStore((s) => s.setCountdown);
+  const roundResults = useGameStore((s) => s.roundResults);
+  const setRoundResults = useGameStore((s) => s.setRoundResults);
+  const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
+  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
+  const answer = useGameStore((s) => s.answer);
+  const setAnswer = useGameStore((s) => s.setAnswer);
+  const statusMessage = useGameStore((s) => s.statusMessage);
+  const setStatusMessage = useGameStore((s) => s.setStatusMessage);
+  const submitted = useGameStore((s) => s.submitted);
+  const setSubmitted = useGameStore((s) => s.setSubmitted);
   const timerRef = useRef<number | null>(null);
-  const [countdown, setCountdown] = useState<number>(0);
-  const [showRoundSplash, setShowRoundSplash] = useState(false);
-  const [roundMinimized, setRoundMinimized] = useState(false);
   const splashTimerRef = useRef<number | null>(null);
-  const [paused, setPaused] = useState(false);
+  // paused is now stored centrally in the game slice
+  const paused = useGameStore((s) => s.paused);
+  const setPaused = useGameStore((s) => s.setPaused);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -65,7 +77,7 @@ export default function PlayerPage() {
     s.on('server', (msg: any) => {
       if (!msg || !msg.type) return;
       if (msg.type === 'error') {
-        setMessage(msg.message || 'An error occurred');
+        setStatusMessage(msg.message || 'An error occurred');
         return;
       }
 
@@ -77,47 +89,44 @@ export default function PlayerPage() {
       }
 
       if (msg.type === 'lobby_update') {
-  try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
+        try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
         return;
       }
 
       if (msg.type === 'game_state') {
-  setGameState('playing');
+        setGameState('playing');
         setCurrentQuestion(msg.question || '');
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        setLeaderboard(null);
         // clear previous answer at the start of a round
         setAnswer('');
         // allow submitting for the new round
         setSubmitted(false);
         // clear any waiting messages when a new round starts
-        setMessage(null);
+        setStatusMessage(null);
         // do not show round splash on player — host shows splash only
         return;
       }
 
       if (msg.type === 'answer_received') {
-        setMessage('Answer received');
+        setStatusMessage('Answer received');
         return;
       }
 
       if (msg.type === 'round_result') {
-  setGameState('round_result');
-        setLeaderboard(msg.leaderboard || null);
+        setGameState('round_result');
         setRoundResults(msg);
         if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
         if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs(msg.nextTimerDurationMs);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         // round finished — allow submitting in the next round
         setSubmitted(false);
-        setMessage(null);
+        setStatusMessage(null);
         return;
       }
 
       if (msg.type === 'final_leaderboard') {
-  setGameState('finished');
-        setLeaderboard(msg.leaderboard || null);
+        setGameState('finished');
         return;
       }
 
@@ -178,12 +187,12 @@ export default function PlayerPage() {
       if (timerRef.current) window.clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [timerEndsAt]);
+  }, [timerEndsAt, paused]);
 
   const joinRoom = () => {
     if (!socket) return;
-    if (!roomCode || !name) {
-      setMessage('Enter name and room code');
+        if (!roomCode || !name) {
+      setStatusMessage('Enter name and room code');
       return;
     }
     socket.emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name });
@@ -192,7 +201,7 @@ export default function PlayerPage() {
   const submitAnswer = () => {
     if (!socket || !playerId || !roomCode || paused) return;
     socket.emit('message', { type: 'submit_answer', roomCode, playerId, answer });
-    setMessage('Waiting for other players to answer...');
+  setStatusMessage('Waiting for other players to answer...');
     // clear the input so the player can see their answer was submitted
     setAnswer('');
     // disable further submits until next round
@@ -241,7 +250,7 @@ export default function PlayerPage() {
                 className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono font-bold text-lg uppercase tracking-wider"
                 placeholder="ABCD"
                 maxLength={4}
-                value={roomCode}
+                value={roomCode ?? ''}
                 onChange={(e) => setRoomCode(e.target.value)}
               />
             </div>
@@ -249,19 +258,19 @@ export default function PlayerPage() {
             <button
               className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={joinRoom}
-              disabled={!name.trim() || roomCode.length < 4}
+              disabled={!name.trim() || (roomCode ?? '').length < 4}
             >
               Join Game
             </button>
           </div>
 
-          {message && (
+      {statusMessage && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-center text-sm font-medium"
             >
-              {message}
+        {statusMessage}
             </motion.div>
           )}
         </motion.div>
@@ -381,7 +390,7 @@ export default function PlayerPage() {
               timerEndsAt={timerEndsAt}
               nextTimerDurationMs={nextTimerDurationMs}
               countdown={countdown}
-              setMessage={setMessage}
+              setStatusMessage={setStatusMessage}
               paused={paused}
               pauseRemainingMs={pauseRemainingMs}
             />
@@ -433,8 +442,8 @@ export default function PlayerPage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 + (i * 0.1) }}
                         className={`flex items-center p-3 rounded-xl shadow-sm border ${p.id === playerId
-                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-500/20'
-                            : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-500/20'
+                          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
                           }`}
                       >
                         <div className="font-bold text-gray-400 w-6 text-left">{i + 2}</div>
@@ -457,14 +466,14 @@ export default function PlayerPage() {
             </div>
           )}
 
-          {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
+          {statusMessage && <p className="mt-2 text-sm text-gray-600">{statusMessage}</p>}
         </div>
       )}
     </div>
   );
 }
 
-function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurationMs, countdown, setMessage, paused, pauseRemainingMs }: any) {
+function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurationMs, countdown, setStatusMessage, paused, pauseRemainingMs }: any) {
   const my = playerId ? (roundResults.results || []).find((r: any) => r.playerId === playerId) : null;
   const isCorrect = my?.correct;
 
