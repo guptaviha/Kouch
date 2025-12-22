@@ -6,6 +6,8 @@
 import { StateCreator } from 'zustand';
 import { PlayerInfo } from '../types';
 
+export type GamePack = 'general' | 'rebus';
+
 export type GameHostSlice = {
     // players in the current room (host side authoritative)
     players: PlayerInfo[];
@@ -15,9 +17,6 @@ export type GameHostSlice = {
     setQrDataUrl: (d: string | null) => void;
     joinUrl: string | null;
     setJoinUrl: (u: string | null) => void;
-    // whether to show the intro/landing UI on host
-    showIntro: boolean;
-    setShowIntro: (v: boolean) => void;
     // answers tracked on host for UI (who has answered this round)
     answeredPlayers: string[];
     setAnsweredPlayers: (ids: string[]) => void;
@@ -27,6 +26,9 @@ export type GameHostSlice = {
     // whether the host has requested a "play again" flow and is awaiting room creation
     playAgainPending: boolean;
     setPlayAgainPending: (v: boolean) => void;
+    // selected game pack
+    selectedPack: GamePack | null;
+    setSelectedPack: (pack: GamePack | null) => void;
 };
 
 export const createGameHostSlice: StateCreator<GameHostSlice> = (set) => ({
@@ -36,12 +38,12 @@ export const createGameHostSlice: StateCreator<GameHostSlice> = (set) => ({
     setQrDataUrl: (d: string | null) => set({ qrDataUrl: d }),
     joinUrl: null,
     setJoinUrl: (u: string | null) => set({ joinUrl: u }),
-    showIntro: true,
-    setShowIntro: (v: boolean) => set({ showIntro: v }),
     answeredPlayers: [],
     setAnsweredPlayers: (ids: string[]) => set({ answeredPlayers: ids }),
     questionImage: null,
     setQuestionImage: (img: string | null) => set({ questionImage: img }),
     playAgainPending: false,
     setPlayAgainPending: (v: boolean) => set({ playAgainPending: v }),
+    selectedPack: null,
+    setSelectedPack: (pack: GamePack | null) => set({ selectedPack: pack }),
 });

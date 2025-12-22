@@ -9,7 +9,6 @@ export default function serverMessageHandler(msg: any) {
   const {
     setRoomCode,
     setProfile,
-    setShowIntro,
     playAgainPending,
     setPlayAgainPending,
     emit,
@@ -35,7 +34,6 @@ export default function serverMessageHandler(msg: any) {
       case 'room_created':
         setRoomCode?.(msg.roomCode);
         setProfile?.(msg.player);
-        setShowIntro?.(false);
         if (playAgainPending) {
           setPlayAgainPending?.(false);
           try {

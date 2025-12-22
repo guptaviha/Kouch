@@ -52,13 +52,13 @@ export default function HostPage() {
   const paused = useGameStore((s) => s.paused);
   const playAgainPending = useGameStore((s) => s.playAgainPending);
   const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
-  const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  const selectedPack = useGameStore((s) => s.selectedPack);
+  const setSelectedPack = useGameStore((s) => s.setSelectedPack);
   // host UI state moved to host slice
   const qrDataUrl = useGameStore((s) => s.qrDataUrl);
   const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
-  const showIntro = useGameStore((s) => s.showIntro);
   useEffect(() => {
     // connect websocket and register centralized server handler
     connect(SERVER);
@@ -173,30 +173,18 @@ export default function HostPage() {
     emit('message', { type: 'create_room', name: 'Host' });
   };
 
+  useEffect(() => {
+    if (selectedPack && !roomCode) {
+      createRoom();
+    }
+  }, [selectedPack, roomCode]);
+
   if (!mounted) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto relative">
 
   <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
-
-      {/* Home page tagline + how to play + big start button */}
-      {showIntro && (
-        <div className="mb-10 text-center">
-          <p className="text-2xl text-gray-400 dark:text-gray-500 font-medium tracking-tight mb-8">couch party games for friends</p>
-
-          <div className="w-full max-w-2xl mx-auto border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl p-8 bg-gray-50/50 dark:bg-gray-900/50">
-            <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-gray-200">How to play</h3>
-            <ol className="list-decimal list-inside space-y-3 text-gray-600 dark:text-gray-400 text-left w-fit mx-auto">
-              <li className="pl-2">Get some friends with phones</li>
-              <li className="pl-2">Choose a game pack below</li>
-              <li className="pl-2">Start a party on a screen everyone can see</li>
-              <li className="pl-2">Decimate your friends!</li>
-            </ol>
-          </div>
-
-        </div>
-      )}
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -208,27 +196,8 @@ export default function HostPage() {
       )}
 
       {!roomCode ? (
-        <div className='flex flex-col items-center gap-8 w-full'>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            <div
-              onClick={() => setSelectedPack('general')}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'general' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700'}`}
-            >
-              <h3 className="text-xl font-bold mb-2">General Trivia</h3>
-              <p className="text-gray-600 dark:text-gray-400">Classic brain teasers to test your knowledge.</p>
-            </div>
-            <div
-              onClick={() => setSelectedPack('rebus')}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'rebus' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700'}`}
-            >
-              <h3 className="text-xl font-bold mb-2">Rebus Puzzles</h3>
-              <p className="text-gray-600 dark:text-gray-400">Visual word puzzles. Say what you see!</p>
-            </div>
-          </div>
-
-          <div className={`transition-all duration-500 ${selectedPack ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <ActionButton onClick={createRoom}>Start Party</ActionButton>
-          </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Creating room...</p>
         </div>
       ) : (
         <div>

@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Gamepad2, Laptop, Smartphone, Trophy, Brain, ArrowRight, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useGameStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+    const router = useRouter();
+    const setSelectedPack = useGameStore((s) => s.setSelectedPack);
+
+    const handlePlayGame = (pack: 'general' | 'rebus') => {
+        setSelectedPack(pack);
+        router.push('/host');
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -190,11 +200,12 @@ export default function Home() {
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>15 Mins</div>
                                 </div>
-                                <Link href="/host" className="w-full">
-                                    <Button className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none">
-                                        Play Trivia
-                                    </Button>
-                                </Link>
+                                <Button 
+                                    onClick={() => handlePlayGame('general')}
+                                    className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none"
+                                >
+                                    Play Trivia
+                                </Button>
                             </div>
                         </motion.div>
 
@@ -220,11 +231,12 @@ export default function Home() {
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>20 Mins</div>
                                 </div>
-                                <Link href="/host" className="w-full">
-                                    <Button className="w-full text-lg py-6 bg-orange-600 hover:bg-orange-700 text-white border-none">
-                                        Play Rebus
-                                    </Button>
-                                </Link>
+                                <Button 
+                                    onClick={() => handlePlayGame('rebus')}
+                                    className="w-full text-lg py-6 bg-orange-600 hover:bg-orange-700 text-white border-none"
+                                >
+                                    Play Rebus
+                                </Button>
                             </div>
                         </motion.div>
                     </div>
