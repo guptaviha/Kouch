@@ -13,6 +13,7 @@ import QRCode from 'qrcode';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
 import { useRouter } from 'next/navigation';
+import TrailingDots from '@/components/trailing-dots';
 
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
@@ -214,9 +215,7 @@ export default function HostPage() {
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">
             Creating room
-            <span className="animate-bounce delay-75">.</span>
-            <span className="animate-bounce delay-150">.</span>
-            <span className="animate-bounce delay-300">.</span>
+            <TrailingDots />
           </p>
         </div>
       ) : (
@@ -252,9 +251,7 @@ export default function HostPage() {
                   ) : (
                     <div className="text-sm text-gray-600">
                       Generating QR code
-                      <span className="animate-bounce delay-75">.</span>
-                      <span className="animate-bounce delay-150">.</span>
-                      <span className="animate-bounce delay-300">.</span>
+                      <TrailingDots />
                     </div>
                   )}
                 </motion.div>
@@ -276,9 +273,7 @@ export default function HostPage() {
                       <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50">
                         <p className="text-lg font-medium text-gray-400 dark:text-gray-500 mb-2">
                           Waiting for players
-                          <span className="animate-bounce delay-75">.</span>
-                          <span className="animate-bounce delay-150">.</span>
-                          <span className="animate-bounce delay-300">.</span>
+                          <TrailingDots />
                         </p>
                         <p className="text-sm text-gray-400">Scan the QR code to join!</p>
                       </div>

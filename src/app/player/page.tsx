@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
 import { getRandomMessage } from '@/utils/messages';
+import TrailingDots from '@/components/trailing-dots';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -180,9 +181,7 @@ export default function PlayerPage() {
             <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
               <span>
                 {pausedMessage}
-                <span className="animate-bounce delay-75">.</span>
-                <span className="animate-bounce delay-150">.</span>
-                <span className="animate-bounce delay-300">.</span>
+                <TrailingDots />
               </span>
             </div>
           </div>
@@ -266,9 +265,7 @@ export default function PlayerPage() {
               <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
                 <span>
                   {waitingMessage}
-                  <span className="animate-bounce delay-75">.</span>
-                  <span className="animate-bounce delay-150">.</span>
-                  <span className="animate-bounce delay-300">.</span>
+                  <TrailingDots />
                 </span>
               </div>
             </motion.div>
@@ -412,9 +409,7 @@ export default function PlayerPage() {
 
               <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
                 Waiting for host to restart
-                <span className="animate-bounce delay-75">.</span>
-                <span className="animate-bounce delay-150">.</span>
-                <span className="animate-bounce delay-300">.</span>
+                <TrailingDots />
               </div>
             </div>
           )}
