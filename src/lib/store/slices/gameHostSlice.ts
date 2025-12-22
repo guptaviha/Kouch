@@ -29,6 +29,9 @@ export type GameHostSlice = {
     // selected game pack
     selectedPack: GamePack | null;
     setSelectedPack: (pack: GamePack | null) => void;
+    // players who used hints
+    playersWithHints: string[];
+    setPlayersWithHints: (ids: string[]) => void;
 };
 
 export const createGameHostSlice: StateCreator<GameHostSlice> = (set) => ({
@@ -46,4 +49,6 @@ export const createGameHostSlice: StateCreator<GameHostSlice> = (set) => ({
     setPlayAgainPending: (v: boolean) => set({ playAgainPending: v }),
     selectedPack: null,
     setSelectedPack: (pack: GamePack | null) => set({ selectedPack: pack }),
+    playersWithHints: [],
+    setPlayersWithHints: (ids: string[]) => set({ playersWithHints: ids }),
 });

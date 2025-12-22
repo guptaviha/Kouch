@@ -15,6 +15,7 @@ export default function serverMessageHandler(msg: any) {
     setPlayers,
     setState,
     setCurrentQuestion,
+    setCurrentHint,
     setQuestionImage,
     setTimerEndsAt,
     setTotalQuestionDuration,
@@ -29,6 +30,9 @@ export default function serverMessageHandler(msg: any) {
     setJoined,
     setStatusMessage,
     setSubmitted,
+    playersWithHints,
+    setPlayersWithHints,
+    setHintUsed,
   } = s;
 
   try {
@@ -62,13 +66,27 @@ export default function serverMessageHandler(msg: any) {
         setState?.('playing');
         setCurrentQuestion?.(msg.question || '');
         setQuestionImage?.(msg.image || null);
+        setCurrentHint?.(msg.hint || undefined); // Update current hint
         setTimerEndsAt?.(msg.timerEndsAt || null);
         if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
         setAnsweredPlayers?.([]);
+        // Reset playersWithHints for new round
+        if (s.setPlayersWithHints) s.setPlayersWithHints([]);
+        if (s.setHintUsed) s.setHintUsed(false);
         setSubmitted?.(false);
         break;
+
+      case 'player_hint_used': {
+        const pid = msg.playerId as string;
+        const withHints = s.playersWithHints || [];
+        if (!withHints.includes(pid) && s.setPlayersWithHints) {
+          s.setPlayersWithHints([...withHints, pid]);
+        }
+        break;
+      }
+
 
       case 'round_result':
         setStatusMessage?.('');

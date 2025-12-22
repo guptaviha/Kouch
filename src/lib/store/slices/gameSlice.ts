@@ -34,6 +34,9 @@ export type GameSlice = {
     setRoundResults: (r: any) => void;
     nextTimerDurationMs: number | null;
     setNextTimerDurationMs: (ms: number | null) => void;
+    // Current question hint (for rebus)
+    currentHint?: string;
+    setCurrentHint: (hint: string | undefined) => void;
 };
 
 export const createGameSlice: StateCreator<GameSlice> = (set) => ({
@@ -59,4 +62,6 @@ export const createGameSlice: StateCreator<GameSlice> = (set) => ({
     setRoundResults: (r) => set({ roundResults: r }),
     nextTimerDurationMs: null,
     setNextTimerDurationMs: (ms) => set({ nextTimerDurationMs: ms }),
+    currentHint: undefined,
+    setCurrentHint: (hint) => set({ currentHint: hint }),
 });

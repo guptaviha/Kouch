@@ -55,7 +55,7 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
             <span className="text-xs mt-1">Code</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {role === 'host' ? (
               <>
                 <button

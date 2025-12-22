@@ -57,6 +57,7 @@ interface Room {
   selectedPack: string;
   timerEndsAt?: number;
   totalQuestionDuration?: number;
+  hintsUsed?: Set<string>;
 }
 
 const NEXT_TARGET = process.env.NEXT_TARGET || 'http://localhost:3000';
@@ -74,16 +75,16 @@ const server = http.createServer((req, res) => {
 
 // Hardcoded questions (3 rounds)
 // Hardcoded questions (3 rounds)
-const PACKS: Record<string, { question: string; answer: string; image?: string }[]> = {
+const PACKS: Record<string, { question: string; answer: string; image?: string; hint?: string }[]> = {
   general: [
     { question: 'What is the capital of France?', answer: 'paris' },
     { question: 'What is 5 + 7?', answer: '12' },
     { question: 'Which planet is known as the Red Planet?', answer: 'mars' },
   ],
   rebus: [
-    { question: 'Solve the rebus puzzle!', answer: 'starfish', image: '/rebus-1.png' },
-    { question: 'Solve the rebus puzzle!', answer: 'buttercup', image: '/rebus-2.png' },
-    { question: 'Solve the rebus puzzle!', answer: 'fireman', image: '/rebus-3.png' },
+    { question: 'Solve the rebus puzzle!', answer: 'starfish', image: '/rebus-1.png', hint: 'Celestial body + ocean creature' },
+    { question: 'Solve the rebus puzzle!', answer: 'buttercup', image: '/rebus-2.png', hint: 'Dairy product + drinking vessel' },
+    { question: 'Solve the rebus puzzle!', answer: 'fireman', image: '/rebus-3.png', hint: 'Hot element + human male' },
   ]
 };
 
@@ -170,10 +171,13 @@ function startRound(room: Room) {
   room.state = 'playing';
   room.roundStart = Date.now();
   room.answers = new Map<string, SubmittedAnswer>();
+  room.hintsUsed = new Set<string>(); // Reset hints for new round
 
   const roundEnd = room.roundStart + ROUND_DURATION_MS;
   room.timerEndsAt = roundEnd;
   room.totalQuestionDuration = ROUND_DURATION_MS;
+
+  // Players get state without hint initially
   broadcast(room, {
     type: 'game_state',
     state: room.state,
@@ -181,6 +185,7 @@ function startRound(room: Room) {
     roundIndex: currentRoundIndex,
     question: pack[currentRoundIndex].question,
     image: pack[currentRoundIndex].image, // send image URL if available
+    hint: pack[currentRoundIndex].hint, // Send hint data to client
     timerEndsAt: roundEnd,
     totalQuestionDuration: ROUND_DURATION_MS,
   });
@@ -203,10 +208,13 @@ function endRound(room: Room) {
     points: number;
     base: number;
     bonus: number;
+    hintUsed: boolean;
   }> = [];
 
   for (const [pid, player] of room.players) {
     const submitted = room.answers.get(pid);
+    const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
+
     if (submitted) {
       const correct = submitted.answer.trim().toLowerCase() === correctAnswer;
       const timeTaken = submitted.timeTaken;
@@ -218,11 +226,16 @@ function endRound(room: Room) {
         bonus = Math.max(0, Math.round(MAX_TIME_BONUS * (1 - timeTaken / ROUND_DURATION_MS)));
         base = BASE_POINTS;
         points = base + bonus;
+
+        // Halve points if hint was used
+        if (hintUsed) {
+          points = Math.floor(points / 2);
+        }
       }
       player.score = (player.score || 0) + points;
-      results.push({ playerId: pid, name: player.name, answer: submitted.answer, correct, timeTaken, points, base, bonus });
+      results.push({ playerId: pid, name: player.name, answer: submitted.answer, correct, timeTaken, points, base, bonus, hintUsed });
     } else {
-      results.push({ playerId: pid, name: player.name, answer: null, correct: false, timeTaken: null, points: 0, base: 0, bonus: 0 });
+      results.push({ playerId: pid, name: player.name, answer: null, correct: false, timeTaken: null, points: 0, base: 0, bonus: 0, hintUsed });
     }
   }
 
@@ -301,6 +314,7 @@ function handleMessage(socket: Socket, msg: any) {
       roundIndex: 0,
       timers: {},
       answers: new Map(),
+      hintsUsed: new Set(),
       selectedPack: pack,
     };
 
@@ -427,6 +441,24 @@ function handleMessage(socket: Socket, msg: any) {
     return;
   }
 
+  if (msgType === 'use_hint') {
+    const { roomCode, playerId } = messageObj;
+    const room = rooms.get(roomCode);
+    if (!room || room.state !== 'playing') return;
+
+    // Add player to hints used set
+    if (!room.hintsUsed) room.hintsUsed = new Set();
+    room.hintsUsed.add(playerId);
+
+    // Notify host so they can show an icon
+    try {
+      if (room.host && room.host.socket) {
+        room.host.socket.emit('server', { type: 'player_hint_used', playerId });
+      }
+    } catch (e) { }
+    return;
+  }
+
   if (msgType === 'reset_game') {
     const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
     const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
@@ -442,6 +474,7 @@ function handleMessage(socket: Socket, msg: any) {
     room.nextTimerEndsAt = null;
     room.pauseRemainingMs = null;
     room.paused = false;
+    room.hintsUsed = new Set();
     // clear timers
     if (room.timers.round) { clearTimeout(room.timers.round); room.timers.round = undefined; }
     if (room.timers.next) { clearTimeout(room.timers.next); room.timers.next = undefined; }

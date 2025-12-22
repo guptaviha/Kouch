@@ -40,6 +40,7 @@ export default function PlayerPage() {
   // use central zustand store for lobby / current question
   const gameStateValue = useGameStore((s) => s.state);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
+  const currentHint = useGameStore((s) => s.currentHint); // Get hint from store
 
   // store uses shared RoomStates directly
   const state: RoomStates = gameStateValue as RoomStates;
@@ -60,6 +61,8 @@ export default function PlayerPage() {
   const setStatusMessage = useGameStore((s) => s.setStatusMessage);
   const submitted = useGameStore((s) => s.submitted);
   const setSubmitted = useGameStore((s) => s.setSubmitted);
+  const hintUsed = useGameStore((s) => s.hintUsed);
+  const setHintUsed = useGameStore((s) => s.setHintUsed);
   const timerRef = useRef<number | null>(null);
   const splashTimerRef = useRef<number | null>(null);
   // paused is now stored centrally in the game slice
@@ -167,6 +170,12 @@ export default function PlayerPage() {
     setAnswer('');
     // disable further submits until next round
     setSubmitted(true);
+  };
+
+  const useHint = () => {
+    if (!profile?.id || !roomCode || paused || hintUsed) return;
+    emit('message', { type: 'use_hint', roomCode, playerId: profile.id });
+    setHintUsed(true);
   };
 
   if (!mounted) return null;
@@ -281,10 +290,29 @@ export default function PlayerPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-6 md:p-8"
             >
-              <div className="mb-6">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{question}</p>
+              <div className="mb-6 flex justify-between items-start">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
+                </div>
+                {currentHint && !hintUsed && (
+                  <button
+                    onClick={useHint}
+                    className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1.5 rounded-full font-bold hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors flex items-center gap-1"
+                  >
+                    Show Hint (1/2 pts)
+                  </button>
+                )}
               </div>
+
+              {hintUsed && currentHint && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-xl border border-yellow-200 dark:border-yellow-800 text-sm font-medium"
+                >
+                  <span className="font-bold mr-1">Hint:</span> {currentHint}
+                </motion.div>
+              )}
 
               <input
                 className="w-full mb-4 p-4 text-lg border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 bg-gray-50 dark:bg-gray-900 transition-colors"

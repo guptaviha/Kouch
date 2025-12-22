@@ -16,6 +16,8 @@ export type GamePlayerSlice = {
 	setStatusMessage: (m: string | null) => void;
 	submitted: boolean;
 	setSubmitted: (v: boolean) => void;
+	hintUsed: boolean;
+	setHintUsed: (v: boolean) => void;
 };
 
 export const createGamePlayerSlice: StateCreator<GamePlayerSlice> = (set) => ({
@@ -29,4 +31,6 @@ export const createGamePlayerSlice: StateCreator<GamePlayerSlice> = (set) => ({
 	setStatusMessage: (m: string | null) => set({ statusMessage: m }),
 	submitted: false,
 	setSubmitted: (v: boolean) => set({ submitted: v }),
+	hintUsed: false,
+	setHintUsed: (v: boolean) => set({ hintUsed: v }),
 });

@@ -49,7 +49,7 @@ export default function Home() {
     return (
         <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
             {/* Navigation */}
-            <div className="pt-8 max-w-3xl mx-auto relative">
+            <div className="p-8 max-w-3xl mx-auto relative">
                 <Header />
             </div>
 
@@ -104,7 +104,7 @@ export default function Home() {
                     >
                         <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">How It Works</h2>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            No apps to install. No complicated setup. Just fun in your browser.
+                            No apps to install. No complicated setup.
                         </p>
                     </motion.div>
 

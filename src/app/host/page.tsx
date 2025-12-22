@@ -13,9 +13,9 @@ import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
-import { useRouter } from 'next/navigation';
 import TrailingDots from '@/components/trailing-dots';
 
+import { Lightbulb } from 'lucide-react'; // Import Lightbulb icon
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 const ROUND_DURATION_MS = 30_000; // same as server
@@ -35,6 +35,7 @@ export default function HostPage() {
   const roomCode = useGameStore((s) => s.roomCode);
   const players = useGameStore((s) => s.players as PlayerInfo[]);
   const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
+  const playersWithHints = useGameStore((s) => s.playersWithHints); // Get players with hints
   // game state and question are now stored in the central zustand store
   const gameStateValue = useGameStore((s) => s.state);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
@@ -65,7 +66,6 @@ export default function HostPage() {
   const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
-  const router = useRouter();
 
   useEffect(() => {
     if (!selectedPack) {
@@ -402,8 +402,17 @@ export default function HostPage() {
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                   {players.map((p, i) => {
                     const answered = answeredPlayers.includes(p.id);
+                    const hasUsedHint = playersWithHints?.includes(p.id); // Check if hint used
+
                     return (
                       <div key={p.id} className="flex flex-col items-center w-20 relative">
+                        {/* Hint Icon */}
+                        {hasUsedHint && (
+                          <div className="absolute -top-1 -left-1 bg-yellow-400 text-yellow-900 rounded-full p-1 z-10 shadow-lg border-2 border-white dark:border-gray-900">
+                            <Lightbulb className="w-3 h-3" />
+                          </div>
+                        )}
+
                         {answered && (
                           <motion.div
                             initial={{ scale: 0 }} animate={{ scale: 1 }}
