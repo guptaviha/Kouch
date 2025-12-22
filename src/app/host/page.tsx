@@ -3,6 +3,8 @@
 import PlayerAvatar from '@/components/player-avatar';
 import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
+import { useGameStore } from '@/lib/store';
+import { RoomStates } from '@/lib/store/types';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -14,16 +16,26 @@ const ROUND_DURATION_MS = 30_000; // same as server
 
 type Player = { id: string; name: string; score: number; avatar?: string };
 
-export type RoomStates = 'lobby' | 'playing' | 'round_result' | 'finished';
+// RoomStates is defined in a shared type file: '@/lib/store/types'
 
 export default function HostPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [roomCode, setRoomCode] = useState<string | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
+  // roomCode and players moved into the central store
+  const roomCode = useGameStore((s) => s.roomCode);
+  const setRoomCode = useGameStore((s) => s.setRoomCode);
+  const players = useGameStore((s) => s.players as Player[]);
+  const setPlayers = useGameStore((s) => s.setPlayers);
   const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
-  const [state, setState] = useState<RoomStates>('lobby');
-  const [question, setQuestion] = useState<string | null>(null);
+  // game state and question are now stored in the central zustand store
+  const gameStateValue = useGameStore((s) => s.state);
+  const setGameState = useGameStore((s) => s.setState);
+  const currentQuestion = useGameStore((s) => s.currentQuestion);
+  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
+
+  // the store already uses the shared RoomStates, so we can use it directly
+  const state: RoomStates = gameStateValue as RoomStates;
+  const question = currentQuestion || null;
   const [questionImage, setQuestionImage] = useState<string | null>(null);
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
   const [roundIndex, setRoundIndex] = useState<number | null>(null);
@@ -60,15 +72,16 @@ export default function HostPage() {
       }
       if (msg.type === 'lobby_update') {
         setPlayers(msg.players || []);
-        setState(msg.state || 'lobby');
+        // server sends the host-style state; server messages already use the same labels
+        try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
       }
       if (msg.type === 'player_answered') {
         const pid = msg.playerId as string;
         setAnsweredPlayers((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
       }
       if (msg.type === 'game_state') {
-        setState('playing');
-        setQuestion(msg.question || null);
+        setGameState('playing');
+        setCurrentQuestion(msg.question || '');
         setQuestionImage(msg.image || null);
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
@@ -78,7 +91,7 @@ export default function HostPage() {
         setAnsweredPlayers([]);
       }
       if (msg.type === 'round_result') {
-        setState('round_result');
+        setGameState('round_result');
         setRoundResults(msg);
         // use nextTimerEndsAt from server to show countdown on results screen
         if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
@@ -86,7 +99,7 @@ export default function HostPage() {
         if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs(msg.nextTimerDurationMs);
       }
       if (msg.type === 'final_leaderboard') {
-        setState('finished');
+        setGameState('finished');
         setRoundResults({ final: msg.leaderboard });
       }
       if (msg.type === 'game_paused') {

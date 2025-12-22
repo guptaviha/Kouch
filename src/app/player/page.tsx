@@ -4,9 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/header';
 import { io, Socket } from 'socket.io-client';
-import { RoomStates } from '../host/page';
+import { RoomStates } from '@/lib/store/types';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import PlayerAvatar from '@/components/player-avatar';
+import { useGameStore } from '@/lib/store';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -20,13 +21,22 @@ const ROUND_DURATION_MS = 30_000; // match server round duration
 
 export default function PlayerPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [roomCode, setRoomCode] = useState('');
+  // roomCode moved into central store
+  const roomCode = useGameStore((s) => s.roomCode);
+  const setRoomCode = useGameStore((s) => s.setRoomCode);
   const [name, setName] = useLocalStorage<string>('playerName', '');
   const [joined, setJoined] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerAvatar, setPlayerAvatar] = useState<string | undefined>(undefined);
-  const [state, setState] = useState<RoomStates>('lobby');
-  const [question, setQuestion] = useState<string | null>(null);
+  // use central zustand store for lobby / current question
+  const gameStateValue = useGameStore((s) => s.state);
+  const setGameState = useGameStore((s) => s.setState);
+  const currentQuestion = useGameStore((s) => s.currentQuestion);
+  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
+
+  // store uses shared RoomStates directly
+  const state: RoomStates = gameStateValue as RoomStates;
+  const question = currentQuestion || null;
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
   const [pauseRemainingMs, setPauseRemainingMs] = useState<number | null>(null);
   const [roundIndex, setRoundIndex] = useState<number | null>(null);
@@ -67,13 +77,13 @@ export default function PlayerPage() {
       }
 
       if (msg.type === 'lobby_update') {
-        setState(msg.state || 'lobby');
+  try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
         return;
       }
 
       if (msg.type === 'game_state') {
-        setState('playing');
-        setQuestion(msg.question || null);
+  setGameState('playing');
+        setCurrentQuestion(msg.question || '');
         setTimerEndsAt(msg.timerEndsAt || null);
         setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setLeaderboard(null);
@@ -93,7 +103,7 @@ export default function PlayerPage() {
       }
 
       if (msg.type === 'round_result') {
-        setState('round_result');
+  setGameState('round_result');
         setLeaderboard(msg.leaderboard || null);
         setRoundResults(msg);
         if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
@@ -106,7 +116,7 @@ export default function PlayerPage() {
       }
 
       if (msg.type === 'final_leaderboard') {
-        setState('finished');
+  setGameState('finished');
         setLeaderboard(msg.leaderboard || null);
         return;
       }
@@ -209,7 +219,7 @@ export default function PlayerPage() {
           <label className="block mb-2">Name</label>
           <input className="w-full mb-3 p-2 border rounded" value={name} onChange={(e) => setName(e.target.value)} />
           <label className="block mb-2">Room Code</label>
-          <input className="w-full mb-3 p-2 border rounded" value={roomCode} onChange={(e) => setRoomCode(e.target.value)} />
+          <input className="w-full mb-3 p-2 border rounded" value={roomCode ?? ''} onChange={(e) => setRoomCode(e.target.value)} />
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={joinRoom}>Join</button>
           {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
         </div>

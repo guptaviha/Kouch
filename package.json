@@ -10,7 +10,8 @@
     "dev-https": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "kill:3001": "lsof -ti :3001 | xargs kill -9 || true"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
