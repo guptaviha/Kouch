@@ -9,6 +9,7 @@ import { useGameStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
+import { getRandomMessage } from '@/utils/messages';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -61,6 +62,8 @@ export default function PlayerPage() {
   // paused is now stored centrally in the game slice
   const paused = useGameStore((s) => s.paused);
   const [mounted, setMounted] = useState(false);
+  const [pausedMessage, setPausedMessage] = useState(getRandomMessage('game_paused'));
+  const [waitingMessage, setWaitingMessage] = useState(getRandomMessage('waiting_to_start'));
 
   useEffect(() => {
     setMounted(true);
@@ -161,10 +164,7 @@ export default function PlayerPage() {
           <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
             <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
             <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
-              <span>Host is up to something</span>
-              <span className="animate-bounce delay-75">.</span>
-              <span className="animate-bounce delay-150">.</span>
-              <span className="animate-bounce delay-300">.</span>
+              <span>{pausedMessage}</span>
             </div>
           </div>
         </div>
@@ -245,10 +245,7 @@ export default function PlayerPage() {
                 Hello, {name}!
               </h2>
               <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
-                <span>Waiting for host to start</span>
-                <span className="animate-bounce delay-75">.</span>
-                <span className="animate-bounce delay-150">.</span>
-                <span className="animate-bounce delay-300">.</span>
+                <span>{waitingMessage}</span>
               </div>
             </motion.div>
           ) : (

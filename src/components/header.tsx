@@ -1,10 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Sofa, Laptop } from 'lucide-react';
+import { MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 import PlayerAvatar from './player-avatar';
-import Link from 'next/link';
 
 type Props = {
   roomCode?: string | null;
@@ -14,6 +14,34 @@ type Props = {
 };
 
 export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Props) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error('Error toggling fullscreen:', err);
+    }
+  };
+
+  // Listen for fullscreen changes
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   return (
     <div className="flex items-center justify-between gap-3 mb-2">
       <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -30,10 +58,24 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
 
           <div className="flex items-center gap-2">
             {role === 'host' ? (
-              <div className="flex flex-col items-center">
-                <Laptop size={24} />
-                <span className="text-xs mt-1">Host</span>
-              </div>
+              <>
+                <button
+                  onClick={toggleFullscreen}
+                  className="flex flex-col items-center hover:opacity-70 transition-opacity cursor-pointer"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <MdFullscreenExit size={24} />
+                  ) : (
+                    <MdFullscreen size={24} />
+                  )}
+                  <span className="text-xs mt-1">Full</span>
+                </button>
+                <div className="flex flex-col items-center">
+                  <Laptop size={24} />
+                  <span className="text-xs mt-1">Host</span>
+                </div>
+              </>
             ) : (
               avatarKey ? (
                 <div className="flex flex-col items-center">

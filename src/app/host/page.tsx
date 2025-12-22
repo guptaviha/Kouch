@@ -12,12 +12,14 @@ import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
+import { useRouter } from 'next/navigation';
 
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 const ROUND_DURATION_MS = 30_000; // same as server
 
 export default function HostPage() {
+  const router = useRouter();
   // websocket helpers (connect, emit, on, off, disconnect)
   const connect = useGameStore((s) => s.connect);
   const disconnect = useGameStore((s) => s.disconnect);
@@ -145,6 +147,13 @@ export default function HostPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Redirect to homepage if pack is not set
+  useEffect(() => {
+    if (mounted && !selectedPack) {
+      router.push('/');
+    }
+  }, [mounted, selectedPack, router]);
 
   const createRoom = () => {
     emit('message', { type: 'create_room', name: 'Host', pack: selectedPack });
