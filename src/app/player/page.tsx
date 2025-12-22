@@ -69,6 +69,20 @@ export default function PlayerPage() {
     setMounted(true);
   }, []);
 
+  // Regenerate paused message when paused state changes
+  useEffect(() => {
+    if (paused) {
+      setPausedMessage(getRandomMessage('game_paused'));
+    }
+  }, [paused]);
+
+  // Regenerate waiting message when state changes to lobby
+  useEffect(() => {
+    if (state === 'lobby') {
+      setWaitingMessage(getRandomMessage('waiting_to_start'));
+    }
+  }, [state]);
+
   useEffect(() => {
     // Load saved nickname on mount
     const savedName = localStorage.getItem('kouch_nickname');

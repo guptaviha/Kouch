@@ -20,10 +20,8 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
       } else {
         await document.exitFullscreen();
-        setIsFullscreen(false);
       }
     } catch (err) {
       console.error('Error toggling fullscreen:', err);
