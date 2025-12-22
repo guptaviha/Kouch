@@ -5,7 +5,7 @@ import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/lib/store';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
-import { motion, AnimatePresence, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
@@ -28,40 +28,28 @@ export default function HostPage() {
   const setProfile = useGameStore((s) => s.setProfile);
   // roomCode and players moved into the central store
   const roomCode = useGameStore((s) => s.roomCode);
-  const setRoomCode = useGameStore((s) => s.setRoomCode);
   const players = useGameStore((s) => s.players as PlayerInfo[]);
-  const setPlayers = useGameStore((s) => s.setPlayers);
   const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
-  const setAnsweredPlayers = useGameStore((s) => s.setAnsweredPlayers);
   // game state and question are now stored in the central zustand store
   const gameStateValue = useGameStore((s) => s.state);
-  const setGameState = useGameStore((s) => s.setState);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
-  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
 
   // the store already uses the shared RoomStates, so we can use it directly
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
   const questionImage = useGameStore((s) => s.questionImage as string | null);
-  const setQuestionImage = useGameStore((s) => s.setQuestionImage);
   // timer/round state moved to store
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
-  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
-  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
   const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
-  const setRoundResults = useGameStore((s) => s.setRoundResults);
   const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
-  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
   const timerRef = useRef<number | null>(null);
   const splashTimerRef = useRef<number | null>(null);
   // paused is stored in the central game slice now
   const paused = useGameStore((s) => s.paused);
-  const setPaused = useGameStore((s) => s.setPaused);
   const playAgainPending = useGameStore((s) => s.playAgainPending);
   const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
@@ -71,7 +59,6 @@ export default function HostPage() {
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
   const showIntro = useGameStore((s) => s.showIntro);
-  const setShowIntro = useGameStore((s) => s.setShowIntro);
   useEffect(() => {
     // connect websocket and register centralized server handler
     connect(SERVER);

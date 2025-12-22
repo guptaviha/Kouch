@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/header';
 import { RoomStates } from '@/lib/store/types';
 import PlayerAvatar from '@/components/player-avatar';
@@ -32,32 +32,23 @@ export default function PlayerPage() {
   const name = useGameStore((s) => s.name);
   const setName = useGameStore((s) => s.setName);
   const joined = useGameStore((s) => s.joined);
-  const setJoined = useGameStore((s) => s.setJoined);
   // profile lives in userProfileSlice and contains id/avatar/name for the current user
   const profile = useGameStore((s) => s.profile);
-  const setProfile = useGameStore((s) => s.setProfile);
   // use central zustand store for lobby / current question
   const gameStateValue = useGameStore((s) => s.state);
-  const setGameState = useGameStore((s) => s.setState);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
-  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
 
   // store uses shared RoomStates directly
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
   // timer/round state moved to store
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
-  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
-  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
   const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
-  const setRoundResults = useGameStore((s) => s.setRoundResults);
   const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
-  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
   const answer = useGameStore((s) => s.answer);
   const setAnswer = useGameStore((s) => s.setAnswer);
   const statusMessage = useGameStore((s) => s.statusMessage);
@@ -68,7 +59,6 @@ export default function PlayerPage() {
   const splashTimerRef = useRef<number | null>(null);
   // paused is now stored centrally in the game slice
   const paused = useGameStore((s) => s.paused);
-  const setPaused = useGameStore((s) => s.setPaused);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -138,7 +128,7 @@ export default function PlayerPage() {
   const submitAnswer = () => {
     if (!profile?.id || !roomCode || paused) return;
     emit('message', { type: 'submit_answer', roomCode, playerId: profile.id, answer });
-  setStatusMessage('Waiting for other players to answer...');
+    setStatusMessage('Waiting for other players to answer...');
     // clear the input so the player can see their answer was submitted
     setAnswer('');
     // disable further submits until next round
@@ -150,7 +140,7 @@ export default function PlayerPage() {
   return (
     <div className="p-6 max-w-md mx-auto relative">
 
-  <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={name ?? null} role="player" />
+      <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={name ?? null} role="player" />
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -201,13 +191,13 @@ export default function PlayerPage() {
             </button>
           </div>
 
-      {statusMessage && (
+          {statusMessage && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-center text-sm font-medium"
             >
-        {statusMessage}
+              {statusMessage}
             </motion.div>
           )}
         </motion.div>
