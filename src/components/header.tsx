@@ -15,7 +15,7 @@ type Props = {
 export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Props) {
   return (
     <div className="flex items-center justify-between gap-3 mb-2">
-      <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
+      <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
         <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
         <h1 className="text-2xl font-bold m-0">KouchParty</h1>
       </Link>
