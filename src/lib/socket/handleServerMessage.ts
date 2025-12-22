@@ -17,6 +17,7 @@ export default function serverMessageHandler(msg: any) {
     setCurrentQuestion,
     setQuestionImage,
     setTimerEndsAt,
+    setTotalQuestionDuration,
     setRoundIndex,
     setRoundResults,
     setAnsweredPlayers,
@@ -62,6 +63,7 @@ export default function serverMessageHandler(msg: any) {
         setCurrentQuestion?.(msg.question || '');
         setQuestionImage?.(msg.image || null);
         setTimerEndsAt?.(msg.timerEndsAt || null);
+        if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
         setAnsweredPlayers?.([]);
@@ -99,6 +101,7 @@ export default function serverMessageHandler(msg: any) {
 
       case 'timer_updated':
         if (msg.timerEndsAt) setTimerEndsAt?.(msg.timerEndsAt);
+        if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
         break;
 
       case 'joined':

@@ -18,6 +18,8 @@ export type GameSlice = {
     // timer/round state shared between host and players
     timerEndsAt: number | null;
     setTimerEndsAt: (ts: number | null) => void;
+    totalQuestionDuration: number | null;
+    setTotalQuestionDuration: (ms: number | null) => void;
     pauseRemainingMs: number | null;
     setPauseRemainingMs: (ms: number | null) => void;
     // whether the game is paused (host toggles this, players read it)
@@ -43,6 +45,8 @@ export const createGameSlice: StateCreator<GameSlice> = (set) => ({
     setRoomCode: (code) => set({ roomCode: code }),
     timerEndsAt: null,
     setTimerEndsAt: (ts) => set({ timerEndsAt: ts }),
+    totalQuestionDuration: null,
+    setTotalQuestionDuration: (ms) => set({ totalQuestionDuration: ms }),
     pauseRemainingMs: null,
     setPauseRemainingMs: (ms) => set({ pauseRemainingMs: ms }),
     paused: false,

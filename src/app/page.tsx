@@ -1,12 +1,12 @@
 "use client";
 
-import { DarkModeToggle } from "@/components/dark-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Gamepad2, Laptop, Smartphone, Trophy, Brain, ArrowRight, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useGameStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import Header from "@/components/header";
 
 export default function Home() {
     const router = useRouter();
@@ -49,37 +49,19 @@ export default function Home() {
     return (
         <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
             {/* Navigation */}
-            <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="flex items-center justify-between p-4 md:p-6 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
-                        <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
-                            <Gamepad2 className="w-6 h-6" />
-                        </div>
-                        <span>Kouch</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <DarkModeToggle />
-                        <Link href="/host">
-                            <Button className="hidden md:flex">Host a Game</Button>
-                        </Link>
-                    </div>
-                </div>
-            </nav>
+            <div className="pt-8 max-w-3xl mx-auto relative">
+                <Header />
+            </div>
 
             {/* Hero Section */}
             <motion.section
-                className="relative flex flex-col items-center justify-center text-center px-4 py-20 md:py-32 max-w-5xl mx-auto"
+                className="relative flex flex-col items-center justify-center text-center px-4 py-16 md:py-32 max-w-5xl mx-auto"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
             >
                 {/* Background decorative elements */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
-                
-                <motion.div variants={itemVariants} className="mb-6 inline-flex items-center rounded-full border border-border bg-secondary/50 px-3 py-1 text-sm text-secondary-foreground backdrop-blur-sm">
-                    <Sparkles className="mr-2 h-3.5 w-3.5 text-yellow-500" />
-                    <span>The ultimate party experience</span>
-                </motion.div>
 
                 <motion.h1
                     className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent"
@@ -88,14 +70,14 @@ export default function Home() {
                     Game Night, <br className="hidden md:block" />
                     <span className="text-primary">Reinvented.</span>
                 </motion.h1>
-                
+
                 <motion.p
                     className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed"
                     variants={itemVariants}
                 >
                     Turn your living room into a game show stage. Use your phone as the controller and the TV as the main display.
                 </motion.p>
-                
+
                 <motion.div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto" variants={itemVariants}>
                     <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" onClick={scrollToGames}>
                         <Laptop className="mr-2 w-5 h-5" />
@@ -122,7 +104,7 @@ export default function Home() {
                     >
                         <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">How It Works</h2>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            No apps to install. No complicated setup. Just pure fun in your browser.
+                            No apps to install. No complicated setup. Just fun in your browser.
                         </p>
                     </motion.div>
 
@@ -137,7 +119,7 @@ export default function Home() {
                             {
                                 icon: <Smartphone className="w-10 h-10 text-green-500" />,
                                 title: "Join with Phones",
-                                description: "Players scan the QR code or enter the room code to join. Your phone is your secret controller.",
+                                description: "Players scan the QR code or enter the room code to join. Your phone is your controller.",
                                 step: "02"
                             },
                             {
@@ -178,8 +160,8 @@ export default function Home() {
                         viewport={{ once: true }}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Available Games</h2>
-                        <p className="text-muted-foreground text-lg">Choose your challenge and start the fun.</p>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Games</h2>
+                        <p className="text-muted-foreground text-lg">Choose your challenge.</p>
                     </motion.div>
 
                     <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -205,7 +187,7 @@ export default function Home() {
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>15 Mins</div>
                                 </div>
-                                <Button 
+                                <Button
                                     onClick={() => handlePlayGame('general')}
                                     className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none"
                                 >
@@ -236,7 +218,7 @@ export default function Home() {
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>20 Mins</div>
                                 </div>
-                                <Button 
+                                <Button
                                     onClick={() => handlePlayGame('rebus')}
                                     className="w-full text-lg py-6 bg-orange-600 hover:bg-orange-700 text-white border-none"
                                 >
@@ -250,10 +232,6 @@ export default function Home() {
 
             {/* Footer */}
             <footer className="py-12 text-center text-muted-foreground border-t border-border bg-secondary/10">
-                <div className="flex items-center justify-center gap-2 font-bold text-xl mb-4 opacity-80">
-                    <Gamepad2 className="w-6 h-6" />
-                    <span>Kouch</span>
-                </div>
                 <p>© {new Date().getFullYear()} Kouch. Built for the ultimate party.</p>
             </footer>
         </main>

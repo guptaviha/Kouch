@@ -47,6 +47,8 @@ export default function PlayerPage() {
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
   const roundIndex = useGameStore((s) => s.roundIndex);
   const countdown = useGameStore((s) => s.countdown);
+  const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
+
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
   const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
@@ -288,7 +290,7 @@ export default function PlayerPage() {
                 : null}
 
               {/* Progress bar for the active round */}
-              {timerEndsAt && (
+              {timerEndsAt && totalQuestionDuration && (
                 <div className="mt-8">
                   <Progress
                     value={Math.max(
@@ -298,9 +300,9 @@ export default function PlayerPage() {
                         Math.round(
                           (100 * (
                             (paused && pauseRemainingMs != null)
-                              ? (ROUND_DURATION_MS - pauseRemainingMs)
-                              : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                          )) / ROUND_DURATION_MS
+                              ? (totalQuestionDuration - pauseRemainingMs)
+                              : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                          )) / totalQuestionDuration
                         )
                       )
                     )}

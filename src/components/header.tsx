@@ -1,7 +1,7 @@
 "use client";
 
+import { DarkModeToggle } from "@/components/dark-mode-toggle";
 import React from 'react';
-import Link from 'next/link';
 import { Sofa, Laptop } from 'lucide-react';
 import PlayerAvatar from './player-avatar';
 import Link from 'next/link';
@@ -44,7 +44,7 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
             )}
           </div>
         </div>
-      ) : null}
+      ) : <DarkModeToggle />}
     </div>
   );
 }

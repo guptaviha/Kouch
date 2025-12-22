@@ -56,6 +56,7 @@ interface Room {
   answers: Map<string, SubmittedAnswer>;
   selectedPack: string;
   timerEndsAt?: number;
+  totalQuestionDuration?: number;
 }
 
 const NEXT_TARGET = process.env.NEXT_TARGET || 'http://localhost:3000';
@@ -172,6 +173,7 @@ function startRound(room: Room) {
 
   const roundEnd = room.roundStart + ROUND_DURATION_MS;
   room.timerEndsAt = roundEnd;
+  room.totalQuestionDuration = ROUND_DURATION_MS;
   broadcast(room, {
     type: 'game_state',
     state: room.state,
@@ -180,6 +182,7 @@ function startRound(room: Room) {
     question: pack[currentRoundIndex].question,
     image: pack[currentRoundIndex].image, // send image URL if available
     timerEndsAt: roundEnd,
+    totalQuestionDuration: ROUND_DURATION_MS,
   });
 
   room.timers.round = setTimeout(() => endRound(room), ROUND_DURATION_MS);
@@ -472,6 +475,7 @@ function handleMessage(socket: Socket, msg: any) {
     const currentEnd = room.timerEndsAt || (Date.now() + 1000);
     const newEnd = currentEnd + EXTENSION_MS;
     room.timerEndsAt = newEnd;
+    room.totalQuestionDuration = (room.totalQuestionDuration || ROUND_DURATION_MS) + EXTENSION_MS;
 
     // Reschedule
     if (room.timers.round) clearTimeout(room.timers.round);
@@ -479,7 +483,7 @@ function handleMessage(socket: Socket, msg: any) {
     room.timers.round = setTimeout(() => endRound(room), remaining);
 
     console.log(`Timer extended by ${EXTENSION_MS}ms. New end: ${newEnd}`);
-    broadcast(room, { type: 'timer_updated', roomCode: room.code, timerEndsAt: newEnd });
+    broadcast(room, { type: 'timer_updated', roomCode: room.code, timerEndsAt: newEnd, totalQuestionDuration: room.totalQuestionDuration });
     return;
   }
 

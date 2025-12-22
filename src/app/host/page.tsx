@@ -4,6 +4,7 @@ import PlayerAvatar from '@/components/player-avatar';
 import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ export default function HostPage() {
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
   const roundIndex = useGameStore((s) => s.roundIndex);
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
+  const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
   const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
@@ -60,6 +62,14 @@ export default function HostPage() {
   const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!selectedPack) {
+      router.push('/');
+    }
+  }, [selectedPack, router]);
+
   useEffect(() => {
     // connect websocket and register centralized server handler
     connect(SERVER);
@@ -310,8 +320,6 @@ export default function HostPage() {
 
           {state === 'playing' && (
             <>
-              {/* players' answer status strip (moved to bottom of the page for better layout) */}
-              {/* players' answer status strip (moved to bottom of the page for better layout) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -348,7 +356,7 @@ export default function HostPage() {
                 )}
 
                 {/* Round progress bar at bottom of the playing card */}
-                {timerEndsAt && (
+                {timerEndsAt && totalQuestionDuration && (
                   <div className="mt-8 px-4">
                     <Progress
                       value={Math.max(
@@ -358,9 +366,9 @@ export default function HostPage() {
                           Math.round(
                             (100 * (
                               (paused && pauseRemainingMs != null)
-                                ? (ROUND_DURATION_MS - pauseRemainingMs)
-                                : (ROUND_DURATION_MS - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                            )) / ROUND_DURATION_MS
+                                ? (totalQuestionDuration - pauseRemainingMs)
+                                : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                            )) / totalQuestionDuration
                           )
                         )
                       )}

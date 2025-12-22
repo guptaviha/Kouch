@@ -3,13 +3,16 @@ BUGS
 - i am able to join a room that doesnt exist
 - player gets diconnected on screen close
 - long username truncated
-- change pause button to an icon
 - play again is starting a new game
-- 
+- +15 button padding
+- if there are no players, game should end or something
+
 ENHANCEMENTS
 - allow user to choose another avatar?
 - when restarting a game, take back to qr lobby with the same room code
-- standardize the buttons
+- standardize the buttons and progress bars
+- rebus and trivia should have diff rooms?
+- home page header
 
 
 FEATURES
