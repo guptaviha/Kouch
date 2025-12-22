@@ -2,8 +2,10 @@ BUGS
 - dont allow the same avatar to be picked by multiple players
 - i am able to join a room that doesnt exist
 - player gets diconnected on screen close
-
-
+- long username truncated
+- change pause button to an icon
+- play again is starting a new game
+- 
 ENHANCEMENTS
 - allow user to choose another avatar?
 - when restarting a game, take back to qr lobby with the same room code

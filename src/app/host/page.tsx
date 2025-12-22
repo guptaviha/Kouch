@@ -480,6 +480,13 @@ export default function HostPage() {
                             </div>
                           </div>
 
+                          {/* Show answer if available */}
+                          {result?.answer && (
+                            <div className={`mx-4 text-sm font-medium max-w-[150px] truncate ${result.correct ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                              {result.answer}
+                            </div>
+                          )}
+
                           <div className="text-right">
                             <div className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">
                               <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />

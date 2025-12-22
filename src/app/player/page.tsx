@@ -67,6 +67,10 @@ export default function PlayerPage() {
   }, []);
 
   useEffect(() => {
+    // Load saved nickname on mount
+    const savedName = localStorage.getItem('kouch_nickname');
+    if (savedName) setName(savedName);
+
     connect(SERVER);
 
     let handler: any = null;
@@ -124,6 +128,14 @@ export default function PlayerPage() {
       setStatusMessage('Enter name and room code');
       return;
     }
+
+    // Save nickname to localStorage
+    try {
+      localStorage.setItem('kouch_nickname', name);
+    } catch (e) {
+      // ignore
+    }
+
     emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name });
   };
 
@@ -455,6 +467,13 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
                       </span>
                     </div>
                   </div>
+
+                  {/* Show answer if available */}
+                  {result?.answer && (
+                    <div className={`mx-2 text-xs font-medium max-w-[100px] truncate ${result.correct ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {result.answer}
+                    </div>
+                  )}
 
                   <div className="text-right flex flex-col items-end">
                     <div className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">

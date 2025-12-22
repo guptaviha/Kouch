@@ -26,8 +26,9 @@ export default function serverMessageHandler(msg: any) {
     setPauseRemainingMs,
     setCountdown,
     setJoined,
-    setStatusMessage
-  } = s as any;
+    setStatusMessage,
+    setSubmitted,
+  } = s;
 
   try {
     switch (msg.type) {
@@ -64,9 +65,11 @@ export default function serverMessageHandler(msg: any) {
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
         setAnsweredPlayers?.([]);
+        setSubmitted?.(false);
         break;
 
       case 'round_result':
+        setStatusMessage?.('');
         setState?.('round_result');
         setRoundResults?.(msg);
         if (msg.nextTimerEndsAt) setTimerEndsAt?.(msg.nextTimerEndsAt);
@@ -75,6 +78,7 @@ export default function serverMessageHandler(msg: any) {
         break;
 
       case 'final_leaderboard':
+        setStatusMessage?.('');
         setState?.('finished');
         setRoundResults?.({ final: msg.leaderboard });
         break;
