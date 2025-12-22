@@ -178,7 +178,12 @@ export default function PlayerPage() {
           <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
             <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
             <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
-              <span>{pausedMessage}</span>
+              <span>
+                {pausedMessage}
+                <span className="animate-bounce delay-75">.</span>
+                <span className="animate-bounce delay-150">.</span>
+                <span className="animate-bounce delay-300">.</span>
+              </span>
             </div>
           </div>
         </div>
@@ -259,7 +264,12 @@ export default function PlayerPage() {
                 Hello, {name}!
               </h2>
               <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
-                <span>{waitingMessage}</span>
+                <span>
+                  {waitingMessage}
+                  <span className="animate-bounce delay-75">.</span>
+                  <span className="animate-bounce delay-150">.</span>
+                  <span className="animate-bounce delay-300">.</span>
+                </span>
               </div>
             </motion.div>
           ) : (
@@ -401,7 +411,10 @@ export default function PlayerPage() {
               </div>
 
               <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
-                Waiting for host to restart...
+                Waiting for host to restart
+                <span className="animate-bounce delay-75">.</span>
+                <span className="animate-bounce delay-150">.</span>
+                <span className="animate-bounce delay-300">.</span>
               </div>
             </div>
           )}

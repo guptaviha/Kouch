@@ -212,7 +212,12 @@ export default function HostPage() {
 
       {!roomCode ? (
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Creating room...</p>
+          <p className="text-muted-foreground">
+            Creating room
+            <span className="animate-bounce delay-75">.</span>
+            <span className="animate-bounce delay-150">.</span>
+            <span className="animate-bounce delay-300">.</span>
+          </p>
         </div>
       ) : (
         <div>
@@ -245,7 +250,12 @@ export default function HostPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-600">Generating QR code...</div>
+                    <div className="text-sm text-gray-600">
+                      Generating QR code
+                      <span className="animate-bounce delay-75">.</span>
+                      <span className="animate-bounce delay-150">.</span>
+                      <span className="animate-bounce delay-300">.</span>
+                    </div>
                   )}
                 </motion.div>
 
@@ -264,7 +274,12 @@ export default function HostPage() {
 
                     {players.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50">
-                        <p className="text-lg font-medium text-gray-400 dark:text-gray-500 mb-2">Waiting for players...</p>
+                        <p className="text-lg font-medium text-gray-400 dark:text-gray-500 mb-2">
+                          Waiting for players
+                          <span className="animate-bounce delay-75">.</span>
+                          <span className="animate-bounce delay-150">.</span>
+                          <span className="animate-bounce delay-300">.</span>
+                        </p>
                         <p className="text-sm text-gray-400">Scan the QR code to join!</p>
                       </div>
                     ) : (
