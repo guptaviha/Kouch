@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/header';
-import { io, Socket } from 'socket.io-client';
 import { RoomStates } from '@/lib/store/types';
 import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
+// use shared CountUp component
+import CountUp from '@/components/count-up';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -20,40 +21,35 @@ const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || DEFAULT_SERVER;
 const ROUND_DURATION_MS = 30_000; // match server round duration
 
 export default function PlayerPage() {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  // websocket helpers
+  const connect = useGameStore((s) => s.connect);
+  const disconnect = useGameStore((s) => s.disconnect);
+  const on = useGameStore((s) => s.on);
+  const off = useGameStore((s) => s.off);
+  const emit = useGameStore((s) => s.emit);
   // roomCode moved into central store
   const roomCode = useGameStore((s) => s.roomCode);
   const setRoomCode = useGameStore((s) => s.setRoomCode);
   const name = useGameStore((s) => s.name);
   const setName = useGameStore((s) => s.setName);
   const joined = useGameStore((s) => s.joined);
-  const setJoined = useGameStore((s) => s.setJoined);
-  const playerId = useGameStore((s) => s.playerId);
-  const setPlayerId = useGameStore((s) => s.setPlayerId);
-  const playerAvatar = useGameStore((s) => s.playerAvatar);
-  const setPlayerAvatar = useGameStore((s) => s.setPlayerAvatar);
+  // profile lives in userProfileSlice and contains id/avatar/name for the current user
+  const profile = useGameStore((s) => s.profile);
   // use central zustand store for lobby / current question
   const gameStateValue = useGameStore((s) => s.state);
-  const setGameState = useGameStore((s) => s.setState);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
-  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
 
   // store uses shared RoomStates directly
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
   // timer/round state moved to store
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
-  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
-  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
   const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
-  const setRoundResults = useGameStore((s) => s.setRoundResults);
   const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
-  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
   const answer = useGameStore((s) => s.answer);
   const setAnswer = useGameStore((s) => s.setAnswer);
   const statusMessage = useGameStore((s) => s.statusMessage);
@@ -64,7 +60,6 @@ export default function PlayerPage() {
   const splashTimerRef = useRef<number | null>(null);
   // paused is now stored centrally in the game slice
   const paused = useGameStore((s) => s.paused);
-  const setPaused = useGameStore((s) => s.setPaused);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -72,86 +67,14 @@ export default function PlayerPage() {
   }, []);
 
   useEffect(() => {
-    const s = io(SERVER, { path: '/ws' });
-    setSocket(s);
+    connect(SERVER);
 
-    s.on('server', (msg: any) => {
-      if (!msg || !msg.type) return;
-      if (msg.type === 'error') {
-        setStatusMessage(msg.message || 'An error occurred');
-        return;
-      }
-
-      if (msg.type === 'joined') {
-        setJoined(true);
-        setPlayerId(msg.player.id);
-        setPlayerAvatar(msg.player.avatar);
-        return;
-      }
-
-      if (msg.type === 'lobby_update') {
-        try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
-        return;
-      }
-
-      if (msg.type === 'game_state') {
-        setGameState('playing');
-        setCurrentQuestion(msg.question || '');
-        setTimerEndsAt(msg.timerEndsAt || null);
-        setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        // clear previous answer at the start of a round
-        setAnswer('');
-        // allow submitting for the new round
-        setSubmitted(false);
-        // clear any waiting messages when a new round starts
-        setStatusMessage(null);
-        // do not show round splash on player — host shows splash only
-        return;
-      }
-
-      if (msg.type === 'answer_received') {
-        setStatusMessage('Answer received');
-        return;
-      }
-
-      if (msg.type === 'round_result') {
-        setGameState('round_result');
-        setRoundResults(msg);
-        if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
-        if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs(msg.nextTimerDurationMs);
-        setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        // round finished — allow submitting in the next round
-        setSubmitted(false);
-        setStatusMessage(null);
-        return;
-      }
-
-      if (msg.type === 'final_leaderboard') {
-        setGameState('finished');
-        return;
-      }
-
-      if (msg.type === 'game_paused') {
-        setPaused(true);
-        if (typeof msg.pauseRemainingMs === 'number') {
-          setPauseRemainingMs(msg.pauseRemainingMs);
-          setCountdown(Math.max(0, Math.ceil(msg.pauseRemainingMs / 1000)));
-        }
-        return;
-      }
-
-      if (msg.type === 'game_resumed') {
-        setPaused(false);
-        if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
-        setPauseRemainingMs(null);
-        return;
-      }
-
-      if (msg.type === 'timer_updated') {
-        if (msg.timerEndsAt) setTimerEndsAt(msg.timerEndsAt);
-        return;
-      }
-    });
+    let handler: any = null;
+    (async () => {
+      const mod = await import('@/lib/socket/handleServerMessage');
+      handler = mod.default;
+      on('server', handler);
+    })();
 
     // prefill room code from URL param if present
     try {
@@ -162,7 +85,7 @@ export default function PlayerPage() {
       }
     } catch (e) { }
 
-    return () => { if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current); s.disconnect(); };
+    return () => { if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current); if (handler) off('server', handler); disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -197,17 +120,16 @@ export default function PlayerPage() {
 
   const joinRoom = () => {
     setStatusMessage(null);
-    if (!socket) return;
     if (!roomCode || !name) {
       setStatusMessage('Enter name and room code');
       return;
     }
-    socket.emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name });
+    emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name });
   };
 
   const submitAnswer = () => {
-    if (!socket || !playerId || !roomCode || paused) return;
-    socket.emit('message', { type: 'submit_answer', roomCode, playerId, answer });
+    if (!profile?.id || !roomCode || paused) return;
+    emit('message', { type: 'submit_answer', roomCode, playerId: profile.id, answer });
     setStatusMessage('Waiting for other players to answer...');
     // clear the input so the player can see their answer was submitted
     setAnswer('');
@@ -220,7 +142,7 @@ export default function PlayerPage() {
   return (
     <div className="p-6 max-w-md mx-auto relative">
 
-      <Header roomCode={roomCode || null} avatarKey={playerAvatar} name={name ?? null} role="player" />
+      <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={name ?? null} role="player" />
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -301,7 +223,7 @@ export default function PlayerPage() {
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
                   <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2 overflow-hidden shadow-inner">
-                    <PlayerAvatar avatarKey={playerAvatar} size={80} />
+                    <PlayerAvatar avatarKey={profile?.avatar} size={80} />
                   </div>
                 </motion.div>
                 <div className="absolute -bottom-2 w-16 h-2 bg-black/10 rounded-[100%] blur-sm left-1/2 -translate-x-1/2 animate-pulse" />
@@ -381,7 +303,7 @@ export default function PlayerPage() {
           {state === 'round_result' && roundResults && (
             <PlayerRoundResult
               roundResults={roundResults}
-              playerId={playerId}
+              playerId={profile?.id}
               timerEndsAt={timerEndsAt}
               nextTimerDurationMs={nextTimerDurationMs}
               countdown={countdown}
@@ -436,7 +358,7 @@ export default function PlayerPage() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 + (i * 0.1) }}
-                        className={`flex items-center p-3 rounded-xl shadow-sm border ${p.id === playerId
+                        className={`flex items-center p-3 rounded-xl shadow-sm border ${p.id === profile?.id
                           ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-500/20'
                           : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
                           }`}
@@ -446,7 +368,7 @@ export default function PlayerPage() {
                           <PlayerAvatar avatarKey={p.avatar} size={32} />
                         </div>
                         <div className="flex-1 text-left font-bold text-gray-900 dark:text-gray-100">
-                          {p.name} {p.id === playerId && '(You)'}
+                          {p.name} {p.id === profile?.id && '(You)'}
                         </div>
                         <div className="font-bold text-gray-600 dark:text-gray-400">{p.score} pts</div>
                       </motion.li>
@@ -584,18 +506,4 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
     </div>
   );
 }
-function CountUp({ from, to, duration = 1.5, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
-  const [value, setValue] = useState(from);
 
-  useEffect(() => {
-    const controls = animate(from, to, {
-      duration,
-      delay,
-      onUpdate: (v) => setValue(Math.round(v)),
-      ease: "easeOut"
-    });
-    return controls.stop;
-  }, [from, to, duration, delay]);
-
-  return <>{value}</>;
-}

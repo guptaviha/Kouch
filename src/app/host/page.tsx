@@ -5,136 +5,76 @@ import Header from '@/components/header';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/lib/store';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
-import { io, Socket } from 'socket.io-client';
-import { motion, AnimatePresence, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
+// use shared CountUp component
+import CountUp from '@/components/count-up';
+
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 const ROUND_DURATION_MS = 30_000; // same as server
 
 export default function HostPage() {
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [player, setPlayer] = useState<PlayerInfo | null>(null);
+  // websocket helpers (connect, emit, on, off, disconnect)
+  const connect = useGameStore((s) => s.connect);
+  const disconnect = useGameStore((s) => s.disconnect);
+  const on = useGameStore((s) => s.on);
+  const off = useGameStore((s) => s.off);
+  const emit = useGameStore((s) => s.emit);
+  // shared user profile (host/profile) lives in userProfileSlice
+  const profile = useGameStore((s) => s.profile as PlayerInfo | null);
+  const setProfile = useGameStore((s) => s.setProfile);
   // roomCode and players moved into the central store
   const roomCode = useGameStore((s) => s.roomCode);
-  const setRoomCode = useGameStore((s) => s.setRoomCode);
   const players = useGameStore((s) => s.players as PlayerInfo[]);
-  const setPlayers = useGameStore((s) => s.setPlayers);
-  const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
+  const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
   // game state and question are now stored in the central zustand store
   const gameStateValue = useGameStore((s) => s.state);
-  const setGameState = useGameStore((s) => s.setState);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
-  const setCurrentQuestion = useGameStore((s) => s.setCurrentQuestion);
 
   // the store already uses the shared RoomStates, so we can use it directly
   const state: RoomStates = gameStateValue as RoomStates;
   const question = currentQuestion || null;
-  const [questionImage, setQuestionImage] = useState<string | null>(null);
+  const questionImage = useGameStore((s) => s.questionImage as string | null);
   // timer/round state moved to store
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
-  const setTimerEndsAt = useGameStore((s) => s.setTimerEndsAt);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const setRoundIndex = useGameStore((s) => s.setRoundIndex);
   const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
-  const setPauseRemainingMs = useGameStore((s) => s.setPauseRemainingMs);
   const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
-  const setRoundResults = useGameStore((s) => s.setRoundResults);
   const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
-  const setNextTimerDurationMs = useGameStore((s) => s.setNextTimerDurationMs);
   const timerRef = useRef<number | null>(null);
   const splashTimerRef = useRef<number | null>(null);
   // paused is stored in the central game slice now
   const paused = useGameStore((s) => s.paused);
-  const setPaused = useGameStore((s) => s.setPaused);
-  const [playAgainPending, setPlayAgainPending] = useState(false);
-  const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  const playAgainPending = useGameStore((s) => s.playAgainPending);
+  const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
+  const selectedPack = useGameStore((s) => s.selectedPack);
+  const setSelectedPack = useGameStore((s) => s.setSelectedPack);
   // host UI state moved to host slice
   const qrDataUrl = useGameStore((s) => s.qrDataUrl);
   const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
-  const showIntro = useGameStore((s) => s.showIntro);
-  const setShowIntro = useGameStore((s) => s.setShowIntro);
-
   useEffect(() => {
-    const s = io(SERVER, { path: '/ws' });
-    setSocket(s);
+    // connect websocket and register centralized server handler
+    connect(SERVER);
 
-    s.on('server', (msg: any) => {
-      if (!msg || !msg.type) return;
-      if (msg.type === 'room_created') {
-        setRoomCode(msg.roomCode);
-        setPlayer(msg.player);
-        // hide the intro only after server confirms the room was created
-        setShowIntro(false);
-        // if Play Again flow requested a new room, auto-start the new game
-        if (playAgainPending) {
-          setPlayAgainPending(false);
-          try {
-            // directly instruct server to start the newly created room
-            s.emit('message', { type: 'start_game', roomCode: msg.roomCode, playerId: msg.player.id });
-          } catch (e) { }
-        }
-      }
-      if (msg.type === 'lobby_update') {
-        setPlayers(msg.players || []);
-        // server sends the host-style state; server messages already use the same labels
-        try { setGameState((msg.state || 'lobby') as RoomStates); } catch (e) { setGameState('lobby'); }
-      }
-      if (msg.type === 'player_answered') {
-        const pid = msg.playerId as string;
-        setAnsweredPlayers((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
-      }
-      if (msg.type === 'game_state') {
-        setGameState('playing');
-        setCurrentQuestion(msg.question || '');
-        setQuestionImage(msg.image || null);
-        setTimerEndsAt(msg.timerEndsAt || null);
-        setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        setRoundResults(null);
-        setRoundResults(null);
-        // reset answered players for the new round
-        setAnsweredPlayers([]);
-      }
-      if (msg.type === 'round_result') {
-        setGameState('round_result');
-        setRoundResults(msg);
-        // use nextTimerEndsAt from server to show countdown on results screen
-        if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
-        setRoundIndex(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
-        if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs(msg.nextTimerDurationMs);
-      }
-      if (msg.type === 'final_leaderboard') {
-        setGameState('finished');
-        setRoundResults({ final: msg.leaderboard });
-      }
-      if (msg.type === 'game_paused') {
-        setPaused(true);
-        if (typeof msg.pauseRemainingMs === 'number') {
-          setPauseRemainingMs(msg.pauseRemainingMs);
-          setCountdown(Math.max(0, Math.ceil(msg.pauseRemainingMs / 1000)));
-        }
-      }
-      if (msg.type === 'game_resumed') {
-        setPaused(false);
-        // if server provided nextTimerEndsAt, update timer
-        if (msg.nextTimerEndsAt) setTimerEndsAt(msg.nextTimerEndsAt);
-        setPauseRemainingMs(null);
-      }
-      if (msg.type === 'timer_updated') {
-        if (msg.timerEndsAt) setTimerEndsAt(msg.timerEndsAt);
-      }
-    });
+    let handler: any = null;
+    (async () => {
+      const mod = await import('@/lib/socket/handleServerMessage');
+      handler = mod.default;
+      on('server', handler);
+    })();
 
     return () => {
       if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current);
-      s.disconnect();
+      if (handler) off('server', handler);
+      disconnect();
     };
   }, []);
 
@@ -207,63 +147,50 @@ export default function HostPage() {
   }, []);
 
   const createRoom = () => {
-    if (!socket) return;
-    socket.emit('message', { type: 'create_room', name: 'Host', pack: selectedPack });
+    emit('message', { type: 'create_room', name: 'Host', pack: selectedPack });
   };
 
   const startGame = () => {
-    if (!socket || !roomCode || !player) return;
-    socket.emit('message', { type: 'start_game', roomCode, playerId: player.id });
+    if (!roomCode || !profile) return;
+    emit('message', { type: 'start_game', roomCode, playerId: profile.id });
   };
 
   const extendTimer = () => {
-    if (!socket || !roomCode) return;
-    socket.emit('message', { type: 'extend_timer', roomCode, hostId: player?.id });
+    if (!roomCode) return;
+    emit('message', { type: 'extend_timer', roomCode, hostId: profile?.id });
   };
 
   const pauseGame = () => {
-    if (!socket || !roomCode || !player) return;
-    socket.emit('message', { type: 'pause_game' });
+    if (!roomCode || !profile) return;
+    emit('message', { type: 'pause_game' });
   };
 
   const resumeGame = () => {
-    if (!socket || !roomCode || !player) return;
-    socket.emit('message', { type: 'resume_game' });
+    if (!roomCode || !profile) return;
+    emit('message', { type: 'resume_game' });
   };
 
   const resetGame = () => {
-    if (!socket || !roomCode || !player) return;
+    if (!roomCode || !profile) return;
     // reset current game, then create a fresh room and auto-start it
-    socket.emit('message', { type: 'reset_game', roomCode, playerId: player.id });
+    emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
     // request server to create a new room for us and mark pending to auto-start
     setPlayAgainPending(true);
-    socket.emit('message', { type: 'create_room', name: 'Host' });
+    emit('message', { type: 'create_room', name: 'Host' });
   };
+
+  useEffect(() => {
+    if (selectedPack && !roomCode) {
+      createRoom();
+    }
+  }, [selectedPack, roomCode]);
 
   if (!mounted) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto relative">
 
-      <Header roomCode={roomCode} avatarKey={player?.avatar} name={player?.name ?? null} role="host" />
-
-      {/* Home page tagline + how to play + big start button */}
-      {showIntro && (
-        <div className="mb-10 text-center">
-          <p className="text-2xl text-gray-400 dark:text-gray-500 font-medium tracking-tight mb-8">couch party games for friends</p>
-
-          <div className="w-full max-w-2xl mx-auto border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl p-8 bg-gray-50/50 dark:bg-gray-900/50">
-            <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-gray-200">How to play</h3>
-            <ol className="list-decimal list-inside space-y-3 text-gray-600 dark:text-gray-400 text-left w-fit mx-auto">
-              <li className="pl-2">Get some friends with phones</li>
-              <li className="pl-2">Choose a game pack below</li>
-              <li className="pl-2">Start a party on a screen everyone can see</li>
-              <li className="pl-2">Decimate your friends!</li>
-            </ol>
-          </div>
-
-        </div>
-      )}
+      <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -275,27 +202,8 @@ export default function HostPage() {
       )}
 
       {!roomCode ? (
-        <div className='flex flex-col items-center gap-8 w-full'>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            <div
-              onClick={() => setSelectedPack('general')}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'general' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700'}`}
-            >
-              <h3 className="text-xl font-bold mb-2">General Trivia</h3>
-              <p className="text-gray-600 dark:text-gray-400">Classic brain teasers to test your knowledge.</p>
-            </div>
-            <div
-              onClick={() => setSelectedPack('rebus')}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${selectedPack === 'rebus' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700'}`}
-            >
-              <h3 className="text-xl font-bold mb-2">Rebus Puzzles</h3>
-              <p className="text-gray-600 dark:text-gray-400">Visual word puzzles. Say what you see!</p>
-            </div>
-          </div>
-
-          <div className={`transition-all duration-500 ${selectedPack ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <ActionButton onClick={createRoom}>Start Party</ActionButton>
-          </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Creating room...</p>
         </div>
       ) : (
         <div>
@@ -692,20 +600,4 @@ export default function HostPage() {
       )}
     </motion.div>
   );
-}
-
-function CountUp({ from, to, duration = 1.5, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
-  const [value, setValue] = useState(from);
-
-  useEffect(() => {
-    const controls = animate(from, to, {
-      duration,
-      delay,
-      onUpdate: (v) => setValue(Math.round(v)),
-      ease: "easeOut"
-    });
-    return controls.stop;
-  }, [from, to, duration, delay]);
-
-  return <>{value}</>;
 }
