@@ -9,6 +9,8 @@ import { useGameStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
 // use shared CountUp component
 import CountUp from '@/components/count-up';
+import { getRandomMessage } from '@/utils/messages';
+import TrailingDots from '@/components/trailing-dots';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -63,10 +65,26 @@ export default function PlayerPage() {
   // paused is now stored centrally in the game slice
   const paused = useGameStore((s) => s.paused);
   const [mounted, setMounted] = useState(false);
+  const [pausedMessage, setPausedMessage] = useState(getRandomMessage('game_paused'));
+  const [waitingMessage, setWaitingMessage] = useState(getRandomMessage('waiting_to_start'));
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Regenerate paused message when paused state changes
+  useEffect(() => {
+    if (paused) {
+      setPausedMessage(getRandomMessage('game_paused'));
+    }
+  }, [paused]);
+
+  // Regenerate waiting message when state changes to lobby
+  useEffect(() => {
+    if (state === 'lobby') {
+      setWaitingMessage(getRandomMessage('waiting_to_start'));
+    }
+  }, [state]);
 
   useEffect(() => {
     // Load saved nickname on mount
@@ -163,10 +181,10 @@ export default function PlayerPage() {
           <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
             <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
             <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
-              <span>Host is up to something</span>
-              <span className="animate-bounce delay-75">.</span>
-              <span className="animate-bounce delay-150">.</span>
-              <span className="animate-bounce delay-300">.</span>
+              <span>
+                {pausedMessage}
+                <TrailingDots />
+              </span>
             </div>
           </div>
         </div>
@@ -247,10 +265,10 @@ export default function PlayerPage() {
                 Hello, {name}!
               </h2>
               <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
-                <span>Waiting for host to start</span>
-                <span className="animate-bounce delay-75">.</span>
-                <span className="animate-bounce delay-150">.</span>
-                <span className="animate-bounce delay-300">.</span>
+                <span>
+                  {waitingMessage}
+                  <TrailingDots />
+                </span>
               </div>
             </motion.div>
           ) : (
@@ -392,7 +410,8 @@ export default function PlayerPage() {
               </div>
 
               <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
-                Waiting for host to restart...
+                Waiting for host to restart
+                <TrailingDots />
               </div>
             </div>
           )}
