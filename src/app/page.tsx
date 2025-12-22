@@ -1,117 +1,245 @@
+"use client";
+
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
-import ExampleComponentFetchingData from "@/components/example-component-fetching-data";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { Gamepad2, Laptop, Smartphone, Trophy, Brain, ArrowRight, Users, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.2,
+            },
+        },
+    };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: {
+                type: "spring",
+                stiffness: 100,
+            },
+        },
+    };
+
     return (
-        <main className="flex min-h-screen flex-col items-center justify-between p-24">
-            <ExampleComponentFetchingData />
-            <DarkModeToggle />
-            <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-                <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-                    Get started by editing&nbsp;
-                    <code className="font-mono font-bold">src/app/page.tsx</code>
-                </p>
-                <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-                    <a
-                        className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-                        href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        By{" "}
-                        <Image
-                            src="/vercel.svg"
-                            alt="Vercel Logo"
-                            className="dark:invert"
-                            width={100}
-                            height={24}
-                            priority
-                        />
-                    </a>
+        <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
+            {/* Navigation */}
+            <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="flex items-center justify-between p-4 md:p-6 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
+                        <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
+                            <Gamepad2 className="w-6 h-6" />
+                        </div>
+                        <span>Kouch</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <DarkModeToggle />
+                        <Link href="/host">
+                            <Button className="hidden md:flex">Host a Game</Button>
+                        </Link>
+                    </div>
                 </div>
-            </div>
+            </nav>
 
-            <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-                <Image
-                    className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-                    src="/next.svg"
-                    alt="Next.js Logo"
-                    width={180}
-                    height={37}
-                    priority
-                />
-            </div>
+            {/* Hero Section */}
+            <motion.section
+                className="relative flex flex-col items-center justify-center text-center px-4 py-20 md:py-32 max-w-5xl mx-auto"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {/* Background decorative elements */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
+                
+                <motion.div variants={itemVariants} className="mb-6 inline-flex items-center rounded-full border border-border bg-secondary/50 px-3 py-1 text-sm text-secondary-foreground backdrop-blur-sm">
+                    <Sparkles className="mr-2 h-3.5 w-3.5 text-yellow-500" />
+                    <span>The ultimate party experience</span>
+                </motion.div>
 
-            <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-                <a
-                    href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-                    className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <motion.h1
+                    className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent"
+                    variants={itemVariants}
                 >
-                    <h2 className="mb-3 text-2xl font-semibold">
-                        Docs{" "}
-                        <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                            -&gt;
-                        </span>
-                    </h2>
-                    <p className="m-0 max-w-[30ch] text-sm opacity-50">
-                        Find in-depth information about Next.js features and API.
-                    </p>
-                </a>
-
-                <a
-                    href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-                    className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    Game Night, <br className="hidden md:block" />
+                    <span className="text-primary">Reinvented.</span>
+                </motion.h1>
+                
+                <motion.p
+                    className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed"
+                    variants={itemVariants}
                 >
-                    <h2 className="mb-3 text-2xl font-semibold">
-                        Learn{" "}
-                        <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                            -&gt;
-                        </span>
-                    </h2>
-                    <p className="m-0 max-w-[30ch] text-sm opacity-50">
-                        Learn about Next.js in an interactive course with&nbsp;quizzes!
-                    </p>
-                </a>
+                    Turn your living room into a game show stage. Use your phone as the controller and the TV as the main display.
+                </motion.p>
+                
+                <motion.div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto" variants={itemVariants}>
+                    <Link href="/host" className="w-full sm:w-auto">
+                        <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+                            <Laptop className="mr-2 w-5 h-5" />
+                            Host Party
+                        </Button>
+                    </Link>
+                    <Link href="/player" className="w-full sm:w-auto">
+                        <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 h-auto hover:bg-secondary/80">
+                            <Smartphone className="mr-2 w-5 h-5" />
+                            Join Room
+                        </Button>
+                    </Link>
+                </motion.div>
+            </motion.section>
 
-                <a
-                    href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-                    className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <h2 className="mb-3 text-2xl font-semibold">
-                        Templates{" "}
-                        <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                            -&gt;
-                        </span>
-                    </h2>
-                    <p className="m-0 max-w-[30ch] text-sm opacity-50">
-                        Explore starter templates for Next.js.
-                    </p>
-                </a>
+            {/* How It Works */}
+            <section className="py-24 bg-secondary/30 border-y border-border/50">
+                <div className="max-w-7xl mx-auto px-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5 }}
+                        className="text-center mb-16"
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">How It Works</h2>
+                        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                            No apps to install. No complicated setup. Just pure fun in your browser.
+                        </p>
+                    </motion.div>
 
-                <a
-                    href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-                    className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <h2 className="mb-3 text-2xl font-semibold">
-                        Deploy{" "}
-                        <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                            -&gt;
-                        </span>
-                    </h2>
-                    <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-                        Instantly deploy your Next.js site to a shareable URL with Vercel.
-                    </p>
-                </a>
-            </div>
+                    <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+                        {[
+                            {
+                                icon: <Laptop className="w-10 h-10 text-blue-500" />,
+                                title: "Host on Big Screen",
+                                description: "Open Kouch on your laptop or smart TV. This becomes the main game board that everyone watches.",
+                                step: "01"
+                            },
+                            {
+                                icon: <Smartphone className="w-10 h-10 text-green-500" />,
+                                title: "Join with Phones",
+                                description: "Players scan the QR code or enter the room code to join. Your phone is your secret controller.",
+                                step: "02"
+                            },
+                            {
+                                icon: <Trophy className="w-10 h-10 text-yellow-500" />,
+                                title: "Compete & Win",
+                                description: "Play real-time mini-games, answer trivia, and solve puzzles to claim the crown.",
+                                step: "03"
+                            },
+                        ].map((step, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.2 }}
+                                className="relative bg-card p-8 rounded-2xl shadow-sm border border-border/50 hover:border-primary/50 transition-colors group"
+                            >
+                                <div className="absolute -top-4 -right-4 text-6xl font-bold text-secondary opacity-50 select-none">
+                                    {step.step}
+                                </div>
+                                <div className="mb-6 p-4 bg-background rounded-xl shadow-sm w-fit group-hover:scale-110 transition-transform duration-300">
+                                    {step.icon}
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                                <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Games Section */}
+            <section className="py-24 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-16"
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Available Games</h2>
+                        <p className="text-muted-foreground text-lg">Choose your challenge and start the fun.</p>
+                    </motion.div>
+
+                    <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                        <motion.div
+                            whileHover={{ y: -5 }}
+                            className="group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300"
+                        >
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                                <Brain className="w-48 h-48" />
+                            </div>
+                            <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
+                                <div className="mb-6 p-3 bg-purple-100 dark:bg-purple-900/20 w-fit rounded-xl">
+                                    <Brain className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <h3 className="text-3xl font-bold mb-3">Trivia Quiz</h3>
+                                <p className="text-muted-foreground mb-8 text-lg flex-grow">
+                                    Test your knowledge across various categories. Fast fingers and smart brains win!
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
+                                    <div className="flex items-center gap-1">
+                                        <Users className="w-4 h-4" /> 2-8 Players
+                                    </div>
+                                    <div className="w-1 h-1 bg-border rounded-full" />
+                                    <div>15 Mins</div>
+                                </div>
+                                <Link href="/host" className="w-full">
+                                    <Button className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none">
+                                        Play Trivia
+                                    </Button>
+                                </Link>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            whileHover={{ y: -5 }}
+                            className="group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-300"
+                        >
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                                <Gamepad2 className="w-48 h-48" />
+                            </div>
+                            <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
+                                <div className="mb-6 p-3 bg-orange-100 dark:bg-orange-900/20 w-fit rounded-xl">
+                                    <Gamepad2 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                                </div>
+                                <h3 className="text-3xl font-bold mb-3">Rebus</h3>
+                                <p className="text-muted-foreground mb-8 text-lg flex-grow">
+                                    Decipher the hidden meaning behind the pictures. A visual puzzle game for everyone.
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
+                                    <div className="flex items-center gap-1">
+                                        <Users className="w-4 h-4" /> 2-8 Players
+                                    </div>
+                                    <div className="w-1 h-1 bg-border rounded-full" />
+                                    <div>20 Mins</div>
+                                </div>
+                                <Link href="/host" className="w-full">
+                                    <Button className="w-full text-lg py-6 bg-orange-600 hover:bg-orange-700 text-white border-none">
+                                        Play Rebus
+                                    </Button>
+                                </Link>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="py-12 text-center text-muted-foreground border-t border-border bg-secondary/10">
+                <div className="flex items-center justify-center gap-2 font-bold text-xl mb-4 opacity-80">
+                    <Gamepad2 className="w-6 h-6" />
+                    <span>Kouch</span>
+                </div>
+                <p>© {new Date().getFullYear()} Kouch. Built for the ultimate party.</p>
+            </footer>
         </main>
     );
 }
+
