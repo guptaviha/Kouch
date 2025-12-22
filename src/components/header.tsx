@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Sofa, Laptop } from 'lucide-react';
 import PlayerAvatar from './player-avatar';
+import Link from 'next/link';
 
 type Props = {
   roomCode?: string | null;
