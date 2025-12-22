@@ -38,7 +38,7 @@ export default function serverMessageHandler(msg: any) {
           setPlayAgainPending?.(false);
           try {
             emit?.('message', { type: 'start_game', roomCode: msg.roomCode, playerId: msg.player?.id });
-          } catch (e) {}
+          } catch (e) { }
         }
         break;
 
@@ -91,6 +91,10 @@ export default function serverMessageHandler(msg: any) {
         setPaused?.(false);
         if (msg.nextTimerEndsAt) setTimerEndsAt?.(msg.nextTimerEndsAt);
         setPauseRemainingMs?.(null);
+        break;
+
+      case 'timer_updated':
+        if (msg.timerEndsAt) setTimerEndsAt?.(msg.timerEndsAt);
         break;
 
       case 'joined':
