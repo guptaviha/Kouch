@@ -8,10 +8,28 @@ import { useGameStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import Header from "@/components/header";
 import { GamePack } from "@/types/games";
+import { useEffect, useState } from "react";
+import { GameDetails } from "@/types/game-details";
 
 export default function Home() {
     const router = useRouter();
     const setSelectedPack = useGameStore((s) => s.setSelectedPack);
+    const [games, setGames] = useState<GameDetails[]>([]);
+
+    useEffect(() => {
+        async function fetchGames() {
+            try {
+                const res = await fetch('/api/games');
+                if (res.ok) {
+                    const data = await res.json();
+                    setGames(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch games', error);
+            }
+        }
+        fetchGames();
+    }, []);
 
     const handlePlayGame = (pack: GamePack) => {
         setSelectedPack(pack);
@@ -166,67 +184,47 @@ export default function Home() {
                     </motion.div>
 
                     <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300"
-                        >
-                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                                <Brain className="w-48 h-48" />
-                            </div>
-                            <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
-                                <div className="mb-6 p-3 bg-purple-100 dark:bg-purple-900/20 w-fit rounded-xl">
-                                    <Brain className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <h3 className="text-3xl font-bold mb-3">Trivia Quiz</h3>
-                                <p className="text-muted-foreground mb-8 text-lg flex-grow">
-                                    Test your knowledge across various categories. Fast fingers and smart brains win!
-                                </p>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
-                                    <div className="flex items-center gap-1">
-                                        <Users className="w-4 h-4" /> 1-10 Players
-                                    </div>
-                                    <div className="w-1 h-1 bg-border rounded-full" />
-                                    <div>15 Mins</div>
-                                </div>
-                                <Button
-                                    onClick={() => handlePlayGame('trivia')}
-                                    className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none"
-                                >
-                                    Play Trivia
-                                </Button>
-                            </div>
-                        </motion.div>
+                        {games.map((game) => {
+                            const Icon = game.id === 'trivia' ? Brain : Gamepad2;
+                            const colorClass = game.id === 'trivia' ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-orange-400';
+                            const bgClass = game.id === 'trivia' ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-orange-100 dark:bg-orange-900/20';
+                            const btnClass = game.id === 'trivia' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-orange-600 hover:bg-orange-700';
+                            const shadowClass = game.id === 'trivia' ? 'hover:shadow-purple-500/10' : 'hover:shadow-orange-500/10';
 
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-300"
-                        >
-                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                                <Gamepad2 className="w-48 h-48" />
-                            </div>
-                            <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
-                                <div className="mb-6 p-3 bg-orange-100 dark:bg-orange-900/20 w-fit rounded-xl">
-                                    <Gamepad2 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                                </div>
-                                <h3 className="text-3xl font-bold mb-3">Rebus</h3>
-                                <p className="text-muted-foreground mb-8 text-lg flex-grow">
-                                    Decipher the hidden meaning behind the pictures. A visual puzzle game for everyone.
-                                </p>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
-                                    <div className="flex items-center gap-1">
-                                        <Users className="w-4 h-4" /> 1-10 Players
-                                    </div>
-                                    <div className="w-1 h-1 bg-border rounded-full" />
-                                    <div>20 Mins</div>
-                                </div>
-                                <Button
-                                    onClick={() => handlePlayGame('rebus')}
-                                    className="w-full text-lg py-6 bg-orange-600 hover:bg-orange-700 text-white border-none"
+                            return (
+                                <motion.div
+                                    key={game.id}
+                                    whileHover={{ y: -5 }}
+                                    className={`group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl ${shadowClass} transition-all duration-300`}
                                 >
-                                    Play Rebus
-                                </Button>
-                            </div>
-                        </motion.div>
+                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                                        <Icon className="w-48 h-48" />
+                                    </div>
+                                    <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
+                                        <div className={`mb-6 p-3 ${bgClass} w-fit rounded-xl`}>
+                                            <Icon className={`w-8 h-8 ${colorClass}`} />
+                                        </div>
+                                        <h3 className="text-3xl font-bold mb-3">{game.title}</h3>
+                                        <p className="text-muted-foreground mb-8 text-lg flex-grow">
+                                            {game.description}
+                                        </p>
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
+                                            <div className="flex items-center gap-1">
+                                                <Users className="w-4 h-4" /> {game.minPlayers}-{game.maxPlayers} Players
+                                            </div>
+                                            <div className="w-1 h-1 bg-border rounded-full" />
+                                            <div>{game.estimatedTime}</div>
+                                        </div>
+                                        <Button
+                                            onClick={() => handlePlayGame(game.id)}
+                                            className={`w-full text-lg py-6 ${btnClass} text-white border-none`}
+                                        >
+                                            Play {game.title}
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>

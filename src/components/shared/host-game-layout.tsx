@@ -15,6 +15,7 @@ import CountUp from '@/components/count-up';
 import TrailingDots from '@/components/trailing-dots';
 import { Lightbulb } from 'lucide-react';
 import { GamePack } from '@/types/games';
+import { GameDetails } from '@/types/game-details';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -65,6 +66,23 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
 
+  const [gameDetails, setGameDetails] = useState<GameDetails | null>(null);
+
+  useEffect(() => {
+    async function fetchGameDetails() {
+      try {
+        const res = await fetch(`/api/games/${game}`);
+        if (res.ok) {
+          const data = await res.json();
+          setGameDetails(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch game details', error);
+      }
+    }
+    fetchGameDetails();
+  }, [game]);
+
   // Validate game parameter
   useEffect(() => {
     if (game !== 'rebus' && game !== 'trivia') {
@@ -75,7 +93,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   // Set selected pack based on URL game parameter
   useEffect(() => {
     if (selectedPack !== game) {
-      setSelectedPack(game as any);
+      setSelectedPack(game);
     }
   }, [game, selectedPack, setSelectedPack]);
 
@@ -224,6 +242,26 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
         <div>
           {state === 'lobby' && (
             <div className="mb-4">
+              {/* Game Title and Description */}
+              {gameDetails && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center mb-10"
+                >
+                  <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    {gameDetails.title}
+                  </h1>
+                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    {gameDetails.description}
+                  </p>
+                  <div className="flex items-center justify-center gap-4 mt-4 text-sm font-medium text-muted-foreground">
+                    <span className="bg-secondary px-3 py-1 rounded-full">{gameDetails.estimatedTime}</span>
+                    <span className="bg-secondary px-3 py-1 rounded-full">{gameDetails.minPlayers}-{gameDetails.maxPlayers} Players</span>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="flex flex-col md:flex-row gap-6 items-stretch">
 
                 {/* QR / scan / URL column */}
