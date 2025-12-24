@@ -76,7 +76,7 @@ const server = http.createServer((req, res) => {
 // Hardcoded questions (3 rounds)
 // Hardcoded questions (3 rounds)
 const PACKS: Record<string, { question: string; answer: string; image?: string; hint?: string }[]> = {
-  general: [
+  trivia: [
     { question: 'What is the capital of France?', answer: 'paris' },
     { question: 'What is 5 + 7?', answer: '12' },
     { question: 'Which planet is known as the Red Planet?', answer: 'mars' },
@@ -161,7 +161,7 @@ function leaderboardFor(room: Room) {
 
 function startRound(room: Room) {
   const currentRoundIndex = room.roundIndex;
-  const pack = PACKS[room.selectedPack] || PACKS['general'];
+  const pack = PACKS[room.selectedPack] || PACKS['trivia'];
   if (currentRoundIndex >= pack.length) {
     room.state = 'finished';
     broadcast(room, { type: 'final_leaderboard', roomCode: room.code, leaderboard: leaderboardFor(room) });
@@ -196,7 +196,7 @@ function startRound(room: Room) {
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
   const currentRoundIndex = room.roundIndex;
-  const pack = PACKS[room.selectedPack] || PACKS['general'];
+  const pack = PACKS[room.selectedPack] || PACKS['trivia'];
   const correctAnswer = pack[currentRoundIndex].answer.toLowerCase().trim();
 
   const results: Array<{
@@ -296,7 +296,7 @@ function handleMessage(socket: Socket, msg: any) {
 
   if (msgType === 'create_room') {
     const name = messageObj.name || 'Host';
-    const pack = messageObj.pack || 'general'; // Default to general if not specified
+    const pack = messageObj.pack || 'trivia'; // Default to trivia if not specified
     const code = (() => {
       let newCode = genCode();
       while (rooms.has(newCode)) newCode = genCode();

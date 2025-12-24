@@ -6,8 +6,6 @@
 import { StateCreator } from 'zustand';
 
 export type GamePlayerSlice = {
-	name: string;
-	setName: (n: string) => void;
 	joined: boolean;
 	setJoined: (v: boolean) => void;
 	answer: string;
@@ -21,8 +19,6 @@ export type GamePlayerSlice = {
 };
 
 export const createGamePlayerSlice: StateCreator<GamePlayerSlice> = (set) => ({
-	name: '',
-	setName: (n: string) => set({ name: n }),
 	joined: false,
 	setJoined: (v: boolean) => set({ joined: v }),
 	answer: '',

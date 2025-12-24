@@ -34,5 +34,3 @@
 ## Code improvements
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication
-- Shared state in a global store (like Redux or Zustand) to avoid prop drilling
-- Userprofile has name and so does gamePlayerSlice. Merge them into one.

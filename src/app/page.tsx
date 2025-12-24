@@ -7,14 +7,15 @@ import Link from "next/link";
 import { useGameStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import Header from "@/components/header";
+import { GamePack } from "@/types/games";
 
 export default function Home() {
     const router = useRouter();
     const setSelectedPack = useGameStore((s) => s.setSelectedPack);
 
-    const handlePlayGame = (pack: 'general' | 'rebus') => {
+    const handlePlayGame = (pack: GamePack) => {
         setSelectedPack(pack);
-        router.push('/host');
+        router.push(`/host/${pack}`);
     };
 
     const scrollToGames = () => {
@@ -182,13 +183,13 @@ export default function Home() {
                                 </p>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
                                     <div className="flex items-center gap-1">
-                                        <Users className="w-4 h-4" /> 2-8 Players
+                                        <Users className="w-4 h-4" /> 1-10 Players
                                     </div>
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>15 Mins</div>
                                 </div>
                                 <Button
-                                    onClick={() => handlePlayGame('general')}
+                                    onClick={() => handlePlayGame('trivia')}
                                     className="w-full text-lg py-6 bg-purple-600 hover:bg-purple-700 text-white border-none"
                                 >
                                     Play Trivia
@@ -213,7 +214,7 @@ export default function Home() {
                                 </p>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
                                     <div className="flex items-center gap-1">
-                                        <Users className="w-4 h-4" /> 2-8 Players
+                                        <Users className="w-4 h-4" /> 1-10 Players
                                     </div>
                                     <div className="w-1 h-1 bg-border rounded-full" />
                                     <div>20 Mins</div>

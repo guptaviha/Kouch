@@ -20,7 +20,6 @@ const DEFAULT_SERVER = typeof window !== 'undefined'
   : 'http://localhost:3001';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || DEFAULT_SERVER;
-const ROUND_DURATION_MS = 30_000; // match server round duration
 
 export default function PlayerPage() {
   // websocket helpers
@@ -32,8 +31,7 @@ export default function PlayerPage() {
   // roomCode moved into central store
   const roomCode = useGameStore((s) => s.roomCode);
   const setRoomCode = useGameStore((s) => s.setRoomCode);
-  const name = useGameStore((s) => s.name);
-  const setName = useGameStore((s) => s.setName);
+  const setProfile = useGameStore((s) => s.setProfile);
   const joined = useGameStore((s) => s.joined);
   // profile lives in userProfileSlice and contains id/avatar/name for the current user
   const profile = useGameStore((s) => s.profile);
@@ -92,7 +90,7 @@ export default function PlayerPage() {
   useEffect(() => {
     // Load saved nickname on mount
     const savedName = localStorage.getItem('kouch_nickname');
-    if (savedName) setName(savedName);
+    if (savedName) setProfile({ ...(profile || {}), name: savedName });
 
     connect(SERVER);
 
@@ -147,19 +145,19 @@ export default function PlayerPage() {
 
   const joinRoom = () => {
     setStatusMessage(null);
-    if (!roomCode || !name) {
+    if (!roomCode || !profile?.name) {
       setStatusMessage('Enter name and room code');
       return;
     }
 
     // Save nickname to localStorage
     try {
-      localStorage.setItem('kouch_nickname', name);
+      localStorage.setItem('kouch_nickname', profile?.name ?? '');
     } catch (e) {
       // ignore
     }
 
-    emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name });
+    emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name: profile?.name });
   };
 
   const submitAnswer = () => {
@@ -183,7 +181,7 @@ export default function PlayerPage() {
   return (
     <div className="p-6 max-w-md mx-auto relative">
 
-      <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={name ?? null} role="player" />
+      <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={profile?.name ?? null} role="player" />
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -215,8 +213,8 @@ export default function PlayerPage() {
               <input
                 className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-lg"
                 placeholder="e.g. Maverick"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={profile?.name ?? ''}
+                onChange={(e) => setProfile({ ...(profile || {}), name: e.target.value })}
               />
             </div>
 
@@ -234,7 +232,7 @@ export default function PlayerPage() {
             <button
               className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={joinRoom}
-              disabled={!name.trim() || (roomCode ?? '').length < 4}
+              disabled={!((profile?.name ?? '').trim()) || (roomCode ?? '').length < 4}
             >
               Join Game
             </button>
@@ -271,7 +269,7 @@ export default function PlayerPage() {
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Hello, {name}!
+                Hello, {profile?.name ?? 'Player'}!
               </h2>
               <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
                 <span>

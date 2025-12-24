@@ -58,6 +58,17 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
           <div className="flex items-center gap-3">
             {role === 'host' ? (
               <>
+                <div className="flex flex-col items-center">
+                  <Laptop size={24} />
+                  <span className="text-xs mt-1">Host</span>
+                </div>
+
+                <div className="flex items-center">
+                  <DarkModeToggle />
+                </div>
+
+                <div className="flex-1" />
+
                 <button
                   onClick={toggleFullscreen}
                   className="flex flex-col items-center hover:opacity-70 transition-opacity cursor-pointer"
@@ -70,10 +81,6 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
                   )}
                   <span className="text-xs mt-1">Full</span>
                 </button>
-                <div className="flex flex-col items-center">
-                  <Laptop size={24} />
-                  <span className="text-xs mt-1">Host</span>
-                </div>
               </>
             ) : (
               avatarKey ? (
