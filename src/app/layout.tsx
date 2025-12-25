@@ -5,6 +5,8 @@ import "./globals.css";
 import { PWAWrapper } from "@/components/pwa-wrapper";
 import Script from "next/script";
 
+import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
+
 const inter = Inter({ subsets: ["latin"] });
 
 /**
@@ -31,7 +33,10 @@ export default function RootLayout({
                         enableSystem
                         disableTransitionOnChange
                     >
-                        {children}
+                        {/* Background (client-only) */}
+                        <HexagonBackground className="fixed inset-0 -z-10" hexagonSize={80} hexagonMargin={4} />
+
+                        <div className="relative">{children}</div>
                     </ThemeProvider>
                 </PWAWrapper>
             </body>

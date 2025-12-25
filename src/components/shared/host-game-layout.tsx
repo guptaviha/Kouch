@@ -67,6 +67,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
 
   const [gameDetails, setGameDetails] = useState<GameDetails | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     async function fetchGameDetails() {
@@ -103,6 +104,16 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       router.push(`/host/${selectedPack}`);
     }
   }, [selectedPack, game, router]);
+
+  // Handle scroll for header shadow
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     connect(SERVER);
@@ -218,442 +229,601 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   if (!mounted) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-3xl mx-auto relative">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="min-h-screen w-full p-4 sm:p-8 relative">
 
-      <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
+      <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
+        <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
+      </div>
 
       {paused && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20 flex flex-col items-center gap-6">
-            <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
-            <Button onClick={resumeGame} size="lg" className="w-full">Resume</Button>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-gray-900 rounded-2xl p-12 shadow-2xl border border-white/20 flex flex-col items-center gap-8 max-w-md"
+          >
+            <div className="text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">⏸ Paused</div>
+            <Button onClick={resumeGame} size="lg" className="w-full text-lg py-6">Resume Game</Button>
+          </motion.div>
         </div>
       )}
 
       {!roomCode ? (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">
-            Creating room
+        <div className="flex items-center justify-center h-screen">
+          <p className="text-xl text-muted-foreground">
+            Setting up game room
             <TrailingDots />
           </p>
         </div>
       ) : (
-        <div>
+        <div className="w-full max-w-7xl mx-auto">
           {state === 'lobby' && (
-            <div className="mb-4">
-              {/* Game Title and Description */}
-              {gameDetails && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center mb-10"
-                >
-                  <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {gameDetails.title}
-                  </h1>
-                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    {gameDetails.description}
-                  </p>
-                  <div className="flex items-center justify-center gap-4 mt-4 text-sm font-medium text-muted-foreground">
-                    <span className="bg-secondary px-3 py-1 rounded-full">{gameDetails.estimatedTime}</span>
-                    <span className="bg-secondary px-3 py-1 rounded-full">{gameDetails.minPlayers}-{gameDetails.maxPlayers} Players</span>
-                  </div>
-                </motion.div>
-              )}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-screen items-stretch py-12 pb-32">
 
-              <div className="flex flex-col md:flex-row gap-6 items-stretch">
-
-                {/* QR / scan / URL column */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="w-full md:w-1/2 flex flex-col items-center"
-                >
-                  {qrDataUrl ? (
-                    <div className="flex flex-col items-center gap-4 rounded-xl p-8 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 w-full max-w-sm h-full justify-center">
-                      <div className="text-center">
-                        <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-2">Join the party</p>
-                        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 mb-1">{roomCode}</h3>
-                      </div>
-
-                      <div className="p-3 bg-white rounded-xl shadow-inner border border-gray-200">
-                        <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-48 h-48 rounded-lg" />
-                      </div>
-
-                      <div className="w-full text-center">
-                        <p className="text-gray-500 text-sm mb-1">or visit</p>
-                        <div className="bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 inline-block">
-                            <a target="_blank" rel="noreferrer" className="text-sm font-mono text-blue-600 dark:text-blue-400 font-medium break-all" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ? joinUrl.replace(/^https?:\/\//, '').replace(/\?.*$/, '') : `.../player`}</a>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-600">
-                      Generating QR code
-                      <TrailingDots />
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* Players column */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="w-full md:w-1/2"
-                >
-                  <div className="rounded-xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 p-8 min-h-[400px] flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Players</h3>
-                      <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold">{players.length} joined</span>
-                    </div>
-
-                    {players.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50">
-                        <p className="text-lg font-medium text-gray-400 dark:text-gray-500 mb-2">
-                          Waiting for players
-                          <TrailingDots />
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex-1 overflow-auto">
-                        <AnimatePresence mode='popLayout'>
-                          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {players.map((p, i) => (
-                              <motion.li
-                                key={p.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                                className="p-3 rounded-lg"
-                              >
-                                <motion.div
-                                  animate={{ y: [0, -6, 0] }}
-                                  transition={{
-                                    duration: 3,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                    delay: i * 0.2
-                                  }}
-                                  className="flex flex-col items-center w-full"
-                                >
-                                  <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-transparent mb-2">
-                                    <PlayerAvatar avatarKey={p.avatar} size={40} />
-                                  </div>
-                                  <div className="text-sm font-medium text-center truncate w-full px-1 text-gray-700 dark:text-gray-200">{p.name}</div>
-                                </motion.div>
-                              </motion.li>
-                            ))}
-                          </ul>
-                        </AnimatePresence>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className='mt-10 text-center'
-              >
-                <ActionButton onClick={startGame} disabled={players.length === 0}>Start Game</ActionButton>
-              </motion.div>
-            </div>
-          )}
-
-          {state === 'playing' && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-8 text-center"
-              >
-                <div className="mb-6 relative">
-                  {!paused && (
-                    <div className="absolute top-0 right-0 z-20">
-                      <Button
-                        onClick={extendTimer}
-                        variant="outline"
-                        size="sm"
-                        className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-                      >
-                        +15s
-                      </Button>
-                    </div>
-                  )}
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{question}</p>
-                </div>
-
-                {questionImage && (
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="my-8 flex justify-center"
-                  >
-                    <div className="p-2 bg-white rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">
-                      <img src={questionImage} alt="Puzzle" className="max-h-72 rounded-xl" />
-                    </div>
-                  </motion.div>
-                )}
-
-                {timerEndsAt && totalQuestionDuration && (
-                  <div className="mt-8 px-4">
-                    <Progress
-                      value={Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          Math.round(
-                            (100 * (
-                              (paused && pauseRemainingMs != null)
-                                ? (totalQuestionDuration - pauseRemainingMs)
-                                : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                            )) / totalQuestionDuration
-                          )
-                        )
-                      )}
-                      className={`h-4 [&>div]:bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? '[&>div]:transition-none' : '[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-linear'}`}
-                    />
-                    <p className="text-sm font-medium text-gray-500 mt-2">Time remaining: {countdown}s</p>
-                  </div>
-                )}
-              </motion.div>
-
-              {players.length > 0 && (
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-                  {players.map((p, i) => {
-                    const answered = answeredPlayers.includes(p.id);
-                    const hasUsedHint = playersWithHints?.includes(p.id);
-
-                    return (
-                      <div key={p.id} className="flex flex-col items-center w-20 relative">
-                        {hasUsedHint && (
-                          <div className="absolute -top-1 -left-1 bg-yellow-400 text-yellow-900 rounded-full p-1 z-10 shadow-lg border-2 border-white dark:border-gray-900">
-                            <Lightbulb className="w-3 h-3" />
-                          </div>
-                        )}
-
-                        {answered && (
-                          <motion.div
-                            initial={{ scale: 0 }} animate={{ scale: 1 }}
-                            className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-1 z-10 shadow-lg border-2 border-white dark:border-gray-900"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </motion.div>
-                        )}
-                        <motion.div
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                            delay: i * 0.2
-                          }}
-                          className={`${answered ? 'opacity-100 grayscale-0' : 'opacity-60 grayscale'} transition-all duration-300`}
-                        >
-                          <div className={`w-12 h-12 flex items-center justify-center`}>
-                            <PlayerAvatar avatarKey={p.avatar} size={36} />
-                          </div>
-                        </motion.div>
-                        <div className={`mt-1 truncate w-full text-center text-xs font-medium ${answered ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>{p.name}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-
-          {state === 'round_result' && roundResults && (
-            <div className="mt-4 w-full max-w-2xl mx-auto relative">
-              <div className="absolute right-4 top-2.5 z-10">
-                {!paused && (
-                  <Button variant="destructive" size="sm" onClick={pauseGame}>Pause</Button>
-                )}
-              </div>
-
+              {/* LEFT SECTION: Game Title & Description - Takes 3 columns */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden mb-6"
+                transition={{ delay: 0.1 }}
+                className="lg:col-span-3 flex flex-col items-center justify-center text-center"
               >
-                <div className="bg-blue-600 p-4 text-center">
-                  <h2 className="text-white text-sm font-bold uppercase tracking-widest">Correct Answer</h2>
-                </div>
-                <div className="p-8 text-center bg-gray-50 dark:bg-gray-800/50">
-                  <div className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
-                    {roundResults.correctAnswer}
-                  </div>
-                </div>
+                {gameDetails && (
+                  <>
+                    <motion.div
+                      className="mb-8"
+                    >
+                      <div className="bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 rounded-xl px-8 py-6 shadow-2xl border border-white/20">
+                        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white">
+                          {gameDetails.title}
+                        </h1>
+                      </div>
+                    </motion.div>
+                    
+                    <p className="text-lg sm:text-xl text-gray-700 dark:text-gray-300 max-w-lg leading-relaxed mb-10">
+                      {gameDetails.description}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+                      <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-semibold">
+                        ⏱ {gameDetails.estimatedTime}
+                      </span>
+                      <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-4 py-2 rounded-full text-sm font-semibold">
+                        👥 {gameDetails.minPlayers}-{gameDetails.maxPlayers} Players
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {gameDetails.features.map((feature) => (
+                        <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </motion.div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
-                <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-gray-200 px-2">Leaderboard</h3>
-                <div className="space-y-3">
-                  <AnimatePresence>
-                    {(roundResults.leaderboard || []).map((p: any, index: number) => {
-                      const result = roundResults.results.find((r: any) => r.playerId === p.id);
-                      const pointsEarned = result?.points || 0;
-                      const previousScore = p.score - pointsEarned;
-
-                      return (
-                        <motion.div
-                          key={p.id}
-                          layout
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className={`flex items-center p-3 rounded-lg ${result?.correct
-                            ? 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30'
-                            : 'bg-gray-50 dark:bg-gray-800/50 border border-transparent'
-                            }`}
-                        >
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0 mr-4 bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                            <PlayerAvatar avatarKey={p.avatar} size={40} />
+              {/* RIGHT SECTION: QR Code + Players - Takes 2 columns */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="lg:col-span-2 flex flex-col gap-6 mt-16"
+              >
+                {/* QR Code Card - Compact */}
+                {qrDataUrl ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6"
+                  >
+                    <div className="grid grid-cols-2 gap-6 items-center">
+                      {/* Left: Room Code */}
+                      <div className="flex flex-col justify-center">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Room Code</p>
+                        <h3 className="text-6xl font-bold text-gray-900 dark:text-white font-mono tracking-widest leading-tight">{roomCode}</h3>
+                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                          <p className="mb-2">or visit</p>
+                          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 break-all text-xs font-mono inline-block">
+                            <a target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-medium" href={joinUrl ?? `/player?code=${roomCode}`}>
+                              {joinUrl ? joinUrl.replace(/^https?:\/\//, '').split('?')[0] : `${roomCode}.local`}
+                            </a>
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-900 dark:text-gray-100">{p.name}</span>
-                              {pointsEarned > 0 && (
-                                <motion.span
-                                  initial={{ opacity: 0, scale: 0.5 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: 0.5 + (index * 0.1) }}
-                                  className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-full"
-                                >
-                                  +{pointsEarned}
-                                </motion.span>
-                              )}
-                            </div>
+                      {/* Right: Tilted Framed QR Code (static 10° rotation, no animation) */}
+                      <div className="flex justify-center items-center">
+                        <div className="transform" style={{ transform: 'rotate(4deg)' }}>
+                          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border-4 border-gray-300 dark:border-gray-700 p-2">
+                            <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-40 h-40 rounded" />
                           </div>
-
-                          {result?.answer && (
-                            <div className={`mx-4 text-sm font-medium max-w-[150px] truncate ${result.correct ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                              {result.answer}
-                            </div>
-                          )}
-
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">
-                              <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />
-                            </div>
-                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">pts</div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {timerEndsAt && nextTimerDurationMs && (
-                <div className="mt-8 px-4">
-                  <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-3 bg-blue-500 transition-all duration-300 ease-linear"
-                      style={{
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            Math.round(
-                              paused && pauseRemainingMs != null
-                                ? ((nextTimerDurationMs - pauseRemainingMs) / nextTimerDurationMs) * 100
-                                : ((nextTimerDurationMs - Math.max(0, (timerEndsAt || 0) - Date.now())) / nextTimerDurationMs) * 100
-                            )
-                          )
-                        )}%`,
-                      }}
-                    />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="text-center text-gray-600">
+                    Generating QR code
+                    <TrailingDots />
                   </div>
-                  <p className="text-xs text-center text-gray-500 mt-2 font-medium">Next round in {countdown}s</p>
-                </div>
-              )}
+                )}
+
+                {/* Players Card */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col"
+                  style={{ height: 'fit-content', maxHeight: 'calc(100vh - 300px)' }}
+                >
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players Ready</h3>
+                    <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-2 rounded-full text-lg font-bold shadow-lg">
+                      {players.length}
+                    </span>
+                  </div>
+
+                  {players.length === 0 ? (
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="flex flex-col items-center justify-center py-8 px-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-900/50"
+                    >
+                      <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Waiting for players to join</p>
+                    </motion.div>
+                  ) : (
+                    <div className="space-y-2 overflow-y-auto">
+                      <AnimatePresence mode='popLayout'>
+                        {players.map((p, i) => (
+                          <motion.div
+                            key={p.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <motion.div
+                              animate={{ y: [0, -6, 0] }}
+                              transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: i * 0.2
+                              }}
+                              className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-2 ring-purple-400">
+                                <PlayerAvatar avatarKey={p.avatar} size={36} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{p.name}</p>
+                              </div>
+                              <div className="flex-shrink-0 text-lg">✓</div>
+                            </motion.div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+
+              {/* Centered Start Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40"
+              >
+                <ActionButton onClick={startGame} disabled={players.length === 0} className="py-6 px-8 text-lg whitespace-nowrap">
+                  {players.length === 0 ? (
+                    <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
+                  ) : (
+                    '🎮 Start Game'
+                  )}
+                </ActionButton>
+              </motion.div>
             </div>
           )}
 
-          {state === 'finished' && roundResults && (
-            <div className="mt-8 w-full max-w-lg mx-auto text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-8"
-              >
-                <h2 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">Game Over!</h2>
-                <p className="text-gray-500 font-medium">Here are the final standings</p>
-              </motion.div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                {(roundResults.final || [])[0] && (
+          {state === 'playing' && (
+            <>
+              {/* Main Game Content - Centered & Large */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="min-h-screen flex flex-col items-center justify-center pb-32"
+              >
+                {/* Question Section */}
+                <div className="w-full max-w-4xl">
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-900/20 dark:to-gray-900 p-8 border-b border-gray-100 dark:border-gray-800 flex flex-col items-center"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-gradient-to-br from-white/80 to-white/40 dark:from-gray-900/80 dark:to-gray-900/40 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 dark:border-gray-800/20 p-12 text-center mb-12"
                   >
-                    <div className="relative mb-4">
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-4xl animate-bounce">👑</div>
-                      <div className="w-24 h-24 rounded-full bg-yellow-100 dark:bg-yellow-900/40 p-1 ring-4 ring-yellow-400/30">
-                        <PlayerAvatar avatarKey={(roundResults.final || [])[0].avatar} size={88} />
+                    <p className="text-xl text-gray-600 dark:text-gray-400 uppercase tracking-wider font-bold mb-6">Question {(roundIndex ?? 0) + 1}</p>
+                    <h2 className="text-6xl sm:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight mb-8 tracking-tight">
+                      {question}
+                    </h2>
+
+                    {/* Timer Bar - Prominent */}
+                    {timerEndsAt && totalQuestionDuration && (
+                      <div className="mt-12">
+                        <Progress
+                          value={Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              Math.round(
+                                (100 * (
+                                  (paused && pauseRemainingMs != null)
+                                    ? (totalQuestionDuration - pauseRemainingMs)
+                                    : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
+                                )) / totalQuestionDuration
+                              )
+                            )
+                          )}
+                          className="h-6 [&>div]:bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-full"
+                        />
+                        <div className="mt-6 flex items-center justify-center gap-3">
+                          <span className="text-7xl font-extrabold text-gray-900 dark:text-white tabular-nums">
+                            {countdown}
+                          </span>
+                          <span className="text-3xl text-gray-600 dark:text-gray-400 font-semibold">seconds</span>
+                        </div>
                       </div>
-                      <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-white dark:border-gray-900">
-                        1
+                    )}
+                  </motion.div>
+
+                  {/* Question Image - Large & Centered */}
+                  {questionImage && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex justify-center mb-12"
+                    >
+                      <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-2xl">
+                        <img src={questionImage} alt="Puzzle" className="w-full h-auto rounded-2xl" />
                       </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{(roundResults.final || [])[0].name}</h3>
-                    <div className="text-yellow-600 dark:text-yellow-400 font-bold bg-yellow-100 dark:bg-yellow-900/30 px-4 py-1 rounded-full text-sm">
-                      {(roundResults.final || [])[0].score} points
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Player Status Row - Bottom */}
+                {players.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="fixed bottom-8 left-0 right-0 px-4"
+                  >
+                    <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-6">
+                      <div className="flex items-center justify-center gap-6 overflow-x-auto pb-2">
+                        {players.map((p, i) => {
+                          const answered = answeredPlayers.includes(p.id);
+                          const hasUsedHint = playersWithHints?.includes(p.id);
+
+                          return (
+                            <motion.div
+                              key={p.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                              className="flex flex-col items-center flex-shrink-0 relative"
+                            >
+                              {hasUsedHint && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 rounded-full p-2 z-10 shadow-lg border-2 border-white dark:border-gray-900"
+                                >
+                                  <Lightbulb className="w-5 h-5" />
+                                </motion.div>
+                              )}
+
+                              {answered && (
+                                <motion.div
+                                  initial={{ scale: 0, rotate: -180 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 z-10 shadow-lg border-2 border-white dark:border-gray-900"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </motion.div>
+                              )}
+
+                              <motion.div
+                                animate={{ y: answered ? 0 : [0, -6, 0] }}
+                                transition={{
+                                  duration: 3,
+                                  repeat: answered ? 0 : Infinity,
+                                  ease: "easeInOut",
+                                  delay: i * 0.2
+                                }}
+                                className={`transition-all duration-300 ${answered ? 'opacity-100' : 'opacity-70'}`}
+                              >
+                                <div className={`w-16 h-16 flex items-center justify-center ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 rounded-full ${answered ? 'ring-green-500' : 'ring-gray-300'}`}>
+                                  <PlayerAvatar avatarKey={p.avatar} size={56} />
+                                </div>
+                              </motion.div>
+
+                              <div className={`mt-2 text-center text-sm font-bold whitespace-nowrap ${answered ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {p.name}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}
 
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
-                  <ol className="space-y-2">
-                    {(roundResults.final || []).slice(1).map((p: any, i: number) => (
-                      <motion.li
-                        key={p.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + (i * 0.1) }}
-                        className="flex items-center p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
-                      >
-                        <div className="font-bold text-gray-400 w-6 text-left">{i + 2}</div>
-                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0 mr-3 overflow-hidden">
-                          <PlayerAvatar avatarKey={p.avatar} size={32} />
-                        </div>
-                        <div className="flex-1 text-left font-bold text-gray-900 dark:text-gray-100">{p.name}</div>
-                        <div className="font-bold text-gray-600 dark:text-gray-400">{p.score} pts</div>
-                      </motion.li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-                className="mt-8"
-              >
-                <button
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all text-lg w-full md:w-auto"
-                  onClick={resetGame}
-                >
-                  Play Again
-                </button>
-                <p className="mt-3 text-sm text-gray-400">Everyone will need to rejoin</p>
+                {/* Extend Timer Button */}
+                {!paused && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fixed top-20 right-8 z-30"
+                  >
+                    <Button
+                      onClick={extendTimer}
+                      size="lg"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg"
+                    >
+                      ⏱ +15s
+                    </Button>
+                  </motion.div>
+                )}
               </motion.div>
-            </div>
+            </>
+          )}
+
+
+          {state === 'round_result' && roundResults && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="min-h-screen flex flex-col items-center justify-center py-12"
+            >
+              <div className="w-full max-w-4xl">
+                {/* Correct Answer - Big & Prominent */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-12"
+                >
+                  <div className="bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-3xl shadow-2xl overflow-hidden mb-6">
+                    <div className="bg-gradient-to-r from-emerald-600 to-cyan-600 p-8 text-center">
+                      <p className="text-white text-2xl font-bold uppercase tracking-widest mb-4">Correct Answer</p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 p-12 text-center">
+                      <div className="text-7xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                        {roundResults.correctAnswer}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Leaderboard */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+                >
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-center">
+                    <h3 className="text-white text-3xl font-bold uppercase tracking-widest">Leaderboard</h3>
+                  </div>
+
+                  <div className="p-8 space-y-4 max-h-96 overflow-y-auto">
+                    <AnimatePresence>
+                      {(roundResults.leaderboard || []).map((p: any, index: number) => {
+                        const result = roundResults.results.find((r: any) => r.playerId === p.id);
+                        const pointsEarned = result?.points || 0;
+                        const previousScore = p.score - pointsEarned;
+
+                        return (
+                          <motion.div
+                            key={p.id}
+                            layout
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className={`flex items-center gap-6 p-6 rounded-2xl font-semibold text-lg transition-all ${
+                              result?.correct
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800'
+                                : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800'
+                            }`}
+                          >
+                            <div className="w-20 h-20 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-700 overflow-hidden ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-400">
+                              <PlayerAvatar avatarKey={p.avatar} size={80} />
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-1">
+                                <span className="text-xl text-gray-900 dark:text-white">{p.name}</span>
+                                {pointsEarned > 0 && (
+                                  <motion.span
+                                    initial={{ opacity: 0, scale: 0.5 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.5 + (index * 0.1) }}
+                                    className="text-base font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full"
+                                  >
+                                    +{pointsEarned}
+                                  </motion.span>
+                                )}
+                              </div>
+                              {result?.answer && (
+                                <div className={`text-sm font-medium ${result.correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                  Your answer: <span className="font-bold">{result.answer}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-4xl font-extrabold text-gray-900 dark:text-white tabular-nums">
+                                <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">points</div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+
+                {/* Next Round Timer */}
+                {timerEndsAt && nextTimerDurationMs && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="mt-12 text-center"
+                  >
+                    <div className="inline-block bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+                      <p className="text-gray-600 dark:text-gray-400 text-lg font-semibold mb-4">Next round starts in</p>
+                      <div className="text-6xl font-extrabold text-blue-600 dark:text-blue-400">{countdown}s</div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+
+          {state === 'finished' && roundResults && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="min-h-screen flex items-center justify-center py-12"
+            >
+              <div className="w-full max-w-4xl px-4">
+                {/* Game Over Header */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center mb-12"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-8xl mb-6 inline-block"
+                  >
+                    🎉
+                  </motion.div>
+                  <h2 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 mb-4 tracking-tight">
+                    Game Over!
+                  </h2>
+                  <p className="text-2xl text-gray-600 dark:text-gray-400 font-semibold">Final Standings</p>
+                </motion.div>
+
+                {/* Winner Podium */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-8"
+                >
+                  {(roundResults.final || [])[0] && (
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-gradient-to-br from-yellow-300 to-yellow-100 dark:from-yellow-900/40 dark:to-yellow-900/20 p-12 border-b-4 border-yellow-400 dark:border-yellow-600"
+                    >
+                      <div className="flex flex-col items-center">
+                        <motion.div
+                          animate={{ y: [-20, 0, -20] }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                          className="text-7xl mb-6"
+                        >
+                          👑
+                        </motion.div>
+                        
+                        <div className="relative mb-6">
+                          <div className="w-32 h-32 rounded-full bg-yellow-200 dark:bg-yellow-900/30 p-2 ring-4 ring-yellow-400 shadow-xl">
+                            <PlayerAvatar avatarKey={(roundResults.final || [])[0].avatar} size={120} />
+                          </div>
+                          <motion.div
+                            initial={{ scale: 0, rotate: -45 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: 0.6, type: "spring" }}
+                            className="absolute -bottom-3 -right-3 bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900 font-bold w-16 h-16 flex items-center justify-center rounded-full shadow-lg border-4 border-white dark:border-gray-900 text-4xl"
+                          >
+                            1
+                          </motion.div>
+                        </div>
+
+                        <h3 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">{(roundResults.final || [])[0].name}</h3>
+                        <div className="text-3xl font-extrabold text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-6 py-3 rounded-full">
+                          {(roundResults.final || [])[0].score} points
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Rest of Leaderboard */}
+                  <div className="p-8">
+                    <div className="space-y-4">
+                      {(roundResults.final || []).slice(1).map((p: any, i: number) => (
+                        <motion.div
+                          key={p.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.4 + (i * 0.1) }}
+                          className="flex items-center p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-shadow"
+                        >
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.5 + (i * 0.1), type: "spring" }}
+                            className="flex-shrink-0 font-bold text-3xl text-gray-400 w-16 text-center"
+                          >
+                            {i + 2}
+                          </motion.div>
+
+                          <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 mr-6 overflow-hidden ring-2 ring-gray-300 dark:ring-gray-600">
+                            <PlayerAvatar avatarKey={p.avatar} size={60} />
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{p.name}</div>
+                          </div>
+
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-3xl font-extrabold text-gray-900 dark:text-white">{p.score}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">points</div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Play Again Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="text-center"
+                >
+                  <button
+                    className="px-12 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-2xl shadow-2xl active:scale-95 transition-all text-2xl mb-4 w-full md:w-auto"
+                    onClick={resetGame}
+                  >
+                    Play Again 🎮
+                  </button>
+                  <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Players will need to rejoin with their phones</p>
+                </motion.div>
+              </div>
+            </motion.div>
           )}
         </div>
       )}
