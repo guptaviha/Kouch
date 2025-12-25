@@ -284,7 +284,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       <div className="w-full text-center">
                         <p className="text-gray-500 text-sm mb-1">or visit</p>
                         <div className="bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 inline-block">
-                          <a target="_blank" rel="noreferrer" className="text-sm font-mono text-blue-600 dark:text-blue-400 font-medium break-all" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl?.replace(/^https?:\/\//, '') ?? `.../player?code=${roomCode}`}</a>
+                            <a target="_blank" rel="noreferrer" className="text-sm font-mono text-blue-600 dark:text-blue-400 font-medium break-all" href={joinUrl ?? `/player?code=${roomCode}`}>{joinUrl ? joinUrl.replace(/^https?:\/\//, '').replace(/\?.*$/, '') : `.../player`}</a>
                         </div>
                       </div>
                     </div>
@@ -315,7 +315,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                           Waiting for players
                           <TrailingDots />
                         </p>
-                        <p className="text-sm text-gray-400">Scan the QR code to join!</p>
                       </div>
                     ) : (
                       <div className="flex-1 overflow-auto">

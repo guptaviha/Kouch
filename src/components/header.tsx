@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Sofa, Laptop } from 'lucide-react';
 import { MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 import PlayerAvatar from './player-avatar';
+import { Button } from "./ui/button";
 
 type Props = {
   roomCode?: string | null;
@@ -63,15 +64,13 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
                   <span className="text-xs mt-1">Host</span>
                 </div>
 
-                <div className="flex items-center">
+                {/* <div className="flex items-center"> */}
                   <DarkModeToggle />
-                </div>
+                {/* </div> */}
 
-                <div className="flex-1" />
-
-                <button
+                <Button variant="ghost"
                   onClick={toggleFullscreen}
-                  className="flex flex-col items-center hover:opacity-70 transition-opacity cursor-pointer"
+                  size="icon"
                   aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                 >
                   {isFullscreen ? (
@@ -79,8 +78,8 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
                   ) : (
                     <MdFullscreen size={24} />
                   )}
-                  <span className="text-xs mt-1">Full</span>
-                </button>
+                  {/* <span className="text-xs mt-1">Full</span> */}
+                </Button>
               </>
             ) : (
               avatarKey ? (
