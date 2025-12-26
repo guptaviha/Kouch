@@ -33,7 +33,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const emit = useGameStore((s) => s.emit);
   // user profile
   const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-  const setProfile = useGameStore((s) => s.setProfile);
   // room and players
   const roomCode = useGameStore((s) => s.roomCode);
   const players = useGameStore((s) => s.players as PlayerInfo[]);
@@ -67,7 +66,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
 
   const [gameDetails, setGameDetails] = useState<GameDetails | null>(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     async function fetchGameDetails() {
@@ -104,16 +103,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       router.push(`/host/${selectedPack}`);
     }
   }, [selectedPack, game, router]);
-
-  // Handle scroll for header shadow
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     connect(SERVER);
@@ -183,8 +172,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     };
   }, [timerEndsAt, paused]);
 
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -231,9 +218,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="min-h-screen w-full p-4 sm:p-8 relative">
 
-      <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
-        <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
-      </div>
+      <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
 
       {paused && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg">

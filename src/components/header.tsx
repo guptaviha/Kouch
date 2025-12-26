@@ -17,6 +17,7 @@ type Props = {
 
 export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const toggleFullscreen = async () => {
     try {
@@ -42,8 +43,19 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
     };
   }, []);
 
+  // Handle scroll for header shadow
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="w-full flex items-center justify-between gap-3 relative">
+    <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
+      <div className="w-full flex items-center justify-between gap-3 relative">
       <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
         <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
         <h1 className="text-2xl font-bold m-0">KouchParty</h1>
@@ -92,6 +104,7 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
           </div>
         </div>
       ) : <DarkModeToggle />}
+    </div>
     </div>
   );
 }

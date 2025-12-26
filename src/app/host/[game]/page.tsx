@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import HostGameLayout from '@/components/shared/host-game-layout';
 import { useEffect } from 'react';
-import { VALID_GAMES, isValidGame } from '@/types/games';
+import { isValidGame } from '@/types/games';
 
 export default function HostGamePage() {
   const params = useParams();
