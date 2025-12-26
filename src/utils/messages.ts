@@ -21,7 +21,6 @@ const MESSAGES: Record<MessageScenario, string[]> = {
     "Taking a tactical timeout",
   ],
   waiting_to_start: [
-    "Waiting for the host to start",
     "Host is preparing something epic",
     "Almost time to shine",
     "Get ready to rumble",
@@ -33,6 +32,8 @@ const MESSAGES: Record<MessageScenario, string[]> = {
     "Patience, young padawan",
     "Loading awesomeness",
     "Host is in the zone",
+    "Standby for awesomeness",
+    "Get your thinking caps on"
   ],
 };
 
