@@ -25,7 +25,33 @@ The Server: The middleman. It validates the 4-letter room code, tracks scores, a
 - **Theming:** All UI must be fully compatible with **Light and Dark mode** using Tailwind's `dark:` utilities.
 - **Animations:** Every new page must include subtle entry animations using the `framer-motion` library.
 - **Modularity:** - Prioritize reusability. Create shared components for repeating patterns.
-    - **Action:** Before building a new component, check the existing custom components folder to see if an existing one can be adapted or reused.
+- **Action:** Before building a new component, check the existing custom components folder to see if an existing one can be adapted or reused.
+- **Component Library:**
+1. Use and extend the existing **Shadcn UI** components for consistency.
+2. Try to reuse existing custom components in `components/shared/` before creating new ones.
+3. Create new custom components in `components/shared/` for any new UI patterns that are reused across multiple pages.
+
+- **Design preferences:**
+1. Don't use emojis in the UI.
+2. Don't use color gradients.
+
+## General Coding Style
+- Use consistent formatting as per the existing codebase (indentation, semicolons, quotes, etc.).
+- Prefer functional components and hooks for React/Next.js code.
+- Use TypeScript types and interfaces for all function parameters, props, and return values.
+- Use named exports unless a default export is clearly more appropriate.
+- Keep files and components small and focused on a single responsibility.
+- Use absolute imports (e.g., `src/components/...`) if the project is configured for it, otherwise use relative imports.
+- Write clear, concise, and descriptive comments where necessary, but avoid redundant comments.
+- Use async/await for asynchronous code, avoid .then/.catch chaining.
+- Use destructuring for props inside the component and object parameters where it improves readability.
+
+## React & Next.js Specific
+- **Do not import React** at the top of component files; Next.js does not require it.
+- Import hooks and functions directly from `react` (e.g., `import { useState } from 'react'`), **do not** use `React.useState` or similar patterns.
+- Use Next.js conventions for file and folder structure (e.g., `app/`, `components/`, `lib/`).
+- Use Next.js routing and API conventions for new pages and endpoints.
+- Use server and client components appropriately as per Next.js 15+ standards.
 
 ---
 

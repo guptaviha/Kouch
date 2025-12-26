@@ -400,17 +400,18 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
               </motion.div>
 
               {/* Centered Start Button */}
-              <motion.div
-                className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40"
+              <ActionButton
+                onClick={startGame}
+                disabled={players.length === 0}
+                floating={true}
+                className="whitespace-nowrap"
               >
-                <ActionButton onClick={startGame} disabled={players.length === 0} className="py-6 px-8 text-lg whitespace-nowrap">
-                  {players.length === 0 ? (
-                    <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
-                  ) : (
+                {players.length === 0 ? (
+                  <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
+                ) : (
                   'Start Game'
-                  )}
-                </ActionButton>
-              </motion.div>
+                )}
+              </ActionButton>
             </div>
           )}
 
@@ -551,12 +552,12 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="fixed top-16 right-8 z-30"
+                    className="fixed top-24 right-8 z-30"
                   >
                     <Button
                       onClick={extendTimer}
                       size="lg"
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg cursor-pointer"
                     >
                       ⏱ +15s
                     </Button>
@@ -640,14 +641,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center mb-12"
                 >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-8xl mb-6 inline-block"
-                  >
-                    🎉
-                  </motion.div>
-                  <h2 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 mb-4 tracking-tight">
+                  <h2 className="text-7xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
                     Game Over!
                   </h2>
                   <p className="text-2xl text-gray-600 dark:text-gray-400 font-semibold">Final Standings</p>
@@ -725,12 +719,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   transition={{ delay: 0.8 }}
                   className="text-center"
                 >
-                  <button
-                    className="px-12 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-2xl shadow-2xl active:scale-95 transition-all text-2xl mb-4 w-full md:w-auto"
-                    onClick={resetGame}
-                  >
-                    Play Again 🎮
-                  </button>
+                  <ActionButton onClick={resetGame} floating={false} className="mb-4 w-full md:w-auto">
+                    Play Again
+                  </ActionButton>
                   <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Players will need to rejoin with their phones</p>
                 </motion.div>
               </div>
