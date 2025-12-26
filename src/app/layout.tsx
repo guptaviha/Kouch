@@ -34,7 +34,7 @@ export default function RootLayout({
                         disableTransitionOnChange
                     >
                         {/* Background (client-only) */}
-                        <HexagonBackground className="fixed inset-0 -z-10" hexagonSize={80} hexagonMargin={4} />
+                        {/* <HexagonBackground className="fixed inset-0 -z-10" hexagonSize={80} hexagonMargin={4} /> */}
 
                         <div className="relative">{children}</div>
                     </ThemeProvider>

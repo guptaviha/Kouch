@@ -1,4 +1,4 @@
-export type RoomStates = 'lobby' | 'playing' | 'round_result' | 'finished';
+export type RoomStates = 'lobby' | 'playing' | 'round_result' | 'finished' | 'home';
 
 // If you need other shared types for the game slice, add them here.
 export type PlayerInfo = {

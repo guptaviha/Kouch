@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/button';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 import TrailingDots from '@/components/trailing-dots';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Smartphone } from 'lucide-react';
 import { GamePack } from '@/types/games';
 import { GameDetails } from '@/types/game-details';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
+import GameDetailsCard from './game-details-card';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -220,9 +221,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     <motion.div 
       initial={{ opacity: 0, y: 8 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="min-h-[calc(100vh-6rem)] mt-24 w-full relative"
+      className="min-h-[calc(100vh-6rem)] mt-32 w-full relative"
     >
-      <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
+      <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" roomState={state} />
 
       <div className="mb-4"></div>
 
@@ -238,76 +239,18 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       ) : (
         <div className="w-full max-w-7xl mx-auto relative">
           {state === 'lobby' && (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch pb-32">
+            <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 items-start pb-32">
+              {/* LEFT SECTION: Game Details Card */}
+              <div className="lg:col-span-3">
+                {gameDetails && <GameDetailsCard gameDetails={gameDetails} />}
+              </div>
 
-              {/* LEFT SECTION: Game Title & Description - Takes 3 columns */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="lg:col-span-3 flex flex-col"
-              >
-                {gameDetails && (
-                  <>
-                    {/* Image and Content Row */}
-                    <div className="flex gap-8 mb-8 relative">
-                      <motion.div
-                        className="flex-shrink-0"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        <div className="relative">
-                          <img
-                            src={gameDetails.imageUrl}
-                            alt={`${gameDetails.title} game`}
-                            className="w-48 h-72 object-cover rounded-2xl shadow-2xl border border-white/20"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
-                        </div>
-                      </motion.div>
-
-                      {/* Title, Stats, and Tags aligned to bottom of image */}
-                      <div className="absolute left-56 top-0 flex flex-col justify-end h-72 pb-4 gap-4">
-                        <motion.div>
-                          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 dark:text-white">
-                            {gameDetails.title}
-                          </h1>
-                        </motion.div>
-
-                        <div className="flex flex-row gap-3">
-                          <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-base font-semibold w-fit">
-                            ⏱ {gameDetails.estimatedTime}
-                          </span>
-                          <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full text-base font-semibold w-fit">
-                            👥 {gameDetails.minPlayers}-{gameDetails.maxPlayers} Players
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          {gameDetails.features.map((feature) => (
-                            <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full text-sm font-medium">
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Full Width Description */}
-                    <p className="text-lg sm:text-xl text-gray-700 dark:text-gray-300 leading-relaxed max-w-2xl">
-                      {gameDetails.description}
-                    </p>
-                  </>
-                )}
-              </motion.div>
-
-              {/* RIGHT SECTION: QR Code + Players - Takes 2 columns */}
+              {/* RIGHT SECTION: QR Code + Players */}
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="lg:col-span-2 flex flex-col gap-6"
+                className="lg:col-span-4 flex flex-col gap-6"
               >
                 {/* QR Code Card - Compact */}
                 {qrDataUrl ? (
@@ -318,14 +261,18 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 z-10"
                   >
                     <div className="grid grid-cols-2 gap-6 items-center">
-                      {/* Left: Room Code */}
+                      {/* Left: Phone Controller Label + Room Code */}
                       <div className="flex flex-col justify-center">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Room Code</p>
-                        <h3 className="text-6xl font-bold text-gray-900 dark:text-white font-mono tracking-widest leading-tight">{roomCode}</h3>
-                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center bg-green-50 dark:bg-green-900/20 rounded-xl py-3 px-4 w-fit mb-4">
+                          <Smartphone className="w-7 h-7 text-green-500 mr-2" />
+                          <span className="text-lg font-semibold text-gray-700 dark:text-gray-200">Phone controller game</span>
+                        </div>
+                        <p className="text-lg font-semibold text-gray-500 uppercase tracking-widest mb-3">Room Code</p>
+                        <h3 className="text-7xl font-bold text-gray-900 dark:text-white font-mono tracking-widest leading-tight">{roomCode}</h3>
+                        <div className="mt-4 text-lg text-gray-600 dark:text-gray-400">
                           <p className="mb-2">or visit</p>
-                          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 break-all text-xs font-mono inline-block">
-                            <a target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-medium" href={joinUrl ?? `/player?code=${roomCode}`}>
+                          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 break-all font-mono inline-block">
+                            <a target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-medium" href={joinUrl ?? `/player?code=${roomCode}`}> 
                               {joinUrl ? joinUrl.replace(/^https?:\/\//, '').split('?')[0] : `${roomCode}.local`}
                             </a>
                           </div>
@@ -336,7 +283,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       <div className="flex justify-center items-center">
                         <div className="transform" style={{ transform: 'rotate(4deg)' }}>
                           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border-4 border-gray-300 dark:border-gray-700 p-2">
-                            <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-40 h-40 rounded" />
+                            <img src={qrDataUrl} alt={`QR code for ${roomCode}`} className="w-60 h-60 rounded" />
                           </div>
                         </div>
                       </div>
@@ -359,9 +306,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 >
                   <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h3>
-                    <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-2 rounded-full text-lg font-bold shadow-lg">
-                      {players.length}
-                    </span>
+                    <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full font-bold">{players.length} joined</span>
                   </div>
 
                   {players.length === 0 ? (

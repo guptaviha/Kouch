@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Gamepad2, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import { MdPhoneIphone } from 'react-icons/md';
 import { GameDetails } from "@/types/game-details";
 import { GamePack } from "@/types/games";
 import { useRouter } from "next/navigation";
@@ -46,17 +47,16 @@ export default function GameCard({ game }: GameCardProps) {
       </div>
 
       {/* Content Overlay */}
-      <div className="relative z-10 p-8 h-full flex flex-col justify-between">
+      <div className="relative z-10 pt-8 pr-8 pl-8 h-full flex flex-col justify-between">
         {/* Top Section */}
         <div className="flex items-start justify-between">
-          <div className={`p-3 ${bgClass} rounded-xl backdrop-blur-sm bg-white/10 border border-white/20`}>
-            <Gamepad2 className={`w-10 h-10 ${colorClass}`} />
+          <div className={`p-4 ${bgClass} rounded-2xl backdrop-blur-sm bg-white/20 border border-white/20 flex items-center justify-center shadow-lg`}>
+            <MdPhoneIphone className={`w-12 h-12 ${colorClass} drop-shadow-lg`} />
           </div>
-          <div className="text-right text-white/80 text-base">
-            <div className="flex items-center gap-1 mb-1">
-              <Users className="w-5 h-5" /> {game.minPlayers}-{game.maxPlayers}
+          <div className="flex flex-col gap-2 bg-black/60 rounded-2xl px-6 py-3 border border-white/20 w-fit ml-auto text-white text-2xl font-bold shadow-lg">
+            <div className="flex items-center justify-center">
+              <span className="text-xl font-semibold">{game.estimatedTime}</span>
             </div>
-            <div>{game.estimatedTime}</div>
           </div>
         </div>
 

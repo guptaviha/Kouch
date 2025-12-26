@@ -13,6 +13,7 @@ import TrailingDots from '@/components/trailing-dots';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
+import ActionButton from '@/components/action-button';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -160,6 +161,21 @@ export default function PlayerPage() {
     }
 
     emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name: profile?.name });
+
+    const requestFullscreen = () => {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen();
+      } else if (docEl.mozRequestFullScreen) {
+        docEl.mozRequestFullScreen();
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      } else if (docEl.msRequestFullscreen) {
+        docEl.msRequestFullscreen();
+      }
+    };
+
+    requestFullscreen();
   };
 
   const submitAnswer = () => {
@@ -181,8 +197,14 @@ export default function PlayerPage() {
   if (!mounted) return null;
 
   return (
-    <div className="mt-24 p-6 max-w-md mx-auto relative">
-      <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={profile?.name ?? null} role="player" />
+    <div className="mt-32 p-6 max-w-md mx-auto relative">
+      <Header 
+        roomCode={roomCode || null}
+        avatarKey={profile?.avatar}
+        name={profile?.name ?? null}
+        role="player"
+        roomState={state}
+      />
 
 
       <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} />
@@ -219,13 +241,13 @@ export default function PlayerPage() {
               />
             </div>
 
-            <button
-              className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            <ActionButton
+              className="w-full mt-2"
               onClick={joinRoom}
               disabled={!((profile?.name ?? '').trim()) || (roomCode ?? '').length < 4}
             >
               Join Game
-            </button>
+            </ActionButton>
           </div>
 
           {statusMessage && (

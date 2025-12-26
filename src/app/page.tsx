@@ -32,9 +32,9 @@ export default function Home() {
     }, []);
 
     const scrollToGames = () => {
-        const gamesSection = document.getElementById('games-section');
-        if (gamesSection) {
-            gamesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const gameLibrarySection = document.getElementById('game-library-section');
+        if (gameLibrarySection) {
+            gameLibrarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
 
@@ -64,7 +64,7 @@ export default function Home() {
         <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
             {/* Navigation */}
             <div className="p-8 max-w-3xl mx-auto relative">
-                <Header />
+                <Header roomState="home" />
             </div>
 
             {/* Hero Section */}
@@ -165,8 +165,8 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Games Section */}
-            <section id="games-section" className="py-24 relative overflow-hidden">
+            {/* Game Library Section */}
+            <section id="game-library-section" className="py-24 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 relative z-10">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -174,7 +174,7 @@ export default function Home() {
                         viewport={{ once: true }}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Games</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Game Library</h2>
                         <p className="text-muted-foreground text-lg">Choose your challenge.</p>
                     </motion.div>
 

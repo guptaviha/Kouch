@@ -7,15 +7,17 @@ import { Sofa, Laptop } from 'lucide-react';
 import { MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 import PlayerAvatar from './player-avatar';
 import { Button } from "./ui/button";
+import { RoomStates } from "@/lib/store/types";
 
 type Props = {
   roomCode?: string | null;
   avatarKey?: string | undefined;
   name?: string | null;
   role?: 'host' | 'player' | 'guest';
+  roomState: RoomStates;
 };
 
-export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Props) {
+export default function Header({ roomCode, avatarKey, name, role = 'guest', roomState }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -54,57 +56,55 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
   }, []);
 
   return (
-    <div className="">
-      <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
-        <div className="w-full flex items-center justify-between gap-3 relative">
+    <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
+      <div className="w-full flex justify-between relative">
+        {/* Logo+Title */}
+        <div className="flex flex-col gap-1 ">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
             <h1 className="text-2xl font-bold m-0">KouchParty</h1>
           </Link>
-
-          {roomCode ? (
-            <div className="text-right text-xs flex items-center gap-3">
-              <div className="flex flex-col items-center">
-                <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{roomCode}</span>
-                <span className="text-xs mt-1">Code</span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {role === 'host' ? (
-                  <>
-                    <div className="flex flex-col items-center">
-                      <Laptop size={24} />
-                      <span className="text-xs mt-1">Host</span>
-                    </div>
-
-                    {/* <div className="flex items-center"> */}
-                    <DarkModeToggle />
-                    {/* </div> */}
-
-                    <Button variant="ghost"
-                      onClick={toggleFullscreen}
-                      size="icon"
-                      aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                    >
-                      {isFullscreen ? (
-                        <MdFullscreenExit size={24} />
-                      ) : (
-                        <MdFullscreen size={24} />
-                      )}
-                      {/* <span className="text-xs mt-1">Full</span> */}
-                    </Button>
-                  </>
-                ) : (
-                  avatarKey ? (
-                    <div className="flex flex-col items-center">
-                      <PlayerAvatar avatarKey={avatarKey} variant="header" />
-                      <span className="text-xs mt-1">{name ?? 'Player'}</span>
-                    </div>
-                  ) : null
-                )}
-              </div>
+          {/* Room Code Centered Below Logo */}
+          {roomCode && roomState !== 'lobby' && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Room Code: <span className="">{roomCode}</span>
             </div>
-          ) : <DarkModeToggle />}
+          )}
+          <div className="text-sm bg-slate-500 rounded-sm w-fit p-1">{roomState}</div>
+        </div>
+
+        {/* Action Buttons on the Right */}
+        <div className="absolute right-0 top-0 flex items-center gap-3">
+          {/* {role === 'host' && (
+            <div className="flex flex-col items-center">
+              <Laptop size={24} />
+              <span className="text-xs mt-1">Host</span>
+            </div>
+          )} */}
+
+          {role === 'player' && avatarKey && (
+            <div className="flex flex-col items-center">
+              <PlayerAvatar avatarKey={avatarKey} variant="header" />
+              <span className="text-xs mt-1">{name ?? 'Player'}</span>
+            </div>
+          )}
+
+          <DarkModeToggle />
+
+          {role === 'host' && (
+            <Button
+              variant="ghost"
+              onClick={toggleFullscreen}
+              size="icon"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? (
+                <MdFullscreenExit size={24} />
+              ) : (
+                <MdFullscreen size={24} />
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>
