@@ -59,7 +59,7 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
     <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
       <div className="w-full flex justify-between relative">
         {/* Logo+Title */}
-        <div className="flex flex-col gap-1 ">
+        <div className="flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Sofa className="w-7 h-7 transform -rotate-12 text-gray-800 dark:text-gray-200" aria-hidden />
             <h1 className="text-2xl font-bold m-0">KouchParty</h1>
@@ -70,8 +70,8 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
               Room Code: <span className="">{roomCode}</span>
             </div>
           )}
-          <div className="text-sm bg-slate-500 rounded-sm w-fit p-1">{roomState}</div>
         </div>
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-sm bg-slate-500 rounded-sm w-fit p-1">{roomState}</div>
 
         {/* Action Buttons on the Right */}
         <div className="absolute right-0 top-0 flex items-center gap-3">

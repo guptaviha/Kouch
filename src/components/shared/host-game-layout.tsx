@@ -221,7 +221,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     <motion.div 
       initial={{ opacity: 0, y: 8 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="min-h-[calc(100vh-6rem)] mt-32 w-full relative"
+      className="min-h-[calc(100vh-8rem)] mt-32 w-full relative"
     >
       <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" roomState={state} />
 
@@ -475,8 +475,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                                 <PlayerAvatar 
                                   avatarKey={p.avatar} 
                                   variant="game"
-                                  state={answered ? 'answered' : 'waiting'}
-                                  badge={answered ? 'check' : undefined}
+                                  state={answered ? (hasUsedHint ? 'answered_with_hint' : 'answered') : 'waiting'}
                                   index={i}
                                 />
                               </motion.div>

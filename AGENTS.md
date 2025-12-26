@@ -45,6 +45,9 @@ The Server: The middleman. It validates the 4-letter room code, tracks scores, a
 - Write clear, concise, and descriptive comments where necessary, but avoid redundant comments.
 - Use async/await for asynchronous code, avoid .then/.catch chaining.
 - Use destructuring for props inside the component and object parameters where it improves readability.
+- Prefer `const` over `let` unless reassignment is necessary.
+- Use template literals for string concatenation when variables are involved.
+- Use Typescript strict mode and avoid using `any` type unless absolutely necessary.
 
 ## React & Next.js Specific
 - **Do not import React** at the top of component files; Next.js does not require it.

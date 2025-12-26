@@ -56,8 +56,7 @@ export interface PlayerAvatarProps {
     avatarKey?: string;
     className?: string;
     variant?: 'default' | 'lobby' | 'game' | 'winner' | 'leaderboard' | 'header' | 'podium';
-    state?: 'idle' | 'active' | 'disabled' | 'ready' | 'answered' | 'waiting';
-    badge?: 'check' | 'hint' | number | string;
+    state?: 'idle' | 'active' | 'disabled' | 'ready' | 'answered' | 'waiting' | 'used_hint' | 'answered_with_hint';
     showCrown?: boolean;
     index?: number; // For staggered animations in lists (lobby/game variants)
 };
@@ -67,13 +66,12 @@ export default function PlayerAvatar({
     className = '',
     variant = 'default',
     state = 'idle',
-    badge,
     showCrown = false,
     index = 0,
 }: PlayerAvatarProps) {
     const key = typeof avatarKey === 'string' ? avatarKey.trim() : '';
     let Icon: React.ComponentType<any> | undefined = key ? ICONS[key] : undefined;
-    
+
     if (!Icon && key) {
         const found = Object.keys(ICONS).find((k) => k.toLowerCase() === key.toLowerCase());
         if (found) Icon = ICONS[found];
@@ -125,7 +123,7 @@ export default function PlayerAvatar({
             } else if (state === 'active' || state === 'ready') {
                 containerClasses += 'ring-blue-400 ';
             } else {
-                containerClasses += 'ring-gray-300 opacity-70 ';
+                containerClasses += 'ring-gray-400 opacity-30 ';
             }
             break;
         case 'winner':
@@ -153,7 +151,7 @@ export default function PlayerAvatar({
     const bounceDelay = index * 0.2; // Stagger based on index
     let bounceAnim = {};
     let bounceTransition = {};
-    
+
     if (variant === 'lobby') {
         // Lobby: gentle continuous bounce for waiting players
         bounceAnim = { y: [0, -6, 0] };
@@ -177,6 +175,9 @@ export default function PlayerAvatar({
     // Shadow configuration - automatic for lobby variant
     const shouldShowShadow = variant === 'lobby';
 
+    // Badge configuration for hint states
+    const showHintBadge = state === 'used_hint' || state === 'answered_with_hint';
+
     return (
         <div className="relative flex flex-col items-center">
             {showCrown && (
@@ -188,38 +189,23 @@ export default function PlayerAvatar({
                     👑
                 </motion.div>
             )}
-            
+
             <motion.div
                 className={containerClasses}
                 style={containerStyle}
                 animate={bounceAnim}
                 transition={bounceTransition}
             >
-                <AnimatePresence>
-                    {badge && (
-                        <motion.div
-                            initial={{ scale: 0, rotate: -45 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            exit={{ scale: 0 }}
-                            className={`absolute -top-1 -right-1 z-10 shadow-lg border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center
-                                ${badge === 'check' ? 'bg-green-500 text-white p-1' : 
-                                  badge === 'hint' ? 'bg-yellow-400 text-yellow-900 p-1' : 
-                                  'bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900 font-bold'}`}
-                            style={typeof badge === 'number' || typeof badge === 'string' && badge !== 'check' && badge !== 'hint' ? {
-                                width: size * 0.4,
-                                height: size * 0.4,
-                                fontSize: size * 0.2,
-                                bottom: -size * 0.1,
-                                right: -size * 0.1,
-                                top: 'auto'
-                            } : {}}
-                        >
-                            {badge === 'check' && <Check size={Math.max(12, size * 0.25)} />}
-                            {badge === 'hint' && <Lightbulb size={Math.max(12, size * 0.25)} />}
-                            {(typeof badge === 'number' || (typeof badge === 'string' && badge !== 'check' && badge !== 'hint')) && badge}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {showHintBadge && (
+                    <motion.div
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-1 -right-1 z-10 shadow-lg border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center bg-yellow-400 text-yellow-900 p-1"
+                    >
+                        <Lightbulb size={Math.max(12, size * 0.25)} />
+                    </motion.div>
+                )}
 
                 {Icon ? (
                     <Icon size={iconSize} />
