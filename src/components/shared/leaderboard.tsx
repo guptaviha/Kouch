@@ -49,9 +49,10 @@ export default function Leaderboard({
               {showPositions && (
                 <div className="font-bold text-gray-400 w-6 text-left">{index + 1}</div>
               )}
-              <div className="rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-700 overflow-hidden ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-400" style={{ width: avatarSize + 8, height: avatarSize + 8 }}>
-                <PlayerAvatar avatarKey={p.avatar} size={avatarSize} />
-              </div>
+              <PlayerAvatar 
+                avatarKey={p.avatar} 
+                variant="leaderboard"
+              />
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">

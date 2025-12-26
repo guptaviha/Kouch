@@ -97,7 +97,7 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest' }: Pr
                 ) : (
                   avatarKey ? (
                     <div className="flex flex-col items-center">
-                      <PlayerAvatar avatarKey={avatarKey} size={24} />
+                      <PlayerAvatar avatarKey={avatarKey} variant="header" />
                       <span className="text-xs mt-1">{name ?? 'Player'}</span>
                     </div>
                   ) : null

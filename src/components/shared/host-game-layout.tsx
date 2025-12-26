@@ -373,7 +373,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Waiting for players to join</p>
                     </motion.div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-4 overflow-y-auto">
+                    <div className="grid grid-cols-3 gap-4 overflow-y-auto pt-2 pb-2" style={{ maxHeight: 'calc(100vh - 450px)' }}>
                       <AnimatePresence mode='popLayout'>
                         {players.map((p, i) => (
                           <motion.div
@@ -383,23 +383,14 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                             transition={{ delay: i * 0.05 }}
-                            className="flex flex-col items-center"
+                            className="flex flex-col items-center gap-2 pt-2"
                           >
-                            <motion.div
-                              animate={{ y: [0, -6, 0] }}
-                              transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                                delay: i * 0.2
-                              }}
-                              className="flex flex-col items-center gap-2"
-                            >
-                              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-2 ring-purple-400">
-                                <PlayerAvatar avatarKey={p.avatar} size={44} />
-                              </div>
-                              <p className="font-bold text-sm text-gray-900 dark:text-white text-center truncate w-full">{p.name}</p>
-                            </motion.div>
+                            <PlayerAvatar 
+                              avatarKey={p.avatar} 
+                              variant="lobby"
+                              index={i}
+                            />
+                            <p className="font-bold text-sm text-gray-900 dark:text-white text-center truncate w-full">{p.name}</p>
                           </motion.div>
                         ))}
                       </AnimatePresence>
@@ -490,7 +481,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     className="fixed bottom-8 left-0 right-0 px-4"
                   >
                     <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-6">
-                      <div className="flex items-center justify-center gap-6 overflow-x-auto pb-2">
+                      <div className="flex items-center justify-center gap-6 overflow-x-auto pt-3 pb-1">
                         {players.map((p, i) => {
                           const answered = answeredPlayers.includes(p.id);
                           const hasUsedHint = playersWithHints?.includes(p.id);
@@ -533,11 +524,15 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                                   ease: "easeInOut",
                                   delay: i * 0.2
                                 }}
-                                className={`transition-all duration-300 ${answered ? 'opacity-100' : 'opacity-70'}`}
+                                className="transition-all duration-300"
                               >
-                                <div className={`w-16 h-16 flex items-center justify-center ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 rounded-full ${answered ? 'ring-green-500' : 'ring-gray-300'}`}>
-                                  <PlayerAvatar avatarKey={p.avatar} size={56} />
-                                </div>
+                                <PlayerAvatar 
+                                  avatarKey={p.avatar} 
+                                  variant="game"
+                                  state={answered ? 'answered' : 'waiting'}
+                                  badge={answered ? 'check' : undefined}
+                                  index={i}
+                                />
                               </motion.div>
 
                               <div className={`mt-2 text-center text-sm font-bold whitespace-nowrap ${answered ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -673,26 +668,13 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       className="bg-gradient-to-br from-yellow-300 to-yellow-100 dark:from-yellow-900/40 dark:to-yellow-900/20 p-12 border-b-4 border-yellow-400 dark:border-yellow-600"
                     >
                       <div className="flex flex-col items-center">
-                        <motion.div
-                          animate={{ y: [-20, 0, -20] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                          className="text-7xl mb-6"
-                        >
-                          👑
-                        </motion.div>
-                        
                         <div className="relative mb-6">
-                          <div className="w-32 h-32 rounded-full bg-yellow-200 dark:bg-yellow-900/30 p-2 ring-4 ring-yellow-400 shadow-xl">
-                            <PlayerAvatar avatarKey={(roundResults.final || [])[0].avatar} size={120} />
-                          </div>
-                          <motion.div
-                            initial={{ scale: 0, rotate: -45 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ delay: 0.6, type: "spring" }}
-                            className="absolute -bottom-3 -right-3 bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900 font-bold w-16 h-16 flex items-center justify-center rounded-full shadow-lg border-4 border-white dark:border-gray-900 text-4xl"
-                          >
-                            1
-                          </motion.div>
+                          <PlayerAvatar 
+                            avatarKey={(roundResults.final || [])[0].avatar} 
+                            variant="winner"
+                            showCrown={true}
+                            badge={1}
+                          />
                         </div>
 
                         <h3 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">{(roundResults.final || [])[0].name}</h3>
@@ -714,17 +696,12 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                           transition={{ delay: 0.4 + (i * 0.1) }}
                           className="flex items-center p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-shadow"
                         >
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.5 + (i * 0.1), type: "spring" }}
-                            className="flex-shrink-0 font-bold text-3xl text-gray-400 w-16 text-center"
-                          >
-                            {i + 2}
-                          </motion.div>
-
-                          <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 mr-6 overflow-hidden ring-2 ring-gray-300 dark:ring-gray-600">
-                            <PlayerAvatar avatarKey={p.avatar} size={60} />
+                          <div className="flex-shrink-0 mr-6">
+                            <PlayerAvatar 
+                              avatarKey={p.avatar} 
+                              variant="podium"
+                              badge={i + 2}
+                            />
                           </div>
 
                           <div className="flex-1">

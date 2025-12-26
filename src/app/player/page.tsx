@@ -246,16 +246,11 @@ export default function PlayerPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-8 text-center flex flex-col items-center"
             >
-              <div className="mb-6 relative">
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2 overflow-hidden shadow-inner">
-                    <PlayerAvatar avatarKey={profile?.avatar} size={80} />
-                  </div>
-                </motion.div>
-                <div className="absolute -bottom-2 w-16 h-2 bg-black/10 rounded-[100%] blur-sm left-1/2 -translate-x-1/2 animate-pulse" />
+              <div className="relative">
+                <PlayerAvatar 
+                  avatarKey={profile?.avatar} 
+                  variant="lobby"
+                />
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -368,13 +363,12 @@ export default function PlayerPage() {
                     className="bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-900/20 dark:to-gray-900 p-8 border-b border-gray-100 dark:border-gray-800 flex flex-col items-center"
                   >
                     <div className="relative mb-4">
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-4xl animate-bounce">👑</div>
-                      <div className="w-24 h-24 rounded-full bg-yellow-100 dark:bg-yellow-900/40 p-1 ring-4 ring-yellow-400/30">
-                        <PlayerAvatar avatarKey={(roundResults.final || [])[0].avatar} size={88} />
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-white dark:border-gray-900">
-                        1
-                      </div>
+                      <PlayerAvatar 
+                        avatarKey={(roundResults.final || [])[0].avatar} 
+                        variant="winner"
+                        showCrown={true}
+                        badge={1}
+                      />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{(roundResults.final || [])[0].name}</h3>
                     <div className="text-yellow-600 dark:text-yellow-400 font-bold bg-yellow-100 dark:bg-yellow-900/30 px-4 py-1 rounded-full text-sm">
