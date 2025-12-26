@@ -70,6 +70,10 @@ For any task involving database modifications (Create, Update, Alter), follow th
 - **Type Mapping:** TypeScript types must strictly match database column names.
 - **Type Sharing:** Maintain a unified set of types/interfaces that are shared across API routes, server-side logic, and the client-side UI to ensure end-to-end type safety.
 
+
+## Feature Documentation
+- update the markdown document if a feature is changed or modified. If a new feature is created and its own heading added to the features file (GAME_LOGIC.md), update the table of contents at the top as well.
+
 ---
 
 ## 📁 Key Directory Structure Reference

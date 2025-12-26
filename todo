@@ -56,7 +56,13 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 ## Game flow improvements
 Rejoining
 - allow players to rejoin if they get disconnected. We need to keep track of players by their unique ids and allow them to rejoin the game in progress, and restore their state (score, avatar, etc.)
-- Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game.
+- Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game. Reconnection: Allow a connection only if the cookie or deviceId matches a player already in the list (handling disconnects).
+- (Maybe) Explicit End: Host clicks "End Game" -> Delete key from Redis immediately.
+
+## Room Code Management
+- Room code Uniqueness: Ensure generated room codes are unique and not currently in use.
+- Room code Sanitization: Remove ambiguous characters if you use numbers (e.g., remove 'I', '1', '0', 'O').
+- Heartbeats: As long as the Host is connected via WebSocket, send a "heartbeat" every minute to reset the TTL to 1 hour. This ensures active rooms stay open, but if the Host crashes or closes the tab, the room expires automatically after an hour.
 
 
 ## Game end action button
