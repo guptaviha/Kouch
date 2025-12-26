@@ -31,6 +31,11 @@
 - host needs an account
     - to purchase packs later on
 
+- Let players emote during the game
+    - thumbs up, clap, laugh, etc.
+    - show a small animation on the player view when an emote is sent
+    - limit the number of emotes per game to avoid spam
+
 ## Code improvements
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication

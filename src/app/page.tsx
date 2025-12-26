@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Gamepad2, Laptop, Smartphone, Trophy, Brain, ArrowRight, Users, Sparkles } from "lucide-react";
+import { Gamepad2, Laptop, Smartphone, Trophy, ArrowRight, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useGameStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import Header from "@/components/header";
-import { GamePack } from "@/types/games";
 import { useEffect, useState } from "react";
 import { GameDetails } from "@/types/game-details";
+import GameCard from "@/components/game-card";
 
 export default function Home() {
     const router = useRouter();
@@ -30,11 +30,6 @@ export default function Home() {
         }
         fetchGames();
     }, []);
-
-    const handlePlayGame = (pack: GamePack) => {
-        setSelectedPack(pack);
-        router.push(`/host/${pack}`);
-    };
 
     const scrollToGames = () => {
         const gamesSection = document.getElementById('games-section');
@@ -80,7 +75,7 @@ export default function Home() {
                 animate="visible"
             >
                 {/* Background decorative elements */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
+                {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" /> */}
 
                 <motion.h1
                     className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent"
@@ -184,47 +179,9 @@ export default function Home() {
                     </motion.div>
 
                     <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                        {games.map((game) => {
-                            const Icon = game.id === 'trivia' ? Brain : Gamepad2;
-                            const colorClass = game.id === 'trivia' ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-orange-400';
-                            const bgClass = game.id === 'trivia' ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-orange-100 dark:bg-orange-900/20';
-                            const btnClass = game.id === 'trivia' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-orange-600 hover:bg-orange-700';
-                            const shadowClass = game.id === 'trivia' ? 'hover:shadow-purple-500/10' : 'hover:shadow-orange-500/10';
-
-                            return (
-                                <motion.div
-                                    key={game.id}
-                                    whileHover={{ y: -5 }}
-                                    className={`group relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl ${shadowClass} transition-all duration-300`}
-                                >
-                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                                        <Icon className="w-48 h-48" />
-                                    </div>
-                                    <div className="p-8 md:p-10 relative z-10 flex flex-col h-full">
-                                        <div className={`mb-6 p-3 ${bgClass} w-fit rounded-xl`}>
-                                            <Icon className={`w-8 h-8 ${colorClass}`} />
-                                        </div>
-                                        <h3 className="text-3xl font-bold mb-3">{game.title}</h3>
-                                        <p className="text-muted-foreground mb-8 text-lg flex-grow">
-                                            {game.description}
-                                        </p>
-                                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
-                                            <div className="flex items-center gap-1">
-                                                <Users className="w-4 h-4" /> {game.minPlayers}-{game.maxPlayers} Players
-                                            </div>
-                                            <div className="w-1 h-1 bg-border rounded-full" />
-                                            <div>{game.estimatedTime}</div>
-                                        </div>
-                                        <Button
-                                            onClick={() => handlePlayGame(game.id)}
-                                            className={`w-full text-lg py-6 ${btnClass} text-white border-none`}
-                                        >
-                                            Play {game.title}
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
+                        {games.map((game) => (
+                            <GameCard key={game.id} game={game} />
+                        ))}
                     </div>
                 </div>
             </section>

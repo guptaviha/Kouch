@@ -231,7 +231,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="min-h-screen w-full p-4 sm:p-8 relative">
 
-      <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
+      <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
         <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
       </div>
 
@@ -256,7 +256,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
           </p>
         </div>
       ) : (
-        <div className="w-full max-w-7xl mx-auto">
+        <div className="w-full max-w-7xl mx-auto relative">
           {state === 'lobby' && (
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-screen items-stretch py-12 pb-32">
 
@@ -265,40 +265,60 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-3 flex flex-col items-center justify-center text-center"
+                className="lg:col-span-3 flex flex-col justify-center"
               >
                 {gameDetails && (
                   <>
-                    <motion.div
-                      className="mb-8"
-                    >
-                      <div className="bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 rounded-xl px-8 py-6 shadow-2xl border border-white/20">
-                        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white">
-                          {gameDetails.title}
-                        </h1>
+                    {/* Image and Title Row */}
+                    <div className="flex gap-8 mb-8">
+                      <motion.div
+                        className="flex-shrink-0"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                      >
+                        <div className="relative">
+                          <img
+                            src={gameDetails.imageUrl}
+                            alt={`${gameDetails.title} game`}
+                            className="w-48 h-72 object-cover rounded-2xl shadow-2xl border border-white/20"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
+                        </div>
+                      </motion.div>
+
+                      <div className="flex-1 flex flex-col justify-center">
+                        <motion.div
+                          className="mb-6"
+                        >
+                          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            {gameDetails.title}
+                          </h1>
+                        </motion.div>
+
+                        <div className="flex flex-row gap-3 mb-6">
+                          <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-sm font-semibold w-fit">
+                            ⏱ {gameDetails.estimatedTime}
+                          </span>
+                          <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full text-sm font-semibold w-fit">
+                            👥 {gameDetails.minPlayers}-{gameDetails.maxPlayers} Players
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {gameDetails.features.map((feature) => (
+                            <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full text-xs font-medium">
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </motion.div>
-                    
-                    <p className="text-lg sm:text-xl text-gray-700 dark:text-gray-300 max-w-lg leading-relaxed mb-10">
+                    </div>
+
+                    {/* Full Width Description */}
+                    <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300 leading-relaxed max-w-2xl">
                       {gameDetails.description}
                     </p>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-                      <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-semibold">
-                        ⏱ {gameDetails.estimatedTime}
-                      </span>
-                      <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-4 py-2 rounded-full text-sm font-semibold">
-                        👥 {gameDetails.minPlayers}-{gameDetails.maxPlayers} Players
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {gameDetails.features.map((feature) => (
-                        <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
                   </>
                 )}
               </motion.div>
@@ -316,7 +336,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6"
+                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 z-10"
                   >
                     <div className="grid grid-cols-2 gap-6 items-center">
                       {/* Left: Room Code */}
@@ -355,11 +375,11 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col"
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col z-10"
                   style={{ height: 'fit-content', maxHeight: 'calc(100vh - 300px)' }}
                 >
                   <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players Ready</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h3>
                     <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-2 rounded-full text-lg font-bold shadow-lg">
                       {players.length}
                     </span>
@@ -413,9 +433,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
               {/* Centered Start Button */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
                 className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40"
               >
                 <ActionButton onClick={startGame} disabled={players.length === 0} className="py-6 px-8 text-lg whitespace-nowrap">

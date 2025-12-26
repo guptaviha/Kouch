@@ -8,5 +8,6 @@ export interface GameDetails {
   maxPlayers: number;
   estimatedTime: string;
   thumbnailUrl?: string;
+  imageUrl: string;
   features: string[];
 }

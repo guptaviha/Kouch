@@ -8,6 +8,7 @@ export const GAMES_DATA: Record<string, GameDetails> = {
     minPlayers: 2,
     maxPlayers: 8,
     estimatedTime: '15-30 mins',
+    imageUrl: '/Trivia Fiesta Holiday pack.png',
     features: ['Multiple Categories', 'Fast-paced Rounds', 'Live Scoreboard'],
   },
   rebus: {
@@ -17,6 +18,7 @@ export const GAMES_DATA: Record<string, GameDetails> = {
     minPlayers: 2,
     maxPlayers: 8,
     estimatedTime: '10-20 mins',
+    imageUrl: '/Rebus Cafe.png',
     features: ['Visual Puzzles', 'Wordplay Challenges', 'Brain Teasers'],
   },
 };
