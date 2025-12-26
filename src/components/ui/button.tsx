@@ -18,9 +18,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        action: "text-2xl rounded-2xl shadow-2xl font-bold transition-all active:scale-95 bg-blue-600 hover:bg-blue-700 text-white",
+        destructiveAction: "text-2xl rounded-2xl shadow-2xl font-bold transition-all active:scale-95 bg-red-600 text-white hover:brightness-95",
+        floatingAction: "text-2xl rounded-2xl shadow-2xl font-bold transition-all active:scale-95 bg-blue-600 hover:bg-blue-700 text-white fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40",
       },
       size: {
-        default: "h-10 px-4 py-2",
+        default: "px-12 py-6", // is actually xl
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",

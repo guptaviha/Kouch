@@ -13,7 +13,7 @@ import TrailingDots from '@/components/trailing-dots';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
-import ActionButton from '@/components/action-button';
+import { Button } from '@/components/ui/button';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -241,13 +241,14 @@ export default function PlayerPage() {
               />
             </div>
 
-            <ActionButton
+            <Button
+              variant="action"
               className="w-full mt-2"
               onClick={joinRoom}
               disabled={!((profile?.name ?? '').trim()) || (roomCode ?? '').length < 4}
             >
               Join Game
-            </ActionButton>
+            </Button>
           </div>
 
           {statusMessage && (
@@ -331,14 +332,16 @@ export default function PlayerPage() {
                 }}
               />
 
-              {!submitted ? <button
-                onClick={submitAnswer}
-                disabled={submitted || !answer.trim()}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px]`}
-              >
-                Submit Answer
-              </button>
-                : null}
+              {!submitted && (
+                <Button
+                  variant="action"
+                  className="w-full mt-4"
+                  onClick={submitAnswer}
+                  disabled={submitted || !answer.trim()}
+                >
+                  Submit Answer
+                </Button>
+              )}
 
                 <TimerProgress
                   timerEndsAt={timerEndsAt}

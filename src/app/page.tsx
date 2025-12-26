@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Gamepad2, Laptop, Smartphone, Trophy, ArrowRight, Users, Sparkles } from "lucide-react";
+import { Laptop, Smartphone, Trophy, ArrowRight, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useGameStore } from "@/lib/store";
 import { useRouter } from "next/navigation";

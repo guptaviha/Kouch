@@ -8,10 +8,9 @@ import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
 import TrailingDots from '@/components/trailing-dots';
-import { Lightbulb, Smartphone } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { GamePack } from '@/types/games';
 import { GameDetails } from '@/types/game-details';
 import PausedOverlay from '@/components/shared/paused-overlay';
@@ -218,9 +217,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   if (!mounted) return null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 8 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className="min-h-[calc(100vh-8rem)] mt-32 w-full relative"
     >
       <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" roomState={state} />
@@ -272,7 +271,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         <div className="mt-4 text-lg text-gray-600 dark:text-gray-400">
                           <p className="mb-2">or visit</p>
                           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 break-all font-mono inline-block">
-                            <a target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-medium" href={joinUrl ?? `/player?code=${roomCode}`}> 
+                            <a target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-medium" href={joinUrl ?? `/player?code=${roomCode}`}>
                               {joinUrl ? joinUrl.replace(/^https?:\/\//, '').split('?')[0] : `${roomCode}.local`}
                             </a>
                           </div>
@@ -330,8 +329,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                             transition={{ delay: i * 0.05 }}
                             className="flex flex-col items-center gap-2 pt-2"
                           >
-                            <PlayerAvatar 
-                              avatarKey={p.avatar} 
+                            <PlayerAvatar
+                              avatarKey={p.avatar}
                               variant="lobby"
                               index={i}
                             />
@@ -345,18 +344,17 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
               </motion.div>
 
               {/* Centered Start Button */}
-              <ActionButton
+              <Button
+                variant="floatingAction"
                 onClick={startGame}
                 disabled={players.length === 0}
-                floating={true}
-                className="whitespace-nowrap"
               >
                 {players.length === 0 ? (
                   <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
                 ) : (
                   'Start Game'
                 )}
-              </ActionButton>
+              </Button>
             </div>
           )}
 
@@ -431,6 +429,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         {players.map((p, i) => {
                           const answered = answeredPlayers.includes(p.id);
                           const hasUsedHint = playersWithHints?.includes(p.id);
+                            const playerState = answered 
+                            ? (hasUsedHint ? 'answered_with_hint' : 'answered') 
+                            : (hasUsedHint ? 'used_hint' : 'waiting');
 
                           return (
                             <motion.div
@@ -440,45 +441,12 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                               transition={{ delay: i * 0.05 }}
                               className="flex flex-col items-center flex-shrink-0 relative"
                             >
-                              {hasUsedHint && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 rounded-full p-2 z-10 shadow-lg border-2 border-white dark:border-gray-900"
-                                >
-                                  <Lightbulb className="w-5 h-5" />
-                                </motion.div>
-                              )}
-
-                              {answered && (
-                                <motion.div
-                                  initial={{ scale: 0, rotate: -180 }}
-                                  animate={{ scale: 1, rotate: 0 }}
-                                  className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 z-10 shadow-lg border-2 border-white dark:border-gray-900"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </motion.div>
-                              )}
-
-                              <motion.div
-                                animate={{ y: answered ? 0 : [0, -6, 0] }}
-                                transition={{
-                                  duration: 3,
-                                  repeat: answered ? 0 : Infinity,
-                                  ease: "easeInOut",
-                                  delay: i * 0.2
-                                }}
-                                className="transition-all duration-300"
-                              >
-                                <PlayerAvatar 
-                                  avatarKey={p.avatar} 
-                                  variant="game"
-                                  state={answered ? (hasUsedHint ? 'answered_with_hint' : 'answered') : 'waiting'}
-                                  index={i}
-                                />
-                              </motion.div>
+                              <PlayerAvatar
+                                avatarKey={p.avatar}
+                                variant="game"
+                                state={playerState}
+                                index={i}
+                              />
 
                               <div className={`mt-2 text-center text-sm font-bold whitespace-nowrap ${answered ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                 {p.name}
@@ -607,8 +575,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     >
                       <div className="flex flex-col items-center">
                         <div className="relative mb-6">
-                          <PlayerAvatar 
-                            avatarKey={(roundResults.final || [])[0].avatar} 
+                          <PlayerAvatar
+                            avatarKey={(roundResults.final || [])[0].avatar}
                             variant="winner"
                             showCrown={true}
                             badge={1}
@@ -635,8 +603,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                           className="flex items-center p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-shadow"
                         >
                           <div className="flex-shrink-0 mr-6">
-                            <PlayerAvatar 
-                              avatarKey={p.avatar} 
+                            <PlayerAvatar
+                              avatarKey={p.avatar}
                               variant="podium"
                               badge={i + 2}
                             />
@@ -663,9 +631,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   transition={{ delay: 0.8 }}
                   className="text-center"
                 >
-                  <ActionButton onClick={resetGame} floating={false} className="mb-4 w-full md:w-auto">
+                  <Button variant="action" onClick={resetGame} className="mb-4 w-full md:w-auto">
                     Play Again
-                  </ActionButton>
+                  </Button>
                   <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Players will need to rejoin with their phones</p>
                 </motion.div>
               </div>

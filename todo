@@ -44,6 +44,10 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
     - show a small animation on the player view when an emote is sent
     - limit the number of emotes per game to avoid spam
 
+- Skeleton
+- Use Shadcn UI's Skeleton component to show loading states
+- Show loading sign on the main screen before launching the game
+
 ## Code improvements
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication
@@ -62,6 +66,7 @@ Rejoining
 ## Room Code Management
 - Room code Uniqueness: Ensure generated room codes are unique and not currently in use.
 - Room code Sanitization: Remove ambiguous characters if you use numbers (e.g., remove 'I', '1', '0', 'O').
+- Also avoid offensive words in room codes.
 - Heartbeats: As long as the Host is connected via WebSocket, send a "heartbeat" every minute to reset the TTL to 1 hour. This ensures active rooms stay open, but if the Host crashes or closes the tab, the room expires automatically after an hour.
 
 
