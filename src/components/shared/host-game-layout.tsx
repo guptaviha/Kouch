@@ -8,14 +8,15 @@ import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import ActionButton from '@/components/action-button';
 import QRCode from 'qrcode';
-import CountUp from '@/components/count-up';
 import TrailingDots from '@/components/trailing-dots';
 import { Lightbulb } from 'lucide-react';
 import { GamePack } from '@/types/games';
 import { GameDetails } from '@/types/game-details';
+import PausedOverlay from '@/components/shared/paused-overlay';
+import TimerProgress from '@/components/shared/timer-progress';
+import Leaderboard from '@/components/shared/leaderboard';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -216,22 +217,16 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   if (!mounted) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="min-h-screen w-full p-4 sm:p-8 relative">
-
+    <motion.div 
+      initial={{ opacity: 0, y: 8 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      className="min-h-[calc(100vh-6rem)] mt-24 w-full relative"
+    >
       <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" />
 
-      {paused && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-gray-900 rounded-2xl p-12 shadow-2xl border border-white/20 flex flex-col items-center gap-8 max-w-md"
-          >
-            <div className="text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">⏸ Paused</div>
-            <Button onClick={resumeGame} size="lg" className="w-full text-lg py-6">Resume Game</Button>
-          </motion.div>
-        </div>
-      )}
+      <div className="mb-4"></div>
+
+      <PausedOverlay isPaused={paused} onResume={resumeGame} />
 
       {!roomCode ? (
         <div className="flex items-center justify-center h-screen">
@@ -243,19 +238,19 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       ) : (
         <div className="w-full max-w-7xl mx-auto relative">
           {state === 'lobby' && (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-screen items-stretch py-12 pb-32">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch pb-32">
 
               {/* LEFT SECTION: Game Title & Description - Takes 3 columns */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-3 flex flex-col justify-center"
+                className="lg:col-span-3 flex flex-col"
               >
                 {gameDetails && (
                   <>
-                    {/* Image and Title Row */}
-                    <div className="flex gap-8 mb-8">
+                    {/* Image and Content Row */}
+                    <div className="flex gap-8 mb-8 relative">
                       <motion.div
                         className="flex-shrink-0"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -272,27 +267,26 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         </div>
                       </motion.div>
 
-                      <div className="flex-1 flex flex-col justify-center">
-                        <motion.div
-                          className="mb-6"
-                        >
-                          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
+                      {/* Title, Stats, and Tags aligned to bottom of image */}
+                      <div className="absolute left-56 top-0 flex flex-col justify-end h-72 pb-4 gap-4">
+                        <motion.div>
+                          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 dark:text-white">
                             {gameDetails.title}
                           </h1>
                         </motion.div>
 
-                        <div className="flex flex-row gap-3 mb-6">
-                          <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-sm font-semibold w-fit">
+                        <div className="flex flex-row gap-3">
+                          <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-base font-semibold w-fit">
                             ⏱ {gameDetails.estimatedTime}
                           </span>
-                          <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full text-sm font-semibold w-fit">
+                          <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full text-base font-semibold w-fit">
                             👥 {gameDetails.minPlayers}-{gameDetails.maxPlayers} Players
                           </span>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
                           {gameDetails.features.map((feature) => (
-                            <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full text-xs font-medium">
+                            <span key={feature} className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full text-sm font-medium">
                               {feature}
                             </span>
                           ))}
@@ -301,7 +295,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     </div>
 
                     {/* Full Width Description */}
-                    <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300 leading-relaxed max-w-2xl">
+                    <p className="text-lg sm:text-xl text-gray-700 dark:text-gray-300 leading-relaxed max-w-2xl">
                       {gameDetails.description}
                     </p>
                   </>
@@ -313,7 +307,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="lg:col-span-2 flex flex-col gap-6 mt-16"
+                className="lg:col-span-2 flex flex-col gap-6"
               >
                 {/* QR Code Card - Compact */}
                 {qrDataUrl ? (
@@ -379,7 +373,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Waiting for players to join</p>
                     </motion.div>
                   ) : (
-                    <div className="space-y-2 overflow-y-auto">
+                    <div className="grid grid-cols-3 gap-4 overflow-y-auto">
                       <AnimatePresence mode='popLayout'>
                         {players.map((p, i) => (
                           <motion.div
@@ -389,6 +383,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                             transition={{ delay: i * 0.05 }}
+                            className="flex flex-col items-center"
                           >
                             <motion.div
                               animate={{ y: [0, -6, 0] }}
@@ -398,15 +393,12 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                                 ease: "easeInOut",
                                 delay: i * 0.2
                               }}
-                              className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                              className="flex flex-col items-center gap-2"
                             >
-                              <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-2 ring-purple-400">
-                                <PlayerAvatar avatarKey={p.avatar} size={36} />
+                              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-2 ring-purple-400">
+                                <PlayerAvatar avatarKey={p.avatar} size={44} />
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{p.name}</p>
-                              </div>
-                              <div className="flex-shrink-0 text-lg">✓</div>
+                              <p className="font-bold text-sm text-gray-900 dark:text-white text-center truncate w-full">{p.name}</p>
                             </motion.div>
                           </motion.div>
                         ))}
@@ -424,7 +416,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   {players.length === 0 ? (
                     <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
                   ) : (
-                    '🎮 Start Game'
+                  'Start Game'
                   )}
                 </ActionButton>
               </motion.div>
@@ -438,7 +430,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="min-h-screen flex flex-col items-center justify-center pb-32"
+                className="flex flex-col items-center justify-center pb-32"
               >
                 {/* Question Section */}
                 <div className="w-full max-w-4xl">
@@ -455,21 +447,14 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     {/* Timer Bar - Prominent */}
                     {timerEndsAt && totalQuestionDuration && (
                       <div className="mt-12">
-                        <Progress
-                          value={Math.max(
-                            0,
-                            Math.min(
-                              100,
-                              Math.round(
-                                (100 * (
-                                  (paused && pauseRemainingMs != null)
-                                    ? (totalQuestionDuration - pauseRemainingMs)
-                                    : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                                )) / totalQuestionDuration
-                              )
-                            )
-                          )}
-                          className="h-6 [&>div]:bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-full"
+                        <TimerProgress
+                          timerEndsAt={timerEndsAt}
+                          totalDuration={totalQuestionDuration}
+                          paused={paused}
+                          pauseRemainingMs={pauseRemainingMs}
+                          countdown={countdown}
+                          showCountdownText={false}
+                          className="h-6 rounded-full"
                         />
                         <div className="mt-6 flex items-center justify-center gap-3">
                           <span className="text-7xl font-extrabold text-gray-900 dark:text-white tabular-nums">
@@ -571,7 +556,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="fixed top-20 right-8 z-30"
+                    className="fixed top-16 right-8 z-30"
                   >
                     <Button
                       onClick={extendTimer}
@@ -591,7 +576,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center py-12"
+              className="flex flex-col items-center justify-center py-12"
             >
               <div className="w-full max-w-4xl">
                 {/* Correct Answer - Big & Prominent */}
@@ -600,8 +585,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   className="mb-12"
                 >
-                  <div className="bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-3xl shadow-2xl overflow-hidden mb-6">
-                    <div className="bg-gradient-to-r from-emerald-600 to-cyan-600 p-8 text-center">
+                  <div className="bg-blue-600 rounded-3xl shadow-2xl overflow-hidden mb-6">
+                    <div className="bg-blue-600 p-8 text-center">
                       <p className="text-white text-2xl font-bold uppercase tracking-widest mb-4">Correct Answer</p>
                     </div>
                     <div className="bg-white dark:bg-gray-900 p-12 text-center">
@@ -623,61 +608,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     <h3 className="text-white text-3xl font-bold uppercase tracking-widest">Leaderboard</h3>
                   </div>
 
-                  <div className="p-8 space-y-4 max-h-96 overflow-y-auto">
-                    <AnimatePresence>
-                      {(roundResults.leaderboard || []).map((p: any, index: number) => {
-                        const result = roundResults.results.find((r: any) => r.playerId === p.id);
-                        const pointsEarned = result?.points || 0;
-                        const previousScore = p.score - pointsEarned;
-
-                        return (
-                          <motion.div
-                            key={p.id}
-                            layout
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`flex items-center gap-6 p-6 rounded-2xl font-semibold text-lg transition-all ${
-                              result?.correct
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800'
-                                : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800'
-                            }`}
-                          >
-                            <div className="w-20 h-20 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-700 overflow-hidden ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-400">
-                              <PlayerAvatar avatarKey={p.avatar} size={80} />
-                            </div>
-
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-1">
-                                <span className="text-xl text-gray-900 dark:text-white">{p.name}</span>
-                                {pointsEarned > 0 && (
-                                  <motion.span
-                                    initial={{ opacity: 0, scale: 0.5 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.5 + (index * 0.1) }}
-                                    className="text-base font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full"
-                                  >
-                                    +{pointsEarned}
-                                  </motion.span>
-                                )}
-                              </div>
-                              {result?.answer && (
-                                <div className={`text-sm font-medium ${result.correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                  Your answer: <span className="font-bold">{result.answer}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-4xl font-extrabold text-gray-900 dark:text-white tabular-nums">
-                                <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />
-                              </div>
-                              <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">points</div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
+                  <div className="p-8">
+                    <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} showAnswers />
                   </div>
                 </motion.div>
 
@@ -704,7 +636,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="min-h-screen flex items-center justify-center py-12"
+              className="flex items-center justify-center py-12"
             >
               <div className="w-full max-w-4xl px-4">
                 {/* Game Over Header */}

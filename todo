@@ -6,6 +6,11 @@
 - play again is starting a new game
 - +15 button padding
 - if there are no players, game should end or something
+- Setting up game room in the beginning
+- Player avatars not centered within the circles on the leadarboard
+
+IF There is a big issue with the height, add back the min-h-screen class to the relevant divs in host-game-layout.tsx
+
 
 ## ENHANCEMENTS
 - allow user to choose another avatar?
@@ -13,6 +18,9 @@
 - standardize the buttons and progress bars
 - rebus and trivia should have diff rooms?
 - home page header
+- Handle room lifecycle events better
+    - if host disconnects, end the game for everyone
+    - if a user disconnects, show a message to the host (maybe pause the game?)
 
 
 ## FEATURES
@@ -39,3 +47,7 @@
 ## Code improvements
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication
+
+## Larger ideas
+- Users should be able to create their own trivia questions and submit it to a database. We should then be able to review and add it to the game packs.
+- They should get rewarded with some in-app currency for every approved submission.

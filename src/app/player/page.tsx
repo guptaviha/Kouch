@@ -8,9 +8,11 @@ import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
 // use shared CountUp component
-import CountUp from '@/components/count-up';
 import { getRandomMessage } from '@/utils/messages';
 import TrailingDots from '@/components/trailing-dots';
+import PausedOverlay from '@/components/shared/paused-overlay';
+import TimerProgress from '@/components/shared/timer-progress';
+import Leaderboard from '@/components/shared/leaderboard';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -179,23 +181,11 @@ export default function PlayerPage() {
   if (!mounted) return null;
 
   return (
-    <div className="p-6 max-w-md mx-auto relative">
-
+    <div className="mt-24 p-6 max-w-md mx-auto relative">
       <Header roomCode={roomCode || null} avatarKey={profile?.avatar} name={profile?.name ?? null} role="player" />
 
-      {paused && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-xl p-8 shadow-2xl border border-white/20">
-            <div className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Game Paused</div>
-            <div className="mt-2 text-md text-gray-900 dark:text-white flex items-center justify-center space-x-1">
-              <span>
-                {pausedMessage}
-                <TrailingDots />
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+
+      <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} />
 
       {!joined ? (
         <motion.div
@@ -333,28 +323,14 @@ export default function PlayerPage() {
               </button>
                 : null}
 
-              {/* Progress bar for the active round */}
-              {timerEndsAt && totalQuestionDuration && (
-                <div className="mt-8">
-                  <Progress
-                    value={Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        Math.round(
-                          (100 * (
-                            (paused && pauseRemainingMs != null)
-                              ? (totalQuestionDuration - pauseRemainingMs)
-                              : (totalQuestionDuration - Math.max(0, (timerEndsAt || 0) - Date.now()))
-                          )) / totalQuestionDuration
-                        )
-                      )
-                    )}
-                    className={`h-3 bg-gray-100 dark:bg-gray-800 [&>div]:bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? '[&>div]:transition-none' : '[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-linear'}`}
-                  />
-                  <p className="text-xs text-gray-500 mt-2 font-medium text-right">Time remaining: {countdown}s</p>
-                </div>
-              )}
+                <TimerProgress
+                  timerEndsAt={timerEndsAt}
+                  totalDuration={totalQuestionDuration}
+                  paused={paused}
+                  pauseRemainingMs={pauseRemainingMs}
+                  countdown={countdown}
+                  className="mt-8"
+                />
             </motion.div>
           )}
 
@@ -409,29 +385,7 @@ export default function PlayerPage() {
 
                 {/* Runners Up */}
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
-                  <ol className="space-y-2">
-                    {(roundResults.final || []).slice(1).map((p: any, i: number) => (
-                      <motion.li
-                        key={p.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + (i * 0.1) }}
-                        className={`flex items-center p-3 rounded-xl shadow-sm border ${p.id === profile?.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-500/20'
-                          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
-                          }`}
-                      >
-                        <div className="font-bold text-gray-400 w-6 text-left">{i + 2}</div>
-                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0 mr-3 overflow-hidden">
-                          <PlayerAvatar avatarKey={p.avatar} size={32} />
-                        </div>
-                        <div className="flex-1 text-left font-bold text-gray-900 dark:text-gray-100">
-                          {p.name} {p.id === profile?.id && '(You)'}
-                        </div>
-                        <div className="font-bold text-gray-600 dark:text-gray-400">{p.score} pts</div>
-                      </motion.li>
-                    ))}
-                  </ol>
+                  <Leaderboard leaderboard={(roundResults.final || []).slice(1)} highlightPlayerId={profile?.id} showPositions avatarSize={32} />
                 </div>
               </div>
 
@@ -482,66 +436,7 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
       {/* Leaderboard Card */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
         <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">Leaderboard</h3>
-        <div className="space-y-3">
-          <AnimatePresence>
-            {(roundResults.leaderboard || []).map((p: any, index: number) => {
-              const result = roundResults.results.find((r: any) => r.playerId === p.id);
-              const pointsEarned = result?.points || 0;
-              const previousScore = p.score - pointsEarned;
-              // Highlight current player
-              const isMe = p.id === playerId;
-
-              return (
-                <motion.div
-                  key={p.id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex items-center p-3 rounded-lg ${isMe
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    : 'bg-gray-50 dark:bg-gray-800/50 border border-transparent'
-                    }`}
-                >
-                  <div className="w-8 h-8 rounded-full flex-shrink-0 mr-3 bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                    <PlayerAvatar avatarKey={p.avatar} size={32} />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold truncate ${isMe ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
-                        {p.name} {isMe && '(You)'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Show answer if available */}
-                  {result?.answer && (
-                    <div className={`mx-2 text-xs font-medium max-w-[100px] truncate ${result.correct ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                      {result.answer}
-                    </div>
-                  )}
-
-                  <div className="text-right flex flex-col items-end">
-                    <div className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-                      <CountUp from={previousScore} to={p.score} duration={1.5} delay={0.5 + (index * 0.1)} />
-                    </div>
-                    {pointsEarned > 0 && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5 + (index * 0.1) }}
-                        className="text-[10px] font-bold text-green-600 dark:text-green-400"
-                      >
-                        +{pointsEarned}
-                      </motion.span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+        <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={playerId} showAnswers avatarSize={32} />
       </div>
 
       {timerEndsAt && nextTimerDurationMs && (

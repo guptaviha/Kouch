@@ -50,11 +50,11 @@ export default function GameCard({ game }: GameCardProps) {
         {/* Top Section */}
         <div className="flex items-start justify-between">
           <div className={`p-3 ${bgClass} rounded-xl backdrop-blur-sm bg-white/10 border border-white/20`}>
-            <Gamepad2 className={`w-8 h-8 ${colorClass}`} />
+            <Gamepad2 className={`w-10 h-10 ${colorClass}`} />
           </div>
-          <div className="text-right text-white/80 text-sm">
+          <div className="text-right text-white/80 text-base">
             <div className="flex items-center gap-1 mb-1">
-              <Users className="w-4 h-4" /> {game.minPlayers}-{game.maxPlayers}
+              <Users className="w-5 h-5" /> {game.minPlayers}-{game.maxPlayers}
             </div>
             <div>{game.estimatedTime}</div>
           </div>
@@ -70,10 +70,10 @@ export default function GameCard({ game }: GameCardProps) {
             className="transition-opacity duration-300"
           >
             <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-white/20 -mx-8 w-[calc(100%+4rem)]">
-              <h3 className="text-2xl font-bold text-white mb-3 drop-shadow-lg">
+              <h3 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">
                 {game.title}
               </h3>
-              <p className="text-white/90 text-lg leading-relaxed">
+              <p className="text-white/90 text-xl leading-relaxed">
                 {game.description}
               </p>
             </div>

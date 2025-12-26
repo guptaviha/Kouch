@@ -38,7 +38,6 @@ const ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 export default function PlayerAvatar({ avatarKey, size = 20, className = '' }: { avatarKey?: string; size?: number; className?: string }) {
-    console.log('avatarKey:', avatarKey);
     const key = typeof avatarKey === 'string' ? avatarKey.trim() : '';
     let Icon: React.ComponentType<any> | undefined = key ? ICONS[key] : undefined;
     // Try a case-insensitive match if exact key not found (defensive - tolerates minor mismatches)
