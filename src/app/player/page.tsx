@@ -370,12 +370,6 @@ export default function PlayerPage() {
             <PlayerRoundResult
               roundResults={roundResults}
               playerId={profile?.id}
-              timerEndsAt={timerEndsAt}
-              nextTimerDurationMs={nextTimerDurationMs}
-              countdown={countdown}
-              setStatusMessage={setStatusMessage}
-              paused={paused}
-              pauseRemainingMs={pauseRemainingMs}
             />
           )}
 
@@ -430,7 +424,7 @@ export default function PlayerPage() {
   );
 }
 
-function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurationMs, countdown, setStatusMessage, paused, pauseRemainingMs }: any) {
+function PlayerRoundResult({ roundResults, playerId }: any) {
   const my = playerId ? (roundResults.results || []).find((r: any) => r.playerId === playerId) : null;
   const isCorrect = my?.correct;
 
@@ -462,32 +456,6 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
 
       {/* Leaderboard Card */}
       <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={playerId} showAnswers avatarSize={32} />
-
-      {timerEndsAt && nextTimerDurationMs && (
-        <div className="mt-8 px-4">
-          <div className="w-full h-3 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className={`h-3 bg-blue-500 ${paused ? 'transition-none' : 'transition-all duration-300 ease-linear'}`}
-              style={{
-                width: `${Math.max(
-                  0,
-                  Math.min(
-                    100,
-                    Math.round(
-                      ((nextTimerDurationMs - (
-                        (paused && pauseRemainingMs != null)
-                          ? pauseRemainingMs
-                          : Math.max(0, timerEndsAt - Date.now())
-                      )) / nextTimerDurationMs) * 100
-                    )
-                  )
-                )}%`,
-              }}
-            />
-          </div>
-          <p className="text-xs text-center text-gray-500 mt-2 font-medium">Next round in {countdown}s</p>
-        </div>
-      )}
     </div>
   );
 }

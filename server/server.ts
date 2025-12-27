@@ -14,6 +14,8 @@ Protocol (client -> server): JSON messages with `type`.
 Server emits 'server' events to clients with payloads containing `type`.
 */
 
+// Note: we avoid importing TypeScript-only modules here to keep the server runnable
+// by plain Node. Types are not required at runtime.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
@@ -525,8 +527,40 @@ function handleMessage(socket: Socket, msg: any) {
     return;
   }
 
+  // Add mock players into a room for local/dev testing
+  if (msgType === 'mock') {
+    const { roomCode } = messageObj as { roomCode?: string };
+    const room = roomCode ? rooms.get(roomCode) : null;
+    if (!room) return;
+
+    // Add each mock player as a non-connected placeholder player
+    for (const mp of mockPlayers) {
+      const pid = makeId();
+      const player: Player = {
+        id: pid,
+        name: mp.name,
+        score: mp.score || 0,
+        avatar: mp.avatar || pickAvatar(),
+        socket: ({} as unknown) as Socket,
+      };
+      room.players.set(pid, player);
+    }
+
+    // Notify everyone in the lobby about the updated players list
+    broadcastLobby(room);
+    send(socket, { type: 'mock_added', roomCode: room.code });
+    return;
+  }
+
   send(socket, { type: 'error', message: 'unknown message type' });
 }
+
+const mockPlayers = [
+  { id: '1', name: 'Alice', avatar: 'BsRobot', score: 1200 },
+  { id: '2', name: 'Bob', avatar: 'PiDogFill', score: 950 },
+  { id: '3', name: 'Charlie', avatar: 'GiSharkBite', score: 870 },
+  { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
+];
 
 const io = new IOServer(server, { path: '/ws', cors: { origin: '*' } });
 

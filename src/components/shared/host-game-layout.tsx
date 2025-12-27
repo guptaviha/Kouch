@@ -25,13 +25,6 @@ interface HostGameLayoutProps {
   game: GamePack;
 };
 
-const mockPlayers: PlayerInfo[] = [
-  { id: '1', name: 'Alice', avatar: 'BsRobot', score: 1200 },
-  { id: '2', name: 'Bob', avatar: 'PiDogFill', score: 950 },
-  { id: '3', name: 'Charlie', avatar: 'GiSharkBite', score: 870 },
-  { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
-];
-
 export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const router = useRouter();
   // websocket helpers
@@ -304,7 +297,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   </div>
                 )}
 
-                <Button onClick={() => setPlayers(mockPlayers)}>Load Mock Players</Button>
+                <Button onClick={() => { if (roomCode) emit('message', { type: 'mock', roomCode }); }}>Load Mock Players</Button>
                 {/* Players Card */}
                 <GenericCard
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -439,8 +432,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         {players.map((p, i) => {
                           const answered = answeredPlayers.includes(p.id);
                           const hasUsedHint = playersWithHints?.includes(p.id);
-                            const playerState = answered 
-                            ? (hasUsedHint ? 'answered_with_hint' : 'answered') 
+                          const playerState = answered
+                            ? (hasUsedHint ? 'answered_with_hint' : 'answered')
                             : (hasUsedHint ? 'used_hint' : 'waiting');
 
                           return (
@@ -543,7 +536,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   )}
                 </motion.div>
 
-                {/* Next Round Timer */}
+                {/* Next Round Timer
                 {timerEndsAt && nextTimerDurationMs && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -556,6 +549,25 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       <div className="text-6xl font-extrabold text-blue-600 dark:text-blue-400">{countdown}s</div>
                     </div>
                   </motion.div>
+                )} */}
+                {timerEndsAt && nextTimerDurationMs && (
+                  <GenericCard
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className='w-full min-h-44 max-w-4xl mt-12 text-center'
+                  >
+                    <p className="text-gray-600 dark:text-gray-400 text-lg font-semibold mb-4">Next round starts in</p>
+                    <TimerProgress
+                      timerEndsAt={timerEndsAt}
+                      totalDuration={nextTimerDurationMs}
+                      paused={paused}
+                      pauseRemainingMs={pauseRemainingMs}
+                      countdown={countdown}
+                      showCountdownText={true}
+                      className="h-6 rounded-full"
+                    />
+                  </GenericCard>
                 )}
               </div>
             </motion.div>
