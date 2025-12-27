@@ -47,7 +47,7 @@ export default function Leaderboard({
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`flex items-center gap-6 p-6 rounded-2xl font-semibold text-lg transition-all ${result?.correct
+              className={`flex items-center gap-4 p-4 rounded-2xl font-semibold text-lg transition-all ${result?.correct
                 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800'
                 : isHighlighted
                   ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
@@ -127,8 +127,8 @@ export default function Leaderboard({
         </motion.div>
       )}
 
-      <div className='p-6'>
-        <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h3>
+      <div className='p-4'>
+        {!showWinnerSpotlight && <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h3>}
         {inner}
       </div>
     </GenericCard>

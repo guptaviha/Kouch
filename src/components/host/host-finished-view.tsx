@@ -8,6 +8,7 @@ import GameOverHeader from '../shared/game-over-header';
 import Leaderboard from '../shared/leaderboard';
 import { PlayerInfo } from '@/lib/store/types';
 import { useGameStore } from '@/lib/store';
+import Link from 'next/link';
 
 export default function HostFinishedView() {
     // Store selectors
@@ -17,6 +18,7 @@ export default function HostFinishedView() {
     const emit = useGameStore((s) => s.emit);
     const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
 
+    // TODO: This needs some rework because all the players get disconnected when the host resets the game
     const resetGame = () => {
         if (!roomCode || !profile) return;
         emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
@@ -39,7 +41,6 @@ export default function HostFinishedView() {
                     showWinnerSpotlight={true}
                     showAnswers={false}
                     showPositions={true}
-                    title=''
                 />
 
                 {/* Play Again Button */}
@@ -47,12 +48,14 @@ export default function HostFinishedView() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8 }}
-                    className="text-center"
+                    className="text-center mt-6"
                 >
-                    <Button variant="action" onClick={resetGame} className="mb-4 w-full md:w-auto">
-                        Play Again
-                    </Button>
-                    <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Players will need to rejoin with their phones</p>
+                    <Link href="/">
+                        <Button variant="action" className="mb-4 w-full md:w-auto">
+                            Explore Game Library
+                        </Button>
+                        {/* <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Players will need to rejoin with their phones</p> */}
+                    </Link>
                 </motion.div>
             </div>
         </motion.div>
