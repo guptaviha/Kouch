@@ -49,8 +49,9 @@ export default function serverMessageHandler(msg: any) {
         break;
 
       case 'lobby_update':
+        console.log('lobby_update', msg);
         setPlayers?.(msg.players || []);
-        try { setState?.((msg.state || 'lobby')); } catch (e) { setState?.('lobby'); }
+        try { setState?.((msg.state || 'lobby')); } catch (e) { setState?.('lobby'); console.error('lobby_update error', e); }
         break;
 
       case 'player_answered': {
