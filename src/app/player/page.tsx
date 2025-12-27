@@ -13,6 +13,7 @@ import TrailingDots from '@/components/trailing-dots';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
+import GameOverHeader from '@/components/shared/game-over-header';
 import { Button } from '@/components/ui/button';
 
 // Compute a sensible default server URL at runtime so LAN clients will
@@ -375,14 +376,7 @@ export default function PlayerPage() {
 
           {state === 'finished' && roundResults && (
             <div className="w-full max-w-lg mx-auto text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-8"
-              >
-                <h2 className="text-3xl font-extrabold dark:text-blue-400 text-blue-600 mb-2 tracking-tight">Game Over!</h2>
-                <p className="text-gray-500 font-medium">Here are the final standings</p>
-              </motion.div>
+              <GameOverHeader titleClassName="!text-3xl !mb-2"/>
 
               <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                 {/* Winner Spotlight */}
