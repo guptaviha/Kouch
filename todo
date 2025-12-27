@@ -2,10 +2,17 @@
 - dont allow the same avatar to be picked by multiple players
 - i am able to join a room that doesnt exist
 - player gets diconnected on screen close
-- long username truncated
+- long username limit/truncation
 - play again is starting a new game
-- if there are no players, game should end
+- if all players have disconnecting, game should end
 - Trailing dots may go to the next line on smaller screens
+- result screen
+    - player: remove leaderboard or fix the cropping
+    - host: make the leaderboard more compact. its scrolling too much cant see progress bar
+
+- if you refresh a game, it gets stuck on a screen that says "setting up game room..." unless you do a hard reload
+- if x players start the game but one drops off and the remianing players submit their answers, question round should end
+- should be able to rejoin a current game
 
 IF There is a big issue with the height, add back the min-h-screen class to the relevant divs in host-game-layout.tsx
 
@@ -16,7 +23,7 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 - Handle room lifecycle events better
     - if host disconnects, end the game for everyone
     - if a user disconnects, show a message to the host (maybe pause the game?)
-
+- re design the game cards on home screen
 
 ## FEATURES
 - connect to rebus db 
@@ -42,6 +49,7 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 ## Code improvements
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication
+- reate a refactor expert agent and use. it every so often
 
 ## Larger ideas
 - Users should be able to create their own trivia questions and submit it to a database. We should then be able to review and add it to the game packs.
@@ -49,10 +57,10 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 
 
 ## Game flow improvements
-Rejoining
-- allow players to rejoin if they get disconnected. We need to keep track of players by their unique ids and allow them to rejoin the game in progress, and restore their state (score, avatar, etc.)
-- Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game. Reconnection: Allow a connection only if the cookie or deviceId matches a player already in the list (handling disconnects).
-- (Maybe) Explicit End: Host clicks "End Game" -> Delete key from Redis immediately.
+- Rejoining
+    - allow players to rejoin if they get disconnected. We need to keep track of players by their unique ids and allow them to rejoin the game in progress, and restore their state (score, avatar, etc.)
+    - Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game. Reconnection: Allow a connection only if the cookie or deviceId matches a player already in the list (handling disconnects).
+    - Explicit End: Host clicks "End Game" -> Delete key from Redis immediately.
 
 
 ## Different game layouts
