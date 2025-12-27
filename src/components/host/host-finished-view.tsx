@@ -6,13 +6,23 @@ import { Button } from '@/components/ui/button';
 import PlayerAvatar from '@/components/player-avatar';
 import GameOverHeader from '../shared/game-over-header';
 import Leaderboard from '../shared/leaderboard';
+import { PlayerInfo } from '@/lib/store/types';
+import { useGameStore } from '@/lib/store';
 
-interface HostFinishedViewProps {
-    roundResults: any; // Using any for now, ideally specific type
-    resetGame: () => void;
-}
+export default function HostFinishedView() {
+    // Store selectors
+    const roundResults = useGameStore((s) => s.roundResults);
+    const roomCode = useGameStore((s) => s.roomCode);
+    const profile = useGameStore((s) => s.profile as PlayerInfo | null);
+    const emit = useGameStore((s) => s.emit);
+    const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
 
-export default function HostFinishedView({ roundResults, resetGame }: HostFinishedViewProps) {
+    const resetGame = () => {
+        if (!roomCode || !profile) return;
+        emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
+        setPlayAgainPending(true);
+        emit('message', { type: 'create_room', name: 'Host' });
+    };
     return (
         <motion.div
             initial={{ opacity: 0 }}

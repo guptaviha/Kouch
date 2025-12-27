@@ -9,17 +9,11 @@ import { motion } from 'framer-motion';
 import QRCode from 'qrcode';
 import TrailingDots from '@/components/trailing-dots';
 import { GamePack } from '@/types/games';
-import { GameDetails } from '@/types/game-details';
 import HostLobbyView from '@/components/host/host-lobby-view';
 import HostPlayingView from '@/components/host/host-playing-view';
 import HostRoundResultView from '@/components/host/host-round-result-view';
 import HostFinishedView from '@/components/host/host-finished-view';
 import PausedOverlay from '@/components/shared/paused-overlay';
-import TimerProgress from '@/components/shared/timer-progress';
-import Leaderboard from '@/components/shared/leaderboard';
-import GameDetailsCard from './game-details-card';
-import GenericCard from './generic-card';
-import GameOverHeader from './game-over-header';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -39,54 +33,22 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const profile = useGameStore((s) => s.profile as PlayerInfo | null);
   // room and players
   const roomCode = useGameStore((s) => s.roomCode);
-  const players = useGameStore((s) => s.players as PlayerInfo[]);
-  const setPlayers = useGameStore((s) => s.setPlayers);
-  const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
-  const playersWithHints = useGameStore((s) => s.playersWithHints);
   // game state
   const gameStateValue = useGameStore((s) => s.state);
-  const currentQuestion = useGameStore((s) => s.currentQuestion);
   const state: RoomStates = gameStateValue as RoomStates;
-  const question = currentQuestion || null;
-  const questionImage = useGameStore((s) => s.questionImage as string | null);
   // timer state
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
-  const roundIndex = useGameStore((s) => s.roundIndex);
-  const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
-  const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
-  const countdown = useGameStore((s) => s.countdown);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
-  const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
   const timerRef = useRef<number | null>(null);
   const splashTimerRef = useRef<number | null>(null);
   const paused = useGameStore((s) => s.paused);
-  const playAgainPending = useGameStore((s) => s.playAgainPending);
-  const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
   const selectedPack = useGameStore((s) => s.selectedPack);
   const setSelectedPack = useGameStore((s) => s.setSelectedPack);
-  const qrDataUrl = useGameStore((s) => s.qrDataUrl);
   const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
-  const joinUrl = useGameStore((s) => s.joinUrl);
   const setJoinUrl = useGameStore((s) => s.setJoinUrl);
 
-  const [gameDetails, setGameDetails] = useState<GameDetails | null>(null);
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    async function fetchGameDetails() {
-      try {
-        const res = await fetch(`/api/games/${game}`);
-        if (res.ok) {
-          const data = await res.json();
-          setGameDetails(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch game details', error);
-      }
-    }
-    fetchGameDetails();
-  }, [game]);
 
   // Validate game parameter
   useEffect(() => {
@@ -185,33 +147,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     emit('message', { type: 'create_room', name: 'Host', pack: game });
   };
 
-  const startGame = () => {
-    if (!roomCode || !profile) return;
-    emit('message', { type: 'start_game', roomCode, playerId: profile.id });
-  };
-
-  const extendTimer = () => {
-    if (!roomCode) return;
-    emit('message', { type: 'extend_timer', roomCode, hostId: profile?.id });
-  };
-
-  const pauseGame = () => {
-    if (!roomCode || !profile) return;
-    emit('message', { type: 'pause_game' });
-  };
-
-  const resumeGame = () => {
-    if (!roomCode || !profile) return;
-    emit('message', { type: 'resume_game' });
-  };
-
-  const resetGame = () => {
-    if (!roomCode || !profile) return;
-    emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
-    setPlayAgainPending(true);
-    emit('message', { type: 'create_room', name: 'Host' });
-  };
-
   useEffect(() => {
     if (game && !roomCode) {
       createRoom();
@@ -242,55 +177,22 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       ) : (
         <div className="w-full max-w-7xl mx-auto relative">
           {state === 'lobby' && (
-            <HostLobbyView
-              gameDetails={gameDetails}
-              qrDataUrl={qrDataUrl}
-              roomCode={roomCode}
-              joinUrl={joinUrl}
-              players={players}
-              startGame={startGame}
-              emit={emit}
-            />
+            <HostLobbyView game={game} />
           )}
 
 
           {state === 'playing' && (
-            <HostPlayingView
-              question={question}
-              questionImage={questionImage}
-              timerEndsAt={timerEndsAt}
-              totalQuestionDuration={totalQuestionDuration}
-              paused={paused}
-              pauseRemainingMs={pauseRemainingMs}
-              countdown={countdown}
-              players={players}
-              answeredPlayers={answeredPlayers}
-              playersWithHints={playersWithHints}
-              roundIndex={roundIndex}
-              extendTimer={extendTimer}
-            />
+            <HostPlayingView />
           )}
 
 
           {state === 'round_result' && roundResults && (
-            <HostRoundResultView
-              roundResults={roundResults}
-              timerEndsAt={timerEndsAt}
-              nextTimerDurationMs={nextTimerDurationMs}
-              paused={paused}
-              pauseRemainingMs={pauseRemainingMs}
-              countdown={countdown}
-              pauseGame={pauseGame}
-              resumeGame={resumeGame}
-            />
+            <HostRoundResultView />
           )}
 
 
           {state === 'finished' && roundResults && (
-            <HostFinishedView
-              roundResults={roundResults}
-              resetGame={resetGame}
-            />
+            <HostFinishedView />
           )}
         </div>
       )}
