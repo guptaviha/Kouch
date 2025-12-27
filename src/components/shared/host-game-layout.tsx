@@ -14,6 +14,12 @@ import HostLobbyView from '@/components/host/host-lobby-view';
 import HostPlayingView from '@/components/host/host-playing-view';
 import HostRoundResultView from '@/components/host/host-round-result-view';
 import HostFinishedView from '@/components/host/host-finished-view';
+import PausedOverlay from '@/components/shared/paused-overlay';
+import TimerProgress from '@/components/shared/timer-progress';
+import Leaderboard from '@/components/shared/leaderboard';
+import GameDetailsCard from './game-details-card';
+import GenericCard from './generic-card';
+import GameOverHeader from './game-over-header';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
