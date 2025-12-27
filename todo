@@ -9,7 +9,6 @@
 - result screen
     - player: remove leaderboard or fix the cropping
     - host: make the leaderboard more compact. its scrolling too much cant see progress bar
-
 - if you refresh a game, it gets stuck on a screen that says "setting up game room..." unless you do a hard reload
 - if x players start the game but one drops off and the remianing players submit their answers, question round should end
 - should be able to rejoin a current game
@@ -23,7 +22,7 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 - Handle room lifecycle events better
     - if host disconnects, end the game for everyone
     - if a user disconnects, show a message to the host (maybe pause the game?)
-- re design the game cards on home screen
+
 
 ## FEATURES
 - connect to rebus db 

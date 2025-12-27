@@ -129,7 +129,7 @@ function cleanPlayerForWire(player: Player) {
 }
 
 function broadcast(room: Room, msg: any) {
-  console.log('Broadcasting to room', room.code, 'message:', msg);
+  console.log('broadcasting to room', { roomCode: room.code, msg });
   for (const player of room.players.values()) {
     try {
       if (player.socket && player.socket.connected) player.socket.emit('server', msg);
