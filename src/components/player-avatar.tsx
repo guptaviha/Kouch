@@ -154,7 +154,7 @@ export default function PlayerAvatar({
 
     if (variant === 'lobby') {
         // Lobby: gentle continuous bounce for waiting players
-        bounceAnim = { y: [0, -6, 0] };
+        bounceAnim = { y: [0, -12, 0] };
         bounceTransition = {
             duration: 3,
             repeat: Infinity,

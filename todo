@@ -8,6 +8,7 @@
 - if there are no players, game should end or something
 - Setting up game room in the beginning
 - Player avatars not centered within the circles on the leadarboard
+- Trailing dots may go to the next line on smaller screens
 
 IF There is a big issue with the height, add back the min-h-screen class to the relevant divs in host-game-layout.tsx
 
@@ -62,6 +63,11 @@ Rejoining
 - allow players to rejoin if they get disconnected. We need to keep track of players by their unique ids and allow them to rejoin the game in progress, and restore their state (score, avatar, etc.)
 - Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game. Reconnection: Allow a connection only if the cookie or deviceId matches a player already in the list (handling disconnects).
 - (Maybe) Explicit End: Host clicks "End Game" -> Delete key from Redis immediately.
+
+
+## Different game layouts
+- Common landing page layout for all games extracted out from host-game-layout.tsx
+- Each game layout should accept a gameData and roomState prop to deal with common room related state as well as specific game data.
 
 ## Room Code Management
 - Room code Uniqueness: Ensure generated room codes are unique and not currently in use.

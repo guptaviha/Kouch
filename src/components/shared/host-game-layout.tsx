@@ -220,7 +220,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-[calc(100vh-8rem)] mt-32 w-full relative"
+      className="min-h-[calc(100vh-7rem)] mt-20 w-full relative"
     >
       <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" roomState={state} />
 
@@ -372,16 +372,30 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-br from-white/80 to-white/40 dark:from-gray-900/80 dark:to-gray-900/40 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 dark:border-gray-800/20 p-12 text-center mb-12"
+                    className="dark:bg-gray-900 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 dark:border-gray-800/20 p-10 text-center mb-16"
                   >
-                    <p className="text-xl text-gray-600 dark:text-gray-400 uppercase tracking-wider font-bold mb-6">Question {(roundIndex ?? 0) + 1}</p>
-                    <h2 className="text-6xl sm:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight mb-8 tracking-tight">
+                    <p className="text-xl text-blue-600 dark:text-blue-400 uppercase tracking-wider font-bold mb-4">Question {(roundIndex ?? 0) + 1}</p>
+                    <h2 className={`${questionImage ? 'text-2xl sm:text-3xl' : 'text-6xl sm:text-7xl'} font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight`}>
                       {question}
                     </h2>
 
+                    {/* Question Image - Large & Centered */}
+                    {questionImage && (
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex justify-center mb-6"
+                      >
+                        <div className="p-2 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-2xl">
+                          <img src={questionImage} alt="Puzzle" className="w-full max-w-xs h-auto rounded-2xl" />
+                        </div>
+                      </motion.div>
+                    )}
+
                     {/* Timer Bar - Prominent */}
                     {timerEndsAt && totalQuestionDuration && (
-                      <div className="mt-12 mb-12">
+                      <div className="mt-8 mb-8">
                         <TimerProgress
                           timerEndsAt={timerEndsAt}
                           totalDuration={totalQuestionDuration}
@@ -395,19 +409,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     )}
                   </motion.div>
 
-                  {/* Question Image - Large & Centered */}
-                  {questionImage && (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="flex justify-center mb-12"
-                    >
-                      <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-2xl">
-                        <img src={questionImage} alt="Puzzle" className="w-full h-auto rounded-2xl" />
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
 
                 {/* Player Status Row - Bottom */}
@@ -416,9 +417,9 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="fixed bottom-8 left-0 right-0 px-4"
+                    className="fixed bottom-4 left-0 right-0 px-4"
                   >
-                    <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-6">
+                    <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-4">
                       <div className="flex items-center justify-center gap-6 overflow-x-auto pt-3 pb-1">
                         {players.map((p, i) => {
                           const answered = answeredPlayers.includes(p.id);

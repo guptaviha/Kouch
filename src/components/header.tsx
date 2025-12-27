@@ -8,6 +8,7 @@ import { MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 import PlayerAvatar from './player-avatar';
 import { Button } from "./ui/button";
 import { RoomStates } from "@/lib/store/types";
+import { useGameStore } from "@/lib/store";
 
 type Props = {
   roomCode?: string | null;
@@ -20,6 +21,7 @@ type Props = {
 export default function Header({ roomCode, avatarKey, name, role = 'guest', roomState }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const statusMessage = useGameStore((s) => s.statusMessage)
 
   const toggleFullscreen = async () => {
     try {
@@ -56,8 +58,8 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
   }, []);
 
   return (
-    <div className={`fixed left-0 w-full top-0 p-6 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
-      <div className="w-full flex justify-between relative">
+    <div className={`fixed left-0 w-full top-0 px-6 py-4 transition-all duration-300 z-50 ${scrolled ? 'bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm' : ''}`}>
+      <div className="w-full flex justify-between items-center relative">
         {/* Logo+Title */}
         <div className="flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -71,10 +73,13 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
             </div>
           )}
         </div>
-        <div className="absolute left-1/2 transform -translate-x-1/2 text-sm bg-slate-500 rounded-sm w-fit p-1">{roomState}</div>
+        {/* Special debug box */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-sm bg-slate-500 rounded-sm w-fit p-1">
+          {roomState} - {statusMessage}
+        </div>
 
         {/* Action Buttons on the Right */}
-        <div className="absolute right-0 top-0 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {/* {role === 'host' && (
             <div className="flex flex-col items-center">
               <Laptop size={24} />

@@ -3,7 +3,7 @@
  * Each message is kept short to fit in 2 lines on mobile
  */
 
-type MessageScenario = 'game_paused' | 'waiting_to_start';
+type MessageScenario = 'game_paused' | 'waiting_to_start' | 'answer_received' | 'waiting_for_players';
 
 const MESSAGES: Record<MessageScenario, string[]> = {
   game_paused: [
@@ -35,6 +35,26 @@ const MESSAGES: Record<MessageScenario, string[]> = {
     "Standby for awesomeness",
     "Get your thinking caps on"
   ],
+  answer_received: [
+    "Got it!",
+    "Answer received!",
+    "Locked and loaded!",
+    "Your answer is in!",
+    "Fingers crossed.",
+    "Boom! Answer sent.",
+    "Answer on its way!",
+    "Sent with style!"
+  ],
+  waiting_for_players: [
+    "Waiting for others to catch up",
+    "Hold tight",
+    "Others are still thinking",
+    "Patience is a virtue",
+    "Waiting for the rest",
+    "Just waiting on a few more",
+    "Slowpokes still working",
+    "The gang's not all here yet",
+  ]
 };
 
 /**

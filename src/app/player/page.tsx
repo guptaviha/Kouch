@@ -71,6 +71,8 @@ export default function PlayerPage() {
   const [mounted, setMounted] = useState(false);
   const [pausedMessage, setPausedMessage] = useState(getRandomMessage('game_paused'));
   const [waitingMessage, setWaitingMessage] = useState(getRandomMessage('waiting_to_start'));
+  const [answerReceivedMessage, setAnswerReceivedMessage] = useState(getRandomMessage('answer_received'));
+  const [waitingForPlayersMessage, setWaitingForPlayersMessage] = useState(getRandomMessage('waiting_for_players'));
 
   useEffect(() => {
     setMounted(true);
@@ -206,7 +208,6 @@ export default function PlayerPage() {
         roomState={state}
       />
 
-
       <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} />
 
       {!joined ? (
@@ -290,7 +291,7 @@ export default function PlayerPage() {
             null
           )}
 
-          {state === 'playing' && (
+          {state === 'playing' && statusMessage !== 'Answer received' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -342,6 +343,26 @@ export default function PlayerPage() {
                   Submit Answer
                 </Button>
               )}
+            </motion.div>
+          )}
+
+          {state === 'playing' && statusMessage == 'Answer received' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-6 md:p-8 text-center"
+            >
+              <div className="mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  {answerReceivedMessage}
+                </h2>
+                <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
+                  <span>
+                    {waitingForPlayersMessage}
+                    <TrailingDots />
+                  </span>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -405,8 +426,6 @@ export default function PlayerPage() {
               </div>
             </div>
           )}
-
-          {statusMessage && <p className="mt-2 text-sm text-gray-600">{statusMessage}</p>}
         </div>
       )}
     </div>
