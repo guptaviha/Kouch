@@ -201,7 +201,7 @@ export default function PlayerPage() {
 
   return (
     <div className="mt-32 p-6 max-w-md mx-auto relative">
-      <Header 
+      <Header
         roomCode={roomCode || null}
         avatarKey={profile?.avatar}
         name={profile?.name ?? null}
@@ -272,8 +272,8 @@ export default function PlayerPage() {
               className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-8 text-center flex flex-col items-center"
             >
               <div className="relative">
-                <PlayerAvatar 
-                  avatarKey={profile?.avatar} 
+                <PlayerAvatar
+                  avatarKey={profile?.avatar}
                   variant="lobby"
                 />
               </div>
@@ -376,35 +376,16 @@ export default function PlayerPage() {
 
           {state === 'finished' && roundResults && (
             <div className="w-full max-w-lg mx-auto text-center">
-              <GameOverHeader titleClassName="!text-3xl !mb-2"/>
+              <GameOverHeader titleClassName="!text-3xl !mb-2" />
 
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                {/* Winner Spotlight */}
-                {(roundResults.final || [])[0] && (
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-900/20 dark:to-gray-900 p-8 border-b border-gray-100 dark:border-gray-800 flex flex-col items-center"
-                  >
-                    <div className="relative mb-4">
-                      <PlayerAvatar 
-                        avatarKey={(roundResults.final || [])[0].avatar} 
-                        variant="winner"
-                        showCrown={true}
-                        badge={1}
-                      />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{(roundResults.final || [])[0].name}</h3>
-                    <div className="text-yellow-600 dark:text-yellow-400 font-bold bg-yellow-100 dark:bg-yellow-900/30 px-4 py-1 rounded-full text-sm">
-                      {(roundResults.final || [])[0].score} points
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Runners Up */}
-                <Leaderboard leaderboard={(roundResults.final || []).slice(1)} highlightPlayerId={profile?.id} showPositions avatarSize={32} />
-              </div>
+              {/* Winner Podium with spotlight */}
+              <Leaderboard
+                leaderboard={(roundResults.final || [])}
+                highlightPlayerId={profile?.id}
+                showPositions
+                showWinnerSpotlight={true}
+                avatarSize={32}
+              />
 
               <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
                 Waiting for host to restart
