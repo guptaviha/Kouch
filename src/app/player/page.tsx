@@ -6,12 +6,10 @@ import Header from '@/components/header';
 import { RoomStates } from '@/lib/store/types';
 import PlayerAvatar from '@/components/player-avatar';
 import { useGameStore } from '@/lib/store';
-import { Progress } from '@/components/ui/progress';
 // use shared CountUp component
 import { getRandomMessage } from '@/utils/messages';
 import TrailingDots from '@/components/trailing-dots';
 import PausedOverlay from '@/components/shared/paused-overlay';
-import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
 import GameOverHeader from '@/components/shared/game-over-header';
 import { Button } from '@/components/ui/button';

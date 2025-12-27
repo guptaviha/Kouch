@@ -7,36 +7,29 @@ import PlayerAvatar from '@/components/player-avatar';
 import GenericCard from '../shared/generic-card';
 import TimerProgress from '../shared/timer-progress';
 import { PlayerInfo } from '@/lib/store/types';
+import { useGameStore } from '@/lib/store';
 
-interface HostPlayingViewProps {
-    question: string | null;
-    questionImage: string | null;
-    timerEndsAt: number | null;
-    totalQuestionDuration: number | null;
-    paused: boolean;
-    pauseRemainingMs: number | null;
-    countdown: number;
-    players: PlayerInfo[];
-    answeredPlayers: string[];
-    playersWithHints: string[];
-    roundIndex: number | null;
-    extendTimer: () => void;
-}
+export default function HostPlayingView() {
+    // Store selectors
+    const question = useGameStore((s) => s.currentQuestion);
+    const questionImage = useGameStore((s) => s.questionImage as string | null);
+    const timerEndsAt = useGameStore((s) => s.timerEndsAt);
+    const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
+    const paused = useGameStore((s) => s.paused);
+    const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
+    const countdown = useGameStore((s) => s.countdown);
+    const players = useGameStore((s) => s.players as PlayerInfo[]);
+    const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
+    const playersWithHints = useGameStore((s) => s.playersWithHints);
+    const roundIndex = useGameStore((s) => s.roundIndex);
+    const roomCode = useGameStore((s) => s.roomCode);
+    const profile = useGameStore((s) => s.profile as PlayerInfo | null);
+    const emit = useGameStore((s) => s.emit);
 
-export default function HostPlayingView({
-    question,
-    questionImage,
-    timerEndsAt,
-    totalQuestionDuration,
-    paused,
-    pauseRemainingMs,
-    countdown,
-    players,
-    answeredPlayers,
-    playersWithHints,
-    roundIndex,
-    extendTimer
-}: HostPlayingViewProps) {
+    const extendTimer = () => {
+        if (!roomCode) return;
+        emit('message', { type: 'extend_timer', roomCode, hostId: profile?.id });
+    };
     return (
         <>
             {/* Main Game Content - Centered & Large */}

@@ -7,28 +7,30 @@ import { Pause, Play } from 'lucide-react';
 import Leaderboard from '../shared/leaderboard';
 import GenericCard from '../shared/generic-card';
 import TimerProgress from '../shared/timer-progress';
+import { PlayerInfo } from '@/lib/store/types';
+import { useGameStore } from '@/lib/store';
 
-interface HostRoundResultViewProps {
-    roundResults: any; // Using any for now as in the original file, or specific type if available
-    timerEndsAt: number | null;
-    nextTimerDurationMs: number | null;
-    paused: boolean;
-    pauseRemainingMs: number | null;
-    countdown: number;
-    pauseGame: () => void;
-    resumeGame: () => void;
-}
+export default function HostRoundResultView() {
+    // Store selectors
+    const roundResults = useGameStore((s) => s.roundResults);
+    const timerEndsAt = useGameStore((s) => s.timerEndsAt);
+    const nextTimerDurationMs = useGameStore((s) => s.nextTimerDurationMs);
+    const paused = useGameStore((s) => s.paused);
+    const pauseRemainingMs = useGameStore((s) => s.pauseRemainingMs);
+    const countdown = useGameStore((s) => s.countdown);
+    const roomCode = useGameStore((s) => s.roomCode);
+    const profile = useGameStore((s) => s.profile as PlayerInfo | null);
+    const emit = useGameStore((s) => s.emit);
 
-export default function HostRoundResultView({
-    roundResults,
-    timerEndsAt,
-    nextTimerDurationMs,
-    paused,
-    pauseRemainingMs,
-    countdown,
-    pauseGame,
-    resumeGame
-}: HostRoundResultViewProps) {
+    const pauseGame = () => {
+        if (!roomCode || !profile) return;
+        emit('message', { type: 'pause_game' });
+    };
+
+    const resumeGame = () => {
+        if (!roomCode || !profile) return;
+        emit('message', { type: 'resume_game' });
+    };
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

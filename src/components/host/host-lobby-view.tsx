@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,26 +10,42 @@ import GenericCard from '../shared/generic-card';
 import GameDetailsCard from '../shared/game-details-card';
 import { GameDetails } from '@/types/game-details';
 import { PlayerInfo } from '@/lib/store/types';
+import { useGameStore } from '@/lib/store';
 
 interface HostLobbyViewProps {
-    gameDetails: GameDetails | null;
-    qrDataUrl: string | null;
-    roomCode: string | null;
-    joinUrl: string | null;
-    players: PlayerInfo[];
-    startGame: () => void;
-    emit: (event: string, data: any) => void;
+    game: string; // The game pack name
 }
 
-export default function HostLobbyView({
-    gameDetails,
-    qrDataUrl,
-    roomCode,
-    joinUrl,
-    players,
-    startGame,
-    emit
-}: HostLobbyViewProps) {
+export default function HostLobbyView({ game }: HostLobbyViewProps) {
+    const [gameDetails, setGameDetails] = useState<GameDetails | null>(null);
+
+    // Store selectors
+    const qrDataUrl = useGameStore((s) => s.qrDataUrl);
+    const roomCode = useGameStore((s) => s.roomCode);
+    const joinUrl = useGameStore((s) => s.joinUrl);
+    const players = useGameStore((s) => s.players as PlayerInfo[]);
+    const profile = useGameStore((s) => s.profile as PlayerInfo | null);
+    const emit = useGameStore((s) => s.emit);
+
+    useEffect(() => {
+        async function fetchGameDetails() {
+            try {
+                const res = await fetch(`/api/games/${game}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setGameDetails(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch game details', error);
+            }
+        }
+        fetchGameDetails();
+    }, [game]);
+
+    const startGame = () => {
+        if (!roomCode || !profile) return;
+        emit('message', { type: 'start_game', roomCode, playerId: profile.id });
+    };
     return (
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 items-start pb-32">
             {/* LEFT SECTION: Game Details Card */}
