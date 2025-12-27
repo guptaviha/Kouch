@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from '@/components/player-avatar';
 import CountUp from '@/components/count-up';
+import GenericCard from './generic-card';
 
 interface LeaderboardProps {
   leaderboard: Array<{ id: string; name: string; avatar: string; score: number }>;
@@ -21,7 +22,6 @@ export default function Leaderboard({
   results = [],
   highlightPlayerId,
   showAnswers = false,
-  avatarSize = 80,
   showPositions = false,
   title = 'Leaderboard'
   , showWinnerSpotlight = false
@@ -48,10 +48,10 @@ export default function Leaderboard({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`flex items-center gap-6 p-6 rounded-2xl font-semibold text-lg transition-all ${result?.correct
-                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800'
-                  : isHighlighted
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800'
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800'
+                : isHighlighted
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                  : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800'
                 }`}
             >
               {showPositions && (
@@ -97,7 +97,12 @@ export default function Leaderboard({
   );
 
   return (
-    <div className={`bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800`}>
+    <GenericCard
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className={`p-0 overflow-visible`}
+    >
       {hasWinner && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -126,6 +131,6 @@ export default function Leaderboard({
         <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h3>
         {inner}
       </div>
-    </div>
+    </GenericCard>
   );
 }

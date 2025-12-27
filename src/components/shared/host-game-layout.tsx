@@ -585,22 +585,14 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 {/* Game Over Header */}
                 <GameOverHeader />
 
-                {/* Winner Podium */}
-                <GenericCard
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="overflow-hidden mb-8 p-0"
-                >
-                  {/* Winner Spotlight */}
-                    <Leaderboard
-                      leaderboard={roundResults.final}
-                      showWinnerSpotlight={true}
-                      showAnswers={false}
-                      showPositions={true}
-                      title=''
-                    />
-                </GenericCard>
+                {/* Winner Podium with spotlight */}
+                <Leaderboard
+                  leaderboard={roundResults.final}
+                  showWinnerSpotlight={true}
+                  showAnswers={false}
+                  showPositions={true}
+                  title=''
+                />
 
                 {/* Play Again Button */}
                 <motion.div
