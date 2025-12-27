@@ -415,9 +415,7 @@ export default function PlayerPage() {
                 )}
 
                 {/* Runners Up */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
-                  <Leaderboard leaderboard={(roundResults.final || []).slice(1)} highlightPlayerId={profile?.id} showPositions avatarSize={32} />
-                </div>
+                <Leaderboard leaderboard={(roundResults.final || []).slice(1)} highlightPlayerId={profile?.id} showPositions avatarSize={32} />
               </div>
 
               <div className="mt-8 text-center text-sm text-gray-500 animate-pulse">
@@ -463,10 +461,7 @@ function PlayerRoundResult({ roundResults, playerId, timerEndsAt, nextTimerDurat
       </motion.div>
 
       {/* Leaderboard Card */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
-        <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">Leaderboard</h3>
-        <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={playerId} showAnswers avatarSize={32} />
-      </div>
+      <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={playerId} showAnswers avatarSize={32} />
 
       {timerEndsAt && nextTimerDurationMs && (
         <div className="mt-8 px-4">

@@ -12,6 +12,7 @@ interface LeaderboardProps {
   showAnswers?: boolean;
   avatarSize?: number;
   showPositions?: boolean;
+  title?: string;
 }
 
 export default function Leaderboard({
@@ -20,9 +21,10 @@ export default function Leaderboard({
   highlightPlayerId,
   showAnswers = false,
   avatarSize = 80,
-  showPositions = false
+  showPositions = false,
+  title = 'Leaderboard'
 }: LeaderboardProps) {
-  return (
+  const inner = (
     <div className="space-y-4 max-h-96 overflow-y-auto">
       <AnimatePresence>
         {leaderboard.map((p, index) => {
@@ -49,8 +51,8 @@ export default function Leaderboard({
               {showPositions && (
                 <div className="font-bold text-gray-400 w-6 text-left">{index + 1}</div>
               )}
-              <PlayerAvatar 
-                avatarKey={p.avatar} 
+              <PlayerAvatar
+                avatarKey={p.avatar}
                 variant="leaderboard"
               />
 
@@ -85,6 +87,13 @@ export default function Leaderboard({
           );
         })}
       </AnimatePresence>
+    </div>
+  );
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
+      <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h3>
+      {inner}
     </div>
   );
 }

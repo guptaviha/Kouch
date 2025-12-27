@@ -88,7 +88,7 @@ const PACKS: Record<string, { question: string; answer: string; image?: string; 
   ]
 };
 
-const ROUND_DURATION_MS = 30_000; // 30s per round
+const ROUND_DURATION_MS = 8_000; // 30s per round
 const BETWEEN_ROUND_MS = 10_000; // 10s pause between rounds (result screen)
 // Scoring: base points + time bonus
 const BASE_POINTS = 100;

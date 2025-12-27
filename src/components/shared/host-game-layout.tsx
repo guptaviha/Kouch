@@ -10,19 +10,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import QRCode from 'qrcode';
 import TrailingDots from '@/components/trailing-dots';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, Pause, Play } from 'lucide-react';
 import { GamePack } from '@/types/games';
 import { GameDetails } from '@/types/game-details';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import TimerProgress from '@/components/shared/timer-progress';
 import Leaderboard from '@/components/shared/leaderboard';
 import GameDetailsCard from './game-details-card';
+import GenericCard from './generic-card';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
 interface HostGameLayoutProps {
   game: GamePack;
-}
+};
+
+const mockPlayers: PlayerInfo[] = [
+  { id: '1', name: 'Alice', avatar: 'BsRobot', score: 1200 },
+  { id: '2', name: 'Bob', avatar: 'PiDogFill', score: 950 },
+  { id: '3', name: 'Charlie', avatar: 'GiSharkBite', score: 870 },
+  { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
+];
 
 export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const router = useRouter();
@@ -37,6 +45,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   // room and players
   const roomCode = useGameStore((s) => s.roomCode);
   const players = useGameStore((s) => s.players as PlayerInfo[]);
+  const setPlayers = useGameStore((s) => s.setPlayers);
   const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
   const playersWithHints = useGameStore((s) => s.playersWithHints);
   // game state
@@ -226,7 +235,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
       <div className="mb-4"></div>
 
-      <PausedOverlay isPaused={paused} onResume={resumeGame} />
+      {/* <PausedOverlay isPaused={paused} onResume={resumeGame} /> */}
 
       {!roomCode ? (
         <div className="flex items-center justify-center h-screen">
@@ -253,11 +262,11 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
               >
                 {/* QR Code Card - Compact */}
                 {qrDataUrl ? (
-                  <motion.div
+                  <GenericCard
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 z-10"
+                    className="p-6 z-10"
                   >
                     <div className="grid grid-cols-2 gap-6 items-center">
                       {/* Left: Phone Controller Label + Room Code */}
@@ -287,7 +296,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         </div>
                       </div>
                     </div>
-                  </motion.div>
+                  </GenericCard>
                 ) : (
                   <div className="text-center text-gray-600">
                     Generating QR code
@@ -295,13 +304,13 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   </div>
                 )}
 
+                <Button onClick={() => setPlayers(mockPlayers)}>Load Mock Players</Button>
                 {/* Players Card */}
-                <motion.div
+                <GenericCard
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col z-10"
-                  style={{ height: 'fit-content', maxHeight: 'calc(100vh - 300px)' }}
+                  className="flex flex-col z-10 h-fit max-h-[calc(100vh-300px)]"
                 >
                   <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h3>
@@ -312,7 +321,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     <motion.div
                       animate={{ opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="flex flex-col items-center justify-center py-8 px-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-900/50"
+                      className="flex flex-col items-center justify-center py-8 px-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl"
                     >
                       <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Waiting for players to join</p>
                     </motion.div>
@@ -340,7 +349,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                       </AnimatePresence>
                     </div>
                   )}
-                </motion.div>
+                </GenericCard>
               </motion.div>
 
               {/* Centered Start Button */}
@@ -369,10 +378,10 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
               >
                 {/* Question Section */}
                 <div className="w-full max-w-4xl">
-                  <motion.div
+                  <GenericCard
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="dark:bg-gray-900 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 dark:border-gray-800/20 p-10 text-center mb-16"
+                    className="p-10 text-center mb-16"
                   >
                     <p className="text-xl text-blue-600 dark:text-blue-400 uppercase tracking-wider font-bold mb-4">Question {(roundIndex ?? 0) + 1}</p>
                     <h2 className={`${questionImage ? 'text-2xl sm:text-3xl' : 'text-6xl sm:text-7xl'} font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight`}>
@@ -407,7 +416,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                         />
                       </div>
                     )}
-                  </motion.div>
+                  </GenericCard>
 
                 </div>
 
@@ -419,7 +428,13 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                     transition={{ delay: 0.3 }}
                     className="fixed bottom-4 left-0 right-0 px-4"
                   >
-                    <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-4">
+                    {/* <div className="max-w-6xl mx-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-800/20 p-4"> */}
+                    <GenericCard
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="max-w-6xl mx-auto !p-4"
+                    >
                       <div className="flex items-center justify-center gap-6 overflow-x-auto pt-3 pb-1">
                         {players.map((p, i) => {
                           const answered = answeredPlayers.includes(p.id);
@@ -450,11 +465,11 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                           );
                         })}
                       </div>
-                    </div>
+                    </GenericCard>
                   </motion.div>
                 )}
 
-                {/* Extend Timer Button */}
+                {/* Extend Timer Button (during the round) */}
                 {!paused && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -490,7 +505,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 >
                   <div className="bg-blue-600 rounded-3xl shadow-2xl overflow-hidden mb-6">
                     <div className="bg-blue-600 p-8 text-center">
-                      <p className="text-white text-2xl font-bold uppercase tracking-widest mb-4">Correct Answer</p>
+                      <p className="text-white text-2xl font-bold uppercase tracking-widest">Correct Answer</p>
                     </div>
                     <div className="bg-white dark:bg-gray-900 p-12 text-center">
                       <div className="text-7xl font-extrabold text-gray-900 dark:text-white tracking-tight">
@@ -501,19 +516,31 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                 </motion.div>
 
                 {/* Leaderboard */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
-                >
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-center">
-                    <h3 className="text-white text-3xl font-bold uppercase tracking-widest">Leaderboard</h3>
-                  </div>
+                <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} showAnswers />
 
-                  <div className="p-8">
-                    <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} showAnswers />
-                  </div>
+                {/* Extend Timer + Pause/Resume Buttons (visible on result screen) */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="fixed top-24 right-8 z-30 flex items-center gap-3"
+                >
+                  {!paused ? (
+                    <Button
+                      onClick={pauseGame}
+                      size="lg"
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-lg px-5 py-4 rounded-xl shadow-lg"
+                    >
+                      <Pause className="w-5 h-5 mr-2" /> Pause
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={resumeGame}
+                      size="lg"
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg px-5 py-4 rounded-xl shadow-lg"
+                    >
+                      <Play className="w-5 h-5 mr-2" /> Resume
+                    </Button>
+                  )}
                 </motion.div>
 
                 {/* Next Round Timer */}

@@ -1,8 +1,8 @@
 "use client";
 
 import { GameDetails } from '@/types/game-details';
-import { motion } from 'framer-motion';
 import { FaClock, FaUsers, FaTag } from 'react-icons/fa';
+import GenericCard from './generic-card';
 
 interface GameDetailsCardProps {
   gameDetails: GameDetails;
@@ -10,12 +10,13 @@ interface GameDetailsCardProps {
 
 export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 flex flex-col"
+    <GenericCard
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-col"
     >
+      {/* Image and Title Section */}
       <div className="flex flex-col lg:flex-row p-6 gap-6 items-start">
         {/* Image Section */}
         <div className="flex-shrink-0">
@@ -58,6 +59,6 @@ export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
           ))}
         </div>
       </div>
-    </motion.div>
+    </GenericCard>
   );
 }
