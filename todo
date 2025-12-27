@@ -46,6 +46,7 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 - Add types all across the app
 - Custom components for buttons, modals, etc. to avoid code duplication
 - reate a refactor expert agent and use. it every so often
+- Remove console logs from server.ts and other files
 
 ## Larger ideas
 - Users should be able to create their own trivia questions and submit it to a database. We should then be able to review and add it to the game packs.

@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, Clock, Play } from "lucide-react";
+import { FaClock, FaUsers } from "react-icons/fa";
+import { Play } from "lucide-react";
 import { GameDetails } from "@/types/game-details";
 import { GamePack } from "@/types/games";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/lib/store";
 import { Button } from "./ui/button";
+import BadgeWithIcon from "./shared/badge-with-icon";
 
 interface GameCardProps {
   game: GameDetails;
@@ -50,14 +52,8 @@ export default function GameCard({ game }: GameCardProps) {
 
       {/* Top Badges */}
       <div className="absolute top-4 right-4 flex gap-2">
-        <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md border border-white/20 shadow-lg">
-          <Clock className="h-4 w-4" />
-          <span>{game.estimatedTime}</span>
-        </div>
-        <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md border border-white/20 shadow-lg">
-          <Users className="h-4 w-4" />
-          <span>{game.minPlayers}-{game.maxPlayers}</span>
-        </div>
+        <BadgeWithIcon variant="overlay" icon={<FaClock className="h-4 w-4" />} text={game.estimatedTime} />
+        <BadgeWithIcon variant="overlay" icon={<FaUsers className="h-4 w-4" />} text={`${game.minPlayers}-${game.maxPlayers}`} />
       </div>
 
       {/* Content Section */}

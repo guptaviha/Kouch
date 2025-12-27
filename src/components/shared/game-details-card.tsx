@@ -3,10 +3,11 @@
 import { GameDetails } from '@/types/game-details';
 import { FaClock, FaUsers, FaTag } from 'react-icons/fa';
 import GenericCard from './generic-card';
+import BadgeWithIcon from './badge-with-icon';
 
 interface GameDetailsCardProps {
   gameDetails: GameDetails;
-}
+};
 
 export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
   return (
@@ -33,14 +34,8 @@ export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
             {gameDetails.title}
           </h1>
           <div className="flex flex-wrap gap-4 text-lg">
-            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
-              <FaClock />
-              <span>{gameDetails.estimatedTime}</span>
-            </div>
-            <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-semibold">
-              <FaUsers />
-              <span>{gameDetails.minPlayers}-{gameDetails.maxPlayers} Players</span>
-            </div>
+            <BadgeWithIcon variant="inline" icon={<FaClock />} text={gameDetails.estimatedTime} className="text-blue-700 dark:text-blue-300" />
+            <BadgeWithIcon variant="inline" icon={<FaUsers />} text={`${gameDetails.minPlayers}-${gameDetails.maxPlayers} Players`} className="text-purple-700 dark:text-purple-300" />
           </div>
         </div>
       </div>
@@ -52,10 +47,7 @@ export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
       </p>
       <div className="flex flex-wrap gap-3">
         {gameDetails.features.map((feature) => (
-          <div key={feature} className="flex items-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-sm font-medium">
-            <FaTag className="text-gray-500 dark:text-gray-400" />
-            <span>{feature}</span>
-          </div>
+          <BadgeWithIcon key={feature} variant="tag" icon={<FaTag />} text={feature} iconClass="text-gray-500 dark:text-gray-400" />
         ))}
       </div>
     </GenericCard>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import PlayerAvatar from '@/components/player-avatar';
 import TrailingDots from '@/components/trailing-dots';
@@ -10,10 +10,6 @@ import { getRandomMessage } from '@/utils/messages';
 export default function PlayerLobbyView() {
     const profile = useGameStore((s) => s.profile);
     const [waitingMessage, setWaitingMessage] = useState(getRandomMessage('waiting_to_start'));
-
-    useEffect(() => {
-        setWaitingMessage(getRandomMessage('waiting_to_start'));
-    }, []);
 
     return (
         <motion.div

@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Lightbulb, Crown } from 'lucide-react';
 // icon imports from react-icons
 import { BsRobot } from 'react-icons/bs';
 import { SiProbot } from 'react-icons/si';
@@ -186,7 +186,7 @@ export default function PlayerAvatar({
                     transition={{ duration: 2, repeat: Infinity }}
                     className="text-4xl mb-2 absolute -top-12 z-20"
                 >
-                    👑
+                    <Crown size={40} className="text-yellow-500" />
                 </motion.div>
             )}
 

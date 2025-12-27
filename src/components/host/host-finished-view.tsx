@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import PlayerAvatar from '@/components/player-avatar';
 import GameOverHeader from '../shared/game-over-header';
 import Leaderboard from '../shared/leaderboard';
 import { PlayerInfo } from '@/lib/store/types';
