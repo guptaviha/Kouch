@@ -381,22 +381,16 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
                     {/* Timer Bar - Prominent */}
                     {timerEndsAt && totalQuestionDuration && (
-                      <div className="mt-12">
+                      <div className="mt-12 mb-12">
                         <TimerProgress
                           timerEndsAt={timerEndsAt}
                           totalDuration={totalQuestionDuration}
                           paused={paused}
                           pauseRemainingMs={pauseRemainingMs}
                           countdown={countdown}
-                          showCountdownText={false}
+                          showCountdownText={true}
                           className="h-6 rounded-full"
                         />
-                        <div className="mt-6 flex items-center justify-center gap-3">
-                          <span className="text-7xl font-extrabold text-gray-900 dark:text-white tabular-nums">
-                            {countdown}
-                          </span>
-                          <span className="text-3xl text-gray-600 dark:text-gray-400 font-semibold">seconds</span>
-                        </div>
                       </div>
                     )}
                   </motion.div>

@@ -45,9 +45,12 @@ export default function TimerProgress({
         className={`h-3 bg-gray-100 dark:bg-gray-800 [&>div]:bg-gradient-to-r from-blue-500 to-purple-600 ${paused ? '[&>div]:transition-none' : '[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-linear'}`}
       />
       {showCountdownText && (
-        <p className="text-xs text-gray-500 mt-2 font-medium text-right">
-          Time remaining: {countdown}s
-        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <span className="text-4xl font-extrabold text-gray-900 dark:text-white tabular-nums">
+            {countdown}
+          </span>
+          <span className="text-2xl text-gray-600 dark:text-gray-400 font-semibold">seconds</span>
+        </div>
       )}
     </div>
   );

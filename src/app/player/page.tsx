@@ -342,15 +342,6 @@ export default function PlayerPage() {
                   Submit Answer
                 </Button>
               )}
-
-                <TimerProgress
-                  timerEndsAt={timerEndsAt}
-                  totalDuration={totalQuestionDuration}
-                  paused={paused}
-                  pauseRemainingMs={pauseRemainingMs}
-                  countdown={countdown}
-                  className="mt-8"
-                />
             </motion.div>
           )}
 
