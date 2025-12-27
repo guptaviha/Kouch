@@ -38,10 +38,6 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
     - sound when answer is submitted
 - host needs an account
     - to purchase packs later on
-- Let players emote during the game
-    - thumbs up, clap, laugh, etc.
-    - show a small animation on the player view when an emote is sent
-    - limit the number of emotes per game to avoid spam
 - Skeleton
     - Use Shadcn UI's Skeleton component to show loading states
     - Show loading sign on the main screen before launching the game
@@ -54,6 +50,10 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 ## Larger ideas
 - Users should be able to create their own trivia questions and submit it to a database. We should then be able to review and add it to the game packs.
 - They should get rewarded with some in-app currency for every approved submission.
+- Let players emote during the game
+    - thumbs up, clap, laugh, etc.
+    - show a small animation on the player view when an emote is sent
+    - limit the number of emotes per game to avoid spam
 
 
 ## Game flow improvements

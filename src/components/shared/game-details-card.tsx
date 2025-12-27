@@ -11,19 +11,19 @@ interface GameDetailsCardProps {
 export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
   return (
     <GenericCard
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="flex flex-col"
     >
       {/* Image and Title Section */}
-      <div className="flex flex-col lg:flex-row p-6 gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Image Section */}
         <div className="flex-shrink-0">
           <img
             src={gameDetails.imageUrl}
             alt={`${gameDetails.title} game`}
-            className="w-40 h-60 object-cover rounded-lg shadow-md"
+            className="w-72 h-117 object-cover rounded-lg shadow-md"
           />
         </div>
 
@@ -34,7 +34,7 @@ export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
           </h1>
           <div className="flex flex-wrap gap-4 text-lg">
             <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
-              <FaClock /> 
+              <FaClock />
               <span>{gameDetails.estimatedTime}</span>
             </div>
             <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-semibold">
@@ -46,18 +46,17 @@ export default function GameDetailsCard({ gameDetails }: GameDetailsCardProps) {
       </div>
 
       {/* Description and Tags Section */}
-      <div className="p-6">
-        <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
-          {gameDetails.description}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {gameDetails.features.map((feature) => (
-            <div key={feature} className="flex items-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-sm font-medium">
-              <FaTag className="text-gray-500 dark:text-gray-400" />
-              <span>{feature}</span>
-            </div>
-          ))}
-        </div>
+
+      <p className="my-4 text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+        {gameDetails.description}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {gameDetails.features.map((feature) => (
+          <div key={feature} className="flex items-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-sm font-medium">
+            <FaTag className="text-gray-500 dark:text-gray-400" />
+            <span>{feature}</span>
+          </div>
+        ))}
       </div>
     </GenericCard>
   );

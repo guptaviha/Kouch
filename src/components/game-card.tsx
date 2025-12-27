@@ -1,13 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users } from "lucide-react";
-import { MdPhoneIphone } from 'react-icons/md';
+import { Users, Clock, Play } from "lucide-react";
 import { GameDetails } from "@/types/game-details";
 import { GamePack } from "@/types/games";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/lib/store";
-import { useState } from "react";
+import { Button } from "./ui/button";
 
 interface GameCardProps {
   game: GameDetails;
@@ -16,69 +15,94 @@ interface GameCardProps {
 export default function GameCard({ game }: GameCardProps) {
   const router = useRouter();
   const setSelectedPack = useGameStore((s) => s.setSelectedPack);
-  const [isHovered, setIsHovered] = useState(false);
 
-  const handlePlayGame = (pack: GamePack) => {
+  const handlePlayGame = (e: React.MouseEvent, pack: GamePack) => {
+    e.stopPropagation();
     setSelectedPack(pack);
     router.push(`/host/${pack}`);
   };
 
-  const colorClass = game.id === 'trivia' ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-orange-400';
-  const bgClass = game.id === 'trivia' ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-orange-100 dark:bg-orange-900/20';
-  const btnClass = game.id === 'trivia' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-orange-600 hover:bg-orange-700';
-  const shadowClass = game.id === 'trivia' ? 'hover:shadow-purple-500/10' : 'hover:shadow-orange-500/10';
-
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      className={`relative overflow-hidden rounded-3xl border border-border bg-card hover:shadow-2xl ${shadowClass} transition-all duration-300 cursor-pointer h-[36rem]`}
-      onClick={() => handlePlayGame(game.id)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      initial="rest"
+      whileHover="hover"
+      animate="rest"
+      className="group relative h-[32rem] w-auto aspect-[3/4] cursor-pointer overflow-hidden rounded-3xl bg-card shadow-xl transition-all hover:shadow-2xl mx-auto"
+      onClick={(e) => handlePlayGame(e, game.id)}
     >
-      {/* Background Image */}
-      <div className="absolute inset-0">
+      {/* Background Image with Zoom Effect */}
+      <motion.div
+        variants={{
+          rest: { scale: 1 },
+          hover: { scale: 1.1 },
+        }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="absolute inset-0"
+      >
         <img
           src={game.imageUrl}
-          alt={`${game.title} game`}
-          className="w-full h-full object-cover"
+          alt={game.title}
+          className="h-full w-full object-cover transition-opacity duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        {/* Gradient Overlay - Darker at bottom for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
+      </motion.div>
+
+      {/* Top Badges */}
+      <div className="absolute top-4 right-4 flex gap-2">
+        <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md border border-white/20 shadow-lg">
+          <Clock className="h-4 w-4" />
+          <span>{game.estimatedTime}</span>
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md border border-white/20 shadow-lg">
+          <Users className="h-4 w-4" />
+          <span>{game.minPlayers}-{game.maxPlayers}</span>
+        </div>
       </div>
 
-      {/* Content Overlay */}
-      <div className="relative z-10 pt-8 pr-8 pl-8 h-full flex flex-col justify-between">
-        {/* Top Section */}
-        <div className="flex items-start justify-between">
-          <div className={`p-4 ${bgClass} rounded-2xl backdrop-blur-sm bg-white/20 border border-white/20 flex items-center justify-center shadow-lg`}>
-            <MdPhoneIphone className={`w-12 h-12 ${colorClass} drop-shadow-lg`} />
-          </div>
-          <div className="flex flex-col gap-2 bg-black/60 rounded-2xl px-6 py-3 border border-white/20 w-fit ml-auto text-white text-2xl font-bold shadow-lg">
-            <div className="flex items-center justify-center">
-              <span className="text-xl font-semibold">{game.estimatedTime}</span>
-            </div>
-          </div>
-        </div>
+      {/* Content Section */}
+      <div className="absolute bottom-0 left-0 w-full p-8 z-10">
+        <motion.div
+          variants={{
+            rest: { y: 20 },
+            hover: { y: 0 },
+          }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          {/* Title - Add distinct shadow for better readability */}
+          <h3 className="mb-3 text-4xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            {game.title}
+          </h3>
 
-        {/* Bottom Section */}
-        <div>
-          {/* Description - Only visible on hover */}
+          {/* Expanded Content (Description + Button) */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10 }}
-            transition={{ duration: 0.2 }}
-            className="transition-opacity duration-300"
+            variants={{
+              rest: { opacity: 0, height: 0 },
+              hover: { opacity: 1, height: "auto" },
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="overflow-hidden"
           >
-            <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-white/20 -mx-8 w-[calc(100%+4rem)]">
-              <h3 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">
-                {game.title}
-              </h3>
-              <p className="text-white/90 text-xl leading-relaxed">
-                {game.description}
-              </p>
-            </div>
+            {/* Description - brightened text and added shadow */}
+            <p className="mb-6 text-lg leading-relaxed text-gray-100 line-clamp-3 drop-shadow-md font-medium">
+              {game.description}
+            </p>
+
+            <Button
+              onClick={(e) => handlePlayGame(e, game.id)}
+              className="w-full bg-white text-black hover:bg-gray-200 font-bold rounded-xl py-6 text-lg transition-transform active:scale-95"
+            >
+              <Play className="mr-2 h-5 w-5 fill-current" />
+              Play Now
+            </Button>
           </motion.div>
-        </div>
+        </motion.div>
+
+        {/* Placeholder for layout stability when hidden */}
+        {/* This ensures the title position is consistent before hover */}
+        {/* However, since we are moving the whole block up, it should be fine. 
+            Actually, let's keep it simple. The transforms above handle the movement.
+        */}
       </div>
     </motion.div>
   );
