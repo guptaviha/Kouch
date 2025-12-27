@@ -4,21 +4,15 @@
 - player gets diconnected on screen close
 - long username truncated
 - play again is starting a new game
-- +15 button padding
-- if there are no players, game should end or something
-- Setting up game room in the beginning
-- Player avatars not centered within the circles on the leadarboard
+- if there are no players, game should end
 - Trailing dots may go to the next line on smaller screens
 
 IF There is a big issue with the height, add back the min-h-screen class to the relevant divs in host-game-layout.tsx
 
 
 ## ENHANCEMENTS
-- allow user to choose another avatar?
 - when restarting a game, take back to qr lobby with the same room code
-- standardize the buttons and progress bars
-- rebus and trivia should have diff rooms?
-- home page header
+- rebus and trivia should have diff rooms
 - Handle room lifecycle events better
     - if host disconnects, end the game for everyone
     - if a user disconnects, show a message to the host (maybe pause the game?)
@@ -31,23 +25,19 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
     - add an option to request for an extra 15 seconds on the player view
     - if everyone requests it, add 15 seconds to the timer. 
     - show a small counter of how many people have requested extra time on the host view.
-- game pause
-    - add a text on player view like "host is upto something..."
 - sound effects
     - ticking sound during last 5 seconds
     - sound when time is up
     - sound when answer is submitted
 - host needs an account
     - to purchase packs later on
-
 - Let players emote during the game
     - thumbs up, clap, laugh, etc.
     - show a small animation on the player view when an emote is sent
     - limit the number of emotes per game to avoid spam
-
 - Skeleton
-- Use Shadcn UI's Skeleton component to show loading states
-- Show loading sign on the main screen before launching the game
+    - Use Shadcn UI's Skeleton component to show loading states
+    - Show loading sign on the main screen before launching the game
 
 ## Code improvements
 - Add types all across the app

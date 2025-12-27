@@ -587,7 +587,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center mb-12"
                 >
-                  <h2 className="text-7xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
+                  <h2 className="text-7xl font-extrabold dark:text-blue-400 text-blue-600 mb-4 tracking-tight">
                     Game Over!
                   </h2>
                   <p className="text-2xl text-gray-600 dark:text-gray-400 font-semibold">Final Standings</p>

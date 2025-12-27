@@ -374,13 +374,13 @@ export default function PlayerPage() {
           )}
 
           {state === 'finished' && roundResults && (
-            <div className="mt-8 w-full max-w-lg mx-auto text-center">
+            <div className="w-full max-w-lg mx-auto text-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="mb-8"
               >
-                <h2 className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-2 tracking-tight">Game Over!</h2>
+                <h2 className="text-3xl font-extrabold dark:text-blue-400 text-blue-600 mb-2 tracking-tight">Game Over!</h2>
                 <p className="text-gray-500 font-medium">Here are the final standings</p>
               </motion.div>
 
