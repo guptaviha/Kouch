@@ -73,10 +73,6 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
             </div>
           )}
         </div>
-        {/* Special debug box */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 text-sm bg-slate-500 rounded-sm w-fit p-1">
-          {roomState} - {statusMessage}
-        </div>
 
         {/* Action Buttons on the Right */}
         <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import { PWAWrapper } from "@/components/pwa-wrapper";
 import Script from "next/script";
 
 import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
+import DebugFloatingBox from "@/components/shared/debug-floating-box";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +38,7 @@ export default function RootLayout({
                         {/* <HexagonBackground className="fixed inset-0 -z-10" hexagonSize={80} hexagonMargin={4} /> */}
 
                         <div className="relative">{children}</div>
+                        <DebugFloatingBox />
                     </ThemeProvider>
                 </PWAWrapper>
             </body>
