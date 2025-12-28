@@ -67,12 +67,53 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 - Common landing page layout for all games extracted out from host-game-layout.tsx
 - Each game layout should accept a gameData and roomState prop to deal with common room related state as well as specific game data.
 
+
+## User-id
+
+Logic: Create a user-id concept, for every user that comes to our system. Store this in local storage and send this user id with certain messages to the websocket like join_game, create_room etc where it makes sense. Store this user id also in the appropriate types that already exist. The user id should be created by the server and sent back to the client if the request does not come with a user id.
+
+On the client side, we should store this user id in local storage and send it with every request to the server.
+
+- (later) store users in neondb
+- (later) user accounts
+
 ## Room Code Management
 - Room code Uniqueness: Ensure generated room codes are unique and not currently in use.
 - Room code Sanitization: Remove ambiguous characters if you use numbers (e.g., remove 'I', '1', '0', 'O').
 - Also avoid offensive words in room codes.
+
+### Room management plan
+- When the server gets a request to create_room, it should generate a unique room code and store it in redis with a TTL of 1 hour.
+- If the room code already exists in redis, it should generate a new one and try again.
 - Heartbeats: As long as the Host is connected via WebSocket, send a "heartbeat" every minute to reset the TTL to 1 hour. This ensures active rooms stay open, but if the Host crashes or closes the tab, the room expires automatically after an hour.
 
+In redis, we will store the room code as the key and the room data as the value. The room data will be a JSON object with the following structure:
+
+{
+    host_id: string,
+    created_at: string,
+    updated_at: string,
+    expires_at: string,
+    game_type: string,
+}
+
+## Disconnection plan
+- If the host disconnects, pause the game and show a message to the players
+- If a player disconnects, show a message to the host
+- Remove the logic from server.ts that deletes the room when there is nobody in the room
+- Don't delete players from the room when they disconnect. Only maintain a status of the player and set that to be disconnected.
+
+
+- On the UI, keep the player in the room and their profile has a dotted border to show that they are disconnected.
+
+## Host promotion makes no sense
+- It needs to be removed because there can be only one host and the players cannot be promoted to host.
+
+## Reconnection plan
+- The server should store all the room data like game state, player data, etc. in memory
+- When the server gets a request to `reconnect_room:host` or `reconnect_room:player`, it should check if the room exists in memory and if the user that's trying to reconnect is in the room
+- If the room exists and the user is in the room, it should return the room data to the client
+- If the room does not exist or the user is not in the room, it should return a 404 error
 
 ## Game end action button
 - Show a recommendation marquee at the end of the game with the list of other packs available to play.

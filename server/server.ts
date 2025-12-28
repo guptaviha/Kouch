@@ -563,7 +563,13 @@ const mockPlayers = [
   { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
 ];
 
-const io = new IOServer(server, { path: '/ws', cors: { origin: '*' } });
+const io = new IOServer(server,
+  {
+    path: '/ws',
+    cors: { origin: '*' },
+    pingInterval: 2000,
+    pingTimeout: 5000,
+  });
 
 io.on('connection', (socket: Socket) => {
   socket.on('message', (m: any) => {
