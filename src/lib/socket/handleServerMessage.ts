@@ -1,5 +1,7 @@
 import { useGameStore } from '@/lib/store';
 
+import { setStorageItem } from '@/hooks/use-local-storage';
+
 // Centralized server message handler. Reads and writes the zustand store directly
 // so components/pages don't need to duplicate message parsing logic.
 export default function serverMessageHandler(msg: any) {
@@ -30,9 +32,6 @@ export default function serverMessageHandler(msg: any) {
     setJoined,
     setStatusMessage,
     setSubmitted,
-    playersWithHints,
-    setPlayersWithHints,
-    setHintUsed,
   } = s;
 
   try {
@@ -40,6 +39,11 @@ export default function serverMessageHandler(msg: any) {
       case 'room_created':
         setRoomCode?.(msg.roomCode);
         setProfile?.(msg.player);
+        // Save host ID to localStorage
+        if (msg.player?.id && msg.player?.avatar && msg.player?.isNewUser) {
+          setStorageItem('kouch_userId', msg.player.id);
+          setStorageItem('kouch_userAvatar', msg.player.avatar);
+        }
         if (playAgainPending) {
           setPlayAgainPending?.(false);
           try {
@@ -126,6 +130,8 @@ export default function serverMessageHandler(msg: any) {
       case 'joined':
         setJoined?.(true);
         setProfile?.(msg.player);
+        // Save player ID to localStorage
+        if (msg.player?.id) setStorageItem('kouch_userId', msg.player.id);
         break;
 
       case 'answer_received':

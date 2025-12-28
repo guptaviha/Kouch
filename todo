@@ -74,6 +74,9 @@ Logic: Create a user-id concept, for every user that comes to our system. Store 
 
 On the client side, we should store this user id in local storage and send it with every request to the server.
 
+- For avatars, we should store the avatar somewhere. Maybe local storage for now? db later.
+(Remove this from `emit` function later)
+
 - (later) store users in neondb
 - (later) user accounts
 

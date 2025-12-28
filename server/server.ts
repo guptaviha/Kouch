@@ -294,6 +294,7 @@ function handleMessage(socket: Socket, msg: any) {
   if (!msgType) return;
 
   const send = (sock: Socket | null | undefined, payload: any) => {
+    console.log('Sending message:', payload);
     if (sock && sock.connected) sock.emit('server', payload);
   };
 
@@ -306,8 +307,10 @@ function handleMessage(socket: Socket, msg: any) {
       return newCode;
     })();
 
-    const hostId = makeId();
-    const hostAvatar = pickAvatar();
+    // Use provided userId if available, otherwise generate new
+    const isNewUser = !messageObj.userId;
+    const hostId = isNewUser ? makeId() : messageObj.userId;
+    const hostAvatar = isNewUser ? pickAvatar() : messageObj.avatar;
     const room: Room = {
       code,
       players: new Map(),
@@ -325,7 +328,7 @@ function handleMessage(socket: Socket, msg: any) {
 
     socket.data = { roomCode: code, hostId };
 
-    send(socket, { type: 'room_created', roomCode: code, player: { id: hostId, name, score: 0, avatar: hostAvatar } });
+    send(socket, { type: 'room_created', roomCode: code, player: { id: hostId, name, score: 0, avatar: hostAvatar, isNewUser } });
     broadcastLobby(room);
     return;
   }
@@ -341,8 +344,15 @@ function handleMessage(socket: Socket, msg: any) {
       send(socket, { type: 'error', message: 'room not accepting joins' });
       return;
     }
-    const playerId = makeId();
+    // Use provided userId if available, otherwise generate new
+    const playerId = messageObj.userId || makeId();
     console.log('Assigning avatar to new player:', playerId);
+
+    // Check if player is already continuously reconnecting/rejoining? 
+    // For now we just overwrite/update if same ID, or treat as new player.
+    // If we want to support reconnection, we might check if player already exists.
+    // But simplified logic: treat as new joiner but with potentially same ID.
+
     const playerObj: Player = { id: playerId, name: name || 'Player', socket, score: 0, avatar: pickAvatar() };
     console.log('New player avatar:', playerObj);
     room.players.set(playerId, playerObj);

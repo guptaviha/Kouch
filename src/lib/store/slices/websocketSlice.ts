@@ -16,11 +16,13 @@ export type WebSocketSlice = {
 	off: (event: string, handler?: (...args: any[]) => void) => void;
 };
 
+import { getStorageItem } from '@/hooks/use-local-storage';
+
 export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => ({
+	// ... (socket, setSocket, connect, disconnect, on, off impl) 
 	socket: null,
 	setSocket: (s: Socket | null) => set({ socket: s }),
 	connect: (serverUrl: string) => {
-		// avoid reconnecting if already connected to same server
 		const existing = get().socket;
 		if (existing) return existing;
 		const s = io(serverUrl, { path: '/ws' });
@@ -37,7 +39,18 @@ export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => 
 	emit: (event: string, payload?: any) => {
 		const s = get().socket;
 		if (!s) return;
-		try { s.emit(event, payload); } catch (e) { }
+
+		let finalPayload = payload;
+		// If payload is object (and not null/array), inject userId
+		if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+			const userId = getStorageItem('kouch_userId');
+			const avatar = getStorageItem('kouch_userAvatar');
+			if (userId) {
+				finalPayload = { userId, avatar, ...payload };
+			}
+		}
+
+		try { s.emit(event, finalPayload); } catch (e) { }
 	},
 	on: (event: string, handler: (...args: any[]) => void) => {
 		const s = get().socket;
