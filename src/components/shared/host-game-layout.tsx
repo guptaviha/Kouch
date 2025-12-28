@@ -6,7 +6,6 @@ import { useGameStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion } from 'framer-motion';
-import QRCode from 'qrcode';
 import TrailingDots from '@/components/trailing-dots';
 import { GamePack } from '@/types/games';
 import HostLobbyView from '@/components/host/host-lobby-view';
@@ -14,6 +13,7 @@ import HostPlayingView from '@/components/host/host-playing-view';
 import HostRoundResultView from '@/components/host/host-round-result-view';
 import HostFinishedView from '@/components/host/host-finished-view';
 import PausedOverlay from '@/components/shared/paused-overlay';
+import { useQRGenerator } from '@/hooks/useQRGenerator';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -45,10 +45,10 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const paused = useGameStore((s) => s.paused);
   const selectedPack = useGameStore((s) => s.selectedPack);
   const setSelectedPack = useGameStore((s) => s.setSelectedPack);
-  const setQrDataUrl = useGameStore((s) => s.setQrDataUrl);
-  const setJoinUrl = useGameStore((s) => s.setJoinUrl);
 
   const [mounted, setMounted] = useState(false);
+
+  useQRGenerator(roomCode);
 
   // Validate game parameter
   useEffect(() => {
@@ -87,27 +87,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       disconnect();
     };
   }, []);
-
-  useEffect(() => {
-    if (!roomCode) {
-      setQrDataUrl(null);
-      return;
-    }
-    let originForQr = '';
-    if (typeof window !== 'undefined') {
-      const { protocol, hostname, port } = window.location;
-      const envLan = process.env.NEXT_PUBLIC_LAN_HOST;
-      const invalidLoopbacks = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
-      const LAN_HOST = envLan && !invalidLoopbacks.includes(envLan) ? envLan : window.location.hostname;
-      const hostForQr = (hostname === 'localhost' || hostname === '127.0.0.1') ? LAN_HOST : hostname;
-      const portPart = port ? `:${port}` : '';
-      originForQr = `${protocol}//${hostForQr}${portPart}`;
-    }
-
-    const url = `${originForQr}/player?code=${roomCode}`;
-    setJoinUrl(url);
-    QRCode.toDataURL(url, { margin: 1, width: 300 }).then((d: string) => setQrDataUrl(d)).catch(() => setQrDataUrl(null));
-  }, [roomCode]);
 
   useEffect(() => {
     if (paused) {
