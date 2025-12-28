@@ -345,19 +345,22 @@ function handleMessage(socket: Socket, msg: any) {
       return;
     }
     // Use provided userId if available, otherwise generate new
-    const playerId = messageObj.userId || makeId();
-    console.log('Assigning avatar to new player:', playerId);
+    const isNewUser = !messageObj.userId;
+    const playerId = isNewUser ? makeId() : messageObj.userId;
+    const playerAvatar = isNewUser ? pickAvatar() : (messageObj.avatar || pickAvatar());
+
+    console.log('Player join:', { playerId, isNewUser, avatar: playerAvatar });
 
     // Check if player is already continuously reconnecting/rejoining? 
     // For now we just overwrite/update if same ID, or treat as new player.
     // If we want to support reconnection, we might check if player already exists.
     // But simplified logic: treat as new joiner but with potentially same ID.
 
-    const playerObj: Player = { id: playerId, name: name || 'Player', socket, score: 0, avatar: pickAvatar() };
-    console.log('New player avatar:', playerObj);
+    const playerObj: Player = { id: playerId, name: name || 'Player', socket, score: 0, avatar: playerAvatar };
+
     room.players.set(playerId, playerObj);
     socket.data = { roomCode, playerId };
-    send(socket, { type: 'joined', roomCode, player: cleanPlayerForWire(playerObj) });
+    send(socket, { type: 'joined', roomCode, player: { ...cleanPlayerForWire(playerObj), isNewUser } });
     broadcastLobby(room);
     return;
   }

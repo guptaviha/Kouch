@@ -130,8 +130,10 @@ export default function serverMessageHandler(msg: any) {
       case 'joined':
         setJoined?.(true);
         setProfile?.(msg.player);
-        // Save player ID to localStorage
-        if (msg.player?.id) setStorageItem('kouch_userId', msg.player.id);
+        if (msg.player?.id && msg.player?.avatar && msg.player?.isNewUser) {
+          setStorageItem('kouch_userId', msg.player.id);
+          setStorageItem('kouch_userAvatar', msg.player.avatar);
+        }
         break;
 
       case 'answer_received':
