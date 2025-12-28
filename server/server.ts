@@ -604,6 +604,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('disconnect', () => {
+    console.log('Client disconnected');
     const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
     const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
     if (!room) return;
