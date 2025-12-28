@@ -1,10 +1,11 @@
 import { useGameStore } from '@/lib/store';
+import { ServerMessage } from '@/types/socket';
 
 import { setStorageItem } from '@/hooks/use-local-storage';
 
 // Centralized server message handler. Reads and writes the zustand store directly
 // so components/pages don't need to duplicate message parsing logic.
-export default function serverMessageHandler(msg: any) {
+export default function serverMessageHandler(msg: ServerMessage) {
   if (!msg || !msg.type) return;
   const s = useGameStore.getState();
 

@@ -20,7 +20,18 @@ import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
 
-type RoomStates = 'lobby' | 'playing' | 'round_result' | 'finished';
+import {
+  ClientMessage,
+  ServerMessage,
+  ClientToServerEvents,
+  ServerToClientEvents,
+  SocketData,
+  RoomPhase,
+  PlayerWire,
+  RoundResultEntry,
+} from '../src/types/socket';
+
+type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, SocketData>;
 
 interface SubmittedAnswer {
   answer: string;
@@ -31,21 +42,21 @@ interface Player {
   id: string;
   name: string;
   score: number;
-  socket: Socket;
+  socket: TypedSocket;
   avatar?: string;
 }
 
 interface Host {
   id: string;
   name: string;
-  socket: Socket;
+  socket: TypedSocket;
   avatar?: string;
 }
 
 interface Room {
   code: string;
   players: Map<string, Player>;
-  state: RoomStates;
+  state: RoomPhase;
   hostId: string;
   host?: Host;
   roundIndex: number;
@@ -98,6 +109,7 @@ const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
 
 const rooms = new Map<string, Room>();
 
+// Create a four-letter room code.
 function genCode(): string {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let codeStr = '';
@@ -105,6 +117,7 @@ function genCode(): string {
   return codeStr;
 }
 
+// Generate a short unique identifier.
 function makeId(): string {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -116,6 +129,7 @@ const AVATAR_KEYS = [
   'MdCatchingPokemon', 'GiDirectorChair', 'RiAliensLine', 'GiWitchFlight', 'FaUserAstronaut', 'GiBirdTwitter'
 ];
 
+// Select a random avatar key for a player.
 function pickAvatar() {
   const avatarIndex = Math.floor(Math.random() * AVATAR_KEYS.length);
   const avatarKey = AVATAR_KEYS[avatarIndex];
@@ -124,11 +138,13 @@ function pickAvatar() {
   return avatarKey;
 }
 
-function cleanPlayerForWire(player: Player) {
+// Strip socket reference before sending player data over the wire.
+function cleanPlayerForWire(player: Player): PlayerWire {
   return { id: player.id, name: player.name, score: player.score, avatar: player.avatar };
 }
 
-function broadcast(room: Room, msg: any) {
+// Emit a typed server message to every participant in a room.
+function broadcast(room: Room, msg: ServerMessage) {
   console.log('broadcasting to room', { roomCode: room.code, msg });
   for (const player of room.players.values()) {
     try {
@@ -146,6 +162,7 @@ function broadcast(room: Room, msg: any) {
   }
 }
 
+// Notify lobby participants of the latest lobby state.
 function broadcastLobby(room: Room) {
   const payload = {
     type: 'lobby_update',
@@ -156,12 +173,32 @@ function broadcastLobby(room: Room) {
   broadcast(room, payload);
 }
 
+// Safely parse incoming payloads into typed client messages.
+function parseClientMessage(msg: ClientMessage | string): ClientMessage | null {
+  if (typeof msg === 'string') {
+    try {
+      const parsed = JSON.parse(msg);
+      return parsed as ClientMessage;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  if (!msg || typeof msg !== 'object' || !('type' in msg)) {
+    return null;
+  }
+
+  return msg as ClientMessage;
+}
+
+// Compute descending leaderboard for a room.
 function leaderboardFor(room: Room) {
   return Array.from(room.players.values())
     .map(cleanPlayerForWire)
     .sort((a, b) => b.score - a.score);
 }
 
+// Begin a round, broadcast the question, and arm the round timer.
 function startRound(room: Room) {
   const currentRoundIndex = room.roundIndex;
   const pack = PACKS[room.selectedPack] || PACKS['trivia'];
@@ -183,7 +220,7 @@ function startRound(room: Room) {
   // Players get state without hint initially
   broadcast(room, {
     type: 'game_state',
-    state: room.state,
+    state: 'playing',
     roomCode: room.code,
     roundIndex: currentRoundIndex,
     question: pack[currentRoundIndex].question,
@@ -196,23 +233,14 @@ function startRound(room: Room) {
   room.timers.round = setTimeout(() => endRound(room), ROUND_DURATION_MS);
 }
 
+// Finish a round, score answers, and schedule the next phase.
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
   const currentRoundIndex = room.roundIndex;
   const pack = PACKS[room.selectedPack] || PACKS['trivia'];
   const correctAnswer = pack[currentRoundIndex].answer.toLowerCase().trim();
 
-  const results: Array<{
-    playerId: string;
-    name: string;
-    answer: string | null;
-    correct: boolean;
-    timeTaken: number | null;
-    points: number;
-    base: number;
-    bonus: number;
-    hintUsed: boolean;
-  }> = [];
+  const results: RoundResultEntry[] = [];
 
   for (const [pid, player] of room.players) {
     const submitted = room.answers.get(pid);
@@ -278,22 +306,17 @@ function endRound(room: Room) {
   }
 }
 
-function handleMessage(socket: Socket, msg: any) {
+// Main message dispatcher for all client-to-server traffic.
+function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
   console.log('Received message:', msg);
-  let messageObj = msg;
-  if (typeof msg === 'string') {
-    try {
-      messageObj = JSON.parse(msg);
-    } catch (e) {
-      socket.emit('server', { type: 'error', message: 'invalid json' });
-      return;
-    }
+  const messageObj = parseClientMessage(msg);
+  if (!messageObj) {
+    socket.emit('server', { type: 'error', message: 'invalid json' });
+    return;
   }
 
-  const msgType = messageObj && messageObj.type;
-  if (!msgType) return;
-
-  const send = (sock: Socket | null | undefined, payload: any) => {
+  const msgType = messageObj.type;
+  const send = (sock: TypedSocket | null | undefined, payload: ServerMessage) => {
     console.log('Sending message:', payload);
     if (sock && sock.connected) sock.emit('server', payload);
   };
@@ -555,7 +578,7 @@ function handleMessage(socket: Socket, msg: any) {
         name: mp.name,
         score: mp.score || 0,
         avatar: mp.avatar || pickAvatar(),
-        socket: ({} as unknown) as Socket,
+        socket: ({} as unknown) as TypedSocket,
       };
       room.players.set(pid, player);
     }
@@ -576,7 +599,7 @@ const mockPlayers = [
   { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
 ];
 
-const io = new IOServer(server,
+const io = new IOServer<ClientToServerEvents, ServerToClientEvents, any, SocketData>(server,
   {
     path: '/ws',
     cors: { origin: '*' },
@@ -584,8 +607,10 @@ const io = new IOServer(server,
     pingTimeout: 5000,
   });
 
-io.on('connection', (socket: Socket) => {
-  socket.on('message', (m: any) => {
+// Wire Socket.IO connection handlers with typed events.
+io.on('connection', (socket: TypedSocket) => {
+  // forward client payloads to the shared handler
+  socket.on('message', (m: ClientMessage | string) => {
     try {
       handleMessage(socket, m);
     } catch (e) {
@@ -594,7 +619,7 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  socket.on('client', (m: any) => {
+  socket.on('client', (m: ClientMessage | string) => {
     try {
       handleMessage(socket, m);
     } catch (e) {
@@ -603,6 +628,7 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  // Cleanup bookkeeping when a socket disconnects.
   socket.on('disconnect', () => {
     console.log('Client disconnected');
     const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };

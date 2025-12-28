@@ -6,14 +6,18 @@
 import { StateCreator } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 
+import { ClientToServerEvents, ServerToClientEvents } from '@/types/socket';
+
+type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
 export type WebSocketSlice = {
-	socket: Socket | null;
-	setSocket: (s: Socket | null) => void;
-	connect: (serverUrl: string) => Socket;
+	socket: TypedClientSocket | null;
+	setSocket: (s: TypedClientSocket | null) => void;
+	connect: (serverUrl: string) => TypedClientSocket;
 	disconnect: () => void;
-	emit: (event: string, payload?: any) => void;
-	on: (event: string, handler: (...args: any[]) => void) => void;
-	off: (event: string, handler?: (...args: any[]) => void) => void;
+	emit: (event: keyof ClientToServerEvents, payload: Parameters<ClientToServerEvents[keyof ClientToServerEvents]>[0]) => void;
+	on: (event: keyof ServerToClientEvents, handler: ServerToClientEvents[keyof ServerToClientEvents]) => void;
+	off: (event: keyof ServerToClientEvents, handler?: ServerToClientEvents[keyof ServerToClientEvents]) => void;
 };
 
 import { getStorageItem } from '@/hooks/use-local-storage';
@@ -21,11 +25,11 @@ import { getStorageItem } from '@/hooks/use-local-storage';
 export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => ({
 	// ... (socket, setSocket, connect, disconnect, on, off impl) 
 	socket: null,
-	setSocket: (s: Socket | null) => set({ socket: s }),
+	setSocket: (s: TypedClientSocket | null) => set({ socket: s }),
 	connect: (serverUrl: string) => {
 		const existing = get().socket;
 		if (existing) return existing;
-		const s = io(serverUrl, { path: '/ws' });
+		const s = io(serverUrl, { path: '/ws' }) as TypedClientSocket;
 		set({ socket: s });
 		return s;
 	},
@@ -36,7 +40,7 @@ export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => 
 		}
 		set({ socket: null });
 	},
-	emit: (event: string, payload?: any) => {
+	emit: (event, payload) => {
 		const s = get().socket;
 		if (!s) return;
 
@@ -46,18 +50,18 @@ export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => 
 			const userId = getStorageItem('kouch_userId');
 			const avatar = getStorageItem('kouch_userAvatar');
 			if (userId) {
-				finalPayload = { userId, avatar, ...payload };
+				finalPayload = { userId, avatar, ...payload } as typeof payload;
 			}
 		}
 
 		try { s.emit(event, finalPayload); } catch (e) { }
 	},
-	on: (event: string, handler: (...args: any[]) => void) => {
+	on: (event, handler) => {
 		const s = get().socket;
 		if (!s) return;
 		s.on(event, handler);
 	},
-	off: (event: string, handler?: (...args: any[]) => void) => {
+	off: (event, handler) => {
 		const s = get().socket;
 		if (!s) return;
 		if (handler) s.off(event, handler);
