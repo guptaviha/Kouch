@@ -6,7 +6,7 @@ import { BsRobot } from 'react-icons/bs';
 import { SiProbot } from 'react-icons/si';
 import { PiDogFill } from 'react-icons/pi';
 import { BiSolidCat } from 'react-icons/bi';
-import { MdElderlyWoman, MdPregnantWoman, MdCatchingPokemon } from 'react-icons/md';
+import { MdElderlyWoman, MdPregnantWoman, MdCatchingPokemon, MdCloudOff } from 'react-icons/md';
 import { GiPyromaniac, GiMonkey, GiBatMask, GiSpiderMask, GiNinjaHead, GiSharkBite, GiDinosaurRex, GiSeaDragon, GiDirectorChair, GiWitchFlight, GiBirdTwitter } from 'react-icons/gi';
 import { TbMichelinBibGourmand, TbMoodCrazyHappy } from 'react-icons/tb';
 import { VscSnake } from 'react-icons/vsc';
@@ -56,7 +56,7 @@ export interface PlayerAvatarProps {
     avatarKey?: string;
     className?: string;
     variant?: 'default' | 'lobby' | 'game' | 'winner' | 'leaderboard' | 'header' | 'podium';
-    state?: 'idle' | 'active' | 'disabled' | 'ready' | 'answered' | 'waiting' | 'used_hint' | 'answered_with_hint';
+    state?: 'idle' | 'active' | 'disabled' | 'ready' | 'answered' | 'waiting' | 'used_hint' | 'answered_with_hint' | 'disconnected';
     showCrown?: boolean;
     index?: number; // For staggered animations in lists (lobby/game variants)
 };
@@ -113,12 +113,18 @@ export default function PlayerAvatar({
             iconSize = size;
             break;
         case 'lobby':
-            containerClasses += 'bg-gray-100 dark:bg-gray-800 shadow-inner ring-2 ring-purple-400 ';
+            if (state === 'disconnected') {
+                containerClasses += 'bg-gray-100 dark:bg-gray-800 shadow-none ring-2 ring-red-400 opacity-60 grayscale ';
+            } else {
+                containerClasses += 'bg-gray-100 dark:bg-gray-800 shadow-inner ring-2 ring-purple-400 ';
+            }
             iconSize = size * 0.8;
             break;
         case 'game':
             containerClasses += 'bg-white dark:bg-gray-900 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ';
-            if (state === 'answered') {
+            if (state === 'disconnected') {
+                containerClasses += 'ring-red-400 opacity-50 grayscale ';
+            } else if (state === 'answered') {
                 containerClasses += 'ring-blue-500 ';
             } else if (state === 'active' || state === 'ready') {
                 containerClasses += 'ring-blue-400 ';
@@ -140,7 +146,7 @@ export default function PlayerAvatar({
             break;
         default:
             containerClasses += 'bg-gray-200 dark:bg-gray-700 ';
-            if (state === 'disabled') containerClasses += 'opacity-50 grayscale ';
+            if (state === 'disabled' || state === 'disconnected') containerClasses += 'opacity-50 grayscale ';
             break;
     }
 
@@ -207,6 +213,19 @@ export default function PlayerAvatar({
                     </motion.div>
                 )}
 
+                {/* Disconnected overlay icon */}
+                {/* Disconnected badge icon */}
+                {state === 'disconnected' && (
+                    <motion.div
+                        initial={{ scale: 0, rotate: 45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0 }}
+                        className="!opacity-100 absolute -top-1 -right-1 z-10 shadow-lg border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center bg-red-500 text-white p-1"
+                    >
+                        <MdCloudOff size={Math.max(12, size * 0.25)} />
+                    </motion.div>
+                )}
+
                 {Icon ? (
                     <Icon size={iconSize} />
                 ) : (
@@ -215,7 +234,7 @@ export default function PlayerAvatar({
             </motion.div>
 
             {shouldShowShadow && (
-                <div 
+                <div
                     className="absolute -bottom-2 bg-black/10 rounded-[100%] blur-sm left-1/2 -translate-x-1/2 animate-pulse"
                     style={{ width: size * 0.6, height: size * 0.1 }}
                 />

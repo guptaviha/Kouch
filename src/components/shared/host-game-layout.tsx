@@ -14,6 +14,7 @@ import HostRoundResultView from '@/components/host/host-round-result-view';
 import HostFinishedView from '@/components/host/host-finished-view';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import { useQRGenerator } from '@/hooks/useQRGenerator';
+import serverMessageHandler from '@/lib/socket/handleServerMessage';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -74,16 +75,13 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   useEffect(() => {
     connect(SERVER);
 
-    let handler: any = null;
-    (async () => {
-      const mod = await import('@/lib/socket/handleServerMessage');
-      handler = mod.default;
-      on('server', handler);
-    })();
+    // Register event handler synchronously to avoid race conditions
+    // where we emit 'create_room' before listening for 'room_created'
+    on('server', serverMessageHandler);
 
     return () => {
       if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current);
-      if (handler) off('server', handler);
+      off('server', serverMessageHandler);
       disconnect();
     };
   }, []);

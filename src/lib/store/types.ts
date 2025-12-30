@@ -6,5 +6,6 @@ export type PlayerInfo = {
 	name: string;
 	score: number;
 	avatar?: string;
+	connected?: boolean;
 };
 

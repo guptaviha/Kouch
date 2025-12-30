@@ -1,5 +1,6 @@
 import { useGameStore } from '@/lib/store';
-import { ServerMessage } from '@/types/socket';
+import { ServerMessage, PlayerWire } from '@/types/socket';
+import { toast } from '@/hooks/use-toast';
 
 import { setStorageItem } from '@/hooks/use-local-storage';
 
@@ -55,6 +56,43 @@ export default function serverMessageHandler(msg: ServerMessage) {
 
       case 'lobby_update':
         console.log('lobby_update', msg);
+
+        // Notify about disconnects/reconnects if we have previous players
+        const currentPlayers = s.players as PlayerWire[];
+        const newPlayers = msg.players || [];
+
+        // Create a map for easier lookup
+        const newPlayerMap = new Map(newPlayers.map(p => [p.id, p]));
+
+        // Check for newly disconnected
+        currentPlayers.forEach(p => {
+          const newP = newPlayerMap.get(p.id);
+          if (p.connected !== false && newP && newP.connected === false) {
+            toast({
+              variant: "destructive",
+              title: "Player Disconnected",
+              description: `${p.name} has lost connection.`,
+            });
+          }
+        });
+
+        // Check for newly connected (reconnected)
+        newPlayers.forEach(p => {
+          const oldP = currentPlayers.find(op => op.id === p.id);
+          if ((!oldP || oldP.connected === false) && p.connected !== false) {
+            // Only toast if it's a reconnection of a known player or if we want to toast all joins?
+            // Maybe too noisy for lobby joins, but good for game re-joins.
+            // Let's toast if they were previously disconnected.
+            if (oldP && oldP.connected === false) {
+              toast({
+                title: "Player Reconnected",
+                description: `${p.name} is back!`,
+                className: "bg-green-500 text-white border-none",
+              });
+            }
+          }
+        });
+
         setPlayers?.(msg.players || []);
         try { setState?.((msg.state || 'lobby')); } catch (e) { setState?.('lobby'); console.error('lobby_update error', e); }
         break;

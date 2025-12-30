@@ -100,9 +100,14 @@ export default function HostPlayingView() {
                                 {players.map((p, i) => {
                                     const answered = answeredPlayers.includes(p.id);
                                     const hasUsedHint = playersWithHints?.includes(p.id);
-                                    const playerState = answered
+
+                                    let playerState: React.ComponentProps<typeof PlayerAvatar>['state'] = answered
                                         ? (hasUsedHint ? 'answered_with_hint' : 'answered')
                                         : (hasUsedHint ? 'used_hint' : 'waiting');
+
+                                    if (p.connected === false) {
+                                        playerState = 'disconnected';
+                                    }
 
                                     return (
                                         <motion.div
@@ -142,7 +147,7 @@ export default function HostPlayingView() {
                             size="lg"
                             className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg cursor-pointer"
                         >
-                            ⏱ +15s
+                            ⏱ +30s
                         </Button>
                     </motion.div>
                 )}

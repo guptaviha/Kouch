@@ -23,8 +23,10 @@ const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || DEFAULT_SERVER;
 
 export default function PlayerPage() {
   // websocket helpers
+
   const connect = useGameStore((s) => s.connect);
   const disconnect = useGameStore((s) => s.disconnect);
+  const isConnected = useGameStore((s) => s.isConnected);
   const on = useGameStore((s) => s.on);
   const off = useGameStore((s) => s.off);
   // roomCode moved into central store
@@ -117,6 +119,24 @@ export default function PlayerPage() {
     };
   }, [timerEndsAt, paused, setCountdown]);
 
+
+
+  // Debounce the disconnected overlay to prevent flashing on quick reconnects (e.g. waking phone)
+  const [showDisconnectedOverlay, setShowDisconnectedOverlay] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isConnected) {
+      // Wait 500ms before showing overlay
+      timer = setTimeout(() => {
+        setShowDisconnectedOverlay(true);
+      }, 500);
+    } else {
+      setShowDisconnectedOverlay(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isConnected]);
+
   if (!mounted) return null;
 
   return (
@@ -128,6 +148,29 @@ export default function PlayerPage() {
         role="player"
         roomState={state}
       />
+
+      {/* Disconnected Overlay */}
+      {showDisconnectedOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full border border-gray-200 dark:border-gray-800">
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Disconnected</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              You lost connection to the game server.
+            </p>
+            <button
+              onClick={() => connect(SERVER)}
+              className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl active:scale-95 transition-transform"
+            >
+              Reconnect
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} /> */}
 

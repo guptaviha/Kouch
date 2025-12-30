@@ -142,6 +142,7 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
                                         <PlayerAvatar
                                             avatarKey={p.avatar}
                                             variant="lobby"
+                                            state={p.connected === false ? 'disconnected' : 'idle'}
                                             index={i}
                                         />
                                         <p className="font-bold text-sm text-gray-900 dark:text-white text-center truncate w-full">{p.name}</p>

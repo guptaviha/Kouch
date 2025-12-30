@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { PWAWrapper } from "@/components/pwa-wrapper";
 import Script from "next/script";
+import { Toaster } from "@/components/ui/toaster";
 
 import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
 import DebugFloatingBox from "@/components/shared/debug-floating-box";
@@ -39,6 +40,7 @@ export default function RootLayout({
 
                         <div className="relative">{children}</div>
                         <DebugFloatingBox />
+                        <Toaster />
                     </ThemeProvider>
                 </PWAWrapper>
             </body>

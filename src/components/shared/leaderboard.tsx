@@ -7,7 +7,7 @@ import CountUp from '@/components/count-up';
 import GenericCard from './generic-card';
 
 interface LeaderboardProps {
-  leaderboard: Array<{ id: string; name: string; avatar: string; score: number }>;
+  leaderboard: Array<{ id: string; name: string; avatar: string; score: number; connected?: boolean }>;
   results?: Array<{ playerId: string; points: number; correct: boolean; answer?: string }>;
   highlightPlayerId?: string;
   showAnswers?: boolean;
@@ -60,6 +60,7 @@ export default function Leaderboard({
               <PlayerAvatar
                 avatarKey={p.avatar}
                 variant="leaderboard"
+                state={p.connected === false ? 'disconnected' : undefined}
               />
 
               <div className="flex-1">
@@ -116,7 +117,6 @@ export default function Leaderboard({
                 avatarKey={leaderboard[0].avatar}
                 variant="winner"
                 showCrown={true}
-                badge={1}
               />
             </div>
             <h3 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">{leaderboard[0].name}</h3>

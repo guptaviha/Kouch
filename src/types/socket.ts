@@ -6,6 +6,7 @@ export type PlayerWire = {
   score: number;
   avatar?: string;
   isNewUser?: boolean;
+  connected?: boolean;
 };
 
 export type RoundResultEntry = {
@@ -37,26 +38,26 @@ export type ServerMessage =
   | { type: 'room_created'; roomCode: string; player: PlayerWire }
   | { type: 'lobby_update'; roomCode: string; players: PlayerWire[]; state: RoomPhase }
   | {
-      type: 'game_state';
-      state: 'playing';
-      roomCode: string;
-      roundIndex: number;
-      question: string;
-      image?: string;
-      hint?: string;
-      timerEndsAt: number;
-      totalQuestionDuration: number;
-    }
+    type: 'game_state';
+    state: 'playing';
+    roomCode: string;
+    roundIndex: number;
+    question: string;
+    image?: string;
+    hint?: string;
+    timerEndsAt: number;
+    totalQuestionDuration: number;
+  }
   | {
-      type: 'round_result';
-      roomCode: string;
-      roundIndex: number;
-      results: RoundResultEntry[];
-      leaderboard: PlayerWire[];
-      correctAnswer: string;
-      nextTimerEndsAt: number;
-      nextTimerDurationMs: number;
-    }
+    type: 'round_result';
+    roomCode: string;
+    roundIndex: number;
+    results: RoundResultEntry[];
+    leaderboard: PlayerWire[];
+    correctAnswer: string;
+    nextTimerEndsAt: number;
+    nextTimerDurationMs: number;
+  }
   | { type: 'final_leaderboard'; roomCode: string; leaderboard: PlayerWire[] }
   | { type: 'game_paused'; roomCode: string; pauseRemainingMs: number }
   | { type: 'game_resumed'; roomCode: string; nextTimerEndsAt: number }

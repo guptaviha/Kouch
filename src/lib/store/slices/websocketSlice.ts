@@ -13,6 +13,8 @@ type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 export type WebSocketSlice = {
 	socket: TypedClientSocket | null;
 	setSocket: (s: TypedClientSocket | null) => void;
+	isConnected: boolean;
+	setIsConnected: (v: boolean) => void;
 	connect: (serverUrl: string) => TypedClientSocket;
 	disconnect: () => void;
 	emit: (event: keyof ClientToServerEvents, payload: Parameters<ClientToServerEvents[keyof ClientToServerEvents]>[0]) => void;
@@ -26,10 +28,19 @@ export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => 
 	// ... (socket, setSocket, connect, disconnect, on, off impl) 
 	socket: null,
 	setSocket: (s: TypedClientSocket | null) => set({ socket: s }),
+	isConnected: false,
+	setIsConnected: (v: boolean) => set({ isConnected: v }),
 	connect: (serverUrl: string) => {
 		const existing = get().socket;
-		if (existing) return existing;
+		if (existing) {
+			if (!existing.connected) existing.connect();
+			return existing;
+		}
 		const s = io(serverUrl, { path: '/ws' }) as TypedClientSocket;
+
+		s.on('connect', () => set({ isConnected: true }));
+		s.on('disconnect', () => set({ isConnected: false }));
+
 		set({ socket: s });
 		return s;
 	},
