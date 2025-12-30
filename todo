@@ -2,11 +2,8 @@
 - statusmessage state is being used to display errors (player join view tsx)
 - if player is disconnected in the result page, disconnected icon does not show in leaderboard
 - dont allow the same avatar to be picked by multiple players
-- i am able to join a room that doesnt exist
-- player gets diconnected on screen close
 - long username limit/truncation
 - play again is starting a new game
-- if all players have disconnecting, game should end
 - Trailing dots may go to the next line on smaller screens
 - result screen
     - player: remove leaderboard or fix the cropping
@@ -124,11 +121,3 @@ In redis, we will store the room code as the key and the room data as the value.
 ## Game end action button
 - Show a recommendation marquee at the end of the game with the list of other packs available to play.
 - Add another button below this to go to "Explore Game Library".
-
-
-
----------------------
-If user opens same game in new tab -> asks you to go to old (existing/active/paused) room OR it asks you to create new room - √
-If user opens different game in new tab -> 
-    a. Allowed to create new room -> Logic: If there is a room for this player+game -> return it, else create new.
-    b. Not allowed to create new room -> In the response for create_room -> Say "You have another game going on" -> End it and start new room here OR Go to that game -> This prevents users from sharing logins and using account for hosting multiple games.
