@@ -28,7 +28,7 @@ export default function PlayerJoinView() {
             // ignore
         }
 
-        emit('message', { type: 'join', roomCode: roomCode.toUpperCase(), name: profile?.name });
+        emit('message', { type: 'join', roomCode: roomCode, name: profile?.name });
 
         const requestFullscreen = () => {
             const docEl = document.documentElement as any;

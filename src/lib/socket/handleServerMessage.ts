@@ -103,6 +103,11 @@ export default function serverMessageHandler(msg: ServerMessage) {
         if (!answered.includes(pid)) {
           setAnsweredPlayers?.([...answered, pid]);
         }
+
+        // If WE are the one who answered, update our status
+        if (s.profile?.id === pid) {
+          setStatusMessage?.('Answer received');
+        }
         break;
       }
 
@@ -115,11 +120,17 @@ export default function serverMessageHandler(msg: ServerMessage) {
         if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
-        setAnsweredPlayers?.([]);
+        setAnsweredPlayers?.(msg.answeredPlayers || []);
         // Reset playersWithHints for new round
         if (s.setPlayersWithHints) s.setPlayersWithHints([]);
         if (s.setHintUsed) s.setHintUsed(false);
         setSubmitted?.(false);
+
+        // If we are rejoining and have already answered
+        if (msg.answeredPlayers && s.profile?.id && msg.answeredPlayers.includes(s.profile.id)) {
+          setStatusMessage?.('Answer received');
+          setSubmitted?.(true);
+        }
         break;
 
       case 'player_hint_used': {
@@ -173,10 +184,6 @@ export default function serverMessageHandler(msg: ServerMessage) {
           setStorageItem('kouch_userId', msg.player.id);
           setStorageItem('kouch_userAvatar', msg.player.avatar);
         }
-        break;
-
-      case 'answer_received':
-        setStatusMessage?.('Answer received');
         break;
 
       case 'error':

@@ -1,4 +1,6 @@
 ## BUGS
+- statusmessage state is being used to display errors (player join view tsx)
+- if player is disconnected in the result page, disconnected icon does not show in leaderboard
 - dont allow the same avatar to be picked by multiple players
 - i am able to join a room that doesnt exist
 - player gets diconnected on screen close
@@ -17,6 +19,7 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
 
 
 ## ENHANCEMENTS
+- place a toast msg on the player view when reconnecting
 - when restarting a game, take back to qr lobby with the same room code
 - rebus and trivia should have diff rooms
 - Handle room lifecycle events better

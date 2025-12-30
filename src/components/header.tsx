@@ -21,7 +21,6 @@ type Props = {
 export default function Header({ roomCode, avatarKey, name, role = 'guest', roomState }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const statusMessage = useGameStore((s) => s.statusMessage)
 
   const toggleFullscreen = async () => {
     try {

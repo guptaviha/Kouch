@@ -229,6 +229,7 @@ function startRound(room: Room) {
     hint: pack[currentRoundIndex].hint, // Send hint data to client
     timerEndsAt: roundEnd,
     totalQuestionDuration: ROUND_DURATION_MS,
+    answeredPlayers: [],
   });
 
   room.timers.round = setTimeout(() => endRound(room), ROUND_DURATION_MS);
@@ -380,11 +381,7 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
       console.log('Player rejoining:', playerId);
       playerObj.socket = socket;
       playerObj.connected = true;
-      if (name) playerObj.name = name; // Update name if provided? or keep old? Let's update.
-      // If rejoining, we should probably update the avatar ONLY if it was passed explicitly, otherwise keep old.
-      // But for now current logic is: if isNewUser logic was used above, it might have picked a new avatar.
-      // Let's strictly keep the old avatar if it's a rejoin, unless we really want to change it.
-      // actually, let's keep the existing avatar for consistency.
+      // Keep the old name/avatar if rejoining.
 
     } else {
       // New joiner
@@ -415,6 +412,7 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
         hint: pack[currentRoundIndex].hint,
         timerEndsAt: room.timerEndsAt || 0,
         totalQuestionDuration: room.totalQuestionDuration || ROUND_DURATION_MS,
+        answeredPlayers: Array.from(room.answers.keys()),
       });
     } else if (room.state === 'round_result') {
       // Should probably send last round result... 
@@ -494,8 +492,6 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     if (room.answers.has(playerId)) return;
     const timeTaken = Date.now() - (room.roundStart || Date.now());
     room.answers.set(playerId, { answer: String(answer || ''), timeTaken });
-    send(player.socket, { type: 'answer_received', roundIndex: room.roundIndex });
-    // notify host/other clients that this player has answered so UI can update
     try {
       broadcast(room, { type: 'player_answered', roomCode: room.code, playerId });
     } catch (e) { }
@@ -635,10 +631,10 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
 }
 
 const mockPlayers = [
-  { id: '1', name: 'Alice', avatar: 'BsRobot', score: 1200 },
-  { id: '2', name: 'Bob', avatar: 'PiDogFill', score: 950 },
-  { id: '3', name: 'Charlie', avatar: 'GiSharkBite', score: 870 },
-  { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 780 },
+  { id: '1', name: 'Alice', avatar: 'BsRobot', score: 20 },
+  { id: '2', name: 'Bob', avatar: 'PiDogFill', score: 15 },
+  { id: '3', name: 'Charlie', avatar: 'GiSharkBite', score: 10 },
+  { id: '4', name: 'Diana', avatar: 'GiWitchFlight', score: 5 },
 ];
 
 const io = new IOServer<ClientToServerEvents, ServerToClientEvents, any, SocketData>(server,
@@ -690,9 +686,6 @@ io.on('connection', (socket: TypedSocket) => {
         console.log('Player disconnected (marked as offline):', meta.playerId);
       }
 
-      // We do NOT delete the player anymore.
-      // room.players.delete(meta.playerId);
-
       // If everyone is gone (disconnected), we might want to clean up EVENTUALLY.
       // But for now, let's keep the room alive if host is there.
       // Check if ALL players + HOST are gone? 
@@ -715,7 +708,6 @@ io.on('connection', (socket: TypedSocket) => {
         const promoted = room.players.get(firstKey)!;
         room.hostId = promoted.id;
         room.host = { id: promoted.id, name: promoted.name, socket: promoted.socket, avatar: promoted.avatar };
-        room.players.delete(firstKey);
         if (promoted.socket) promoted.socket.data = { roomCode: room.code, hostId: promoted.id };
         try {
           room.host.socket.emit('server', { type: 'host_promoted', roomCode: room.code, hostId: promoted.id });

@@ -16,6 +16,8 @@ export default function DebugFloatingBox() {
   const players = useGameStore((s) => s.players);
   const answeredPlayers = useGameStore((s) => s.answeredPlayers);
   const selectedPack = useGameStore((s) => s.selectedPack);
+  const isConnectedToServer = useGameStore((s) => s.isConnectedToServer);
+  const profile = useGameStore((s) => s.profile);
 
   const [userId] = useLocalStorage<string | null>('kouch_userId', null);
   const [avatar] = useLocalStorage<string | null>('kouch_userAvatar', null);
@@ -56,6 +58,8 @@ export default function DebugFloatingBox() {
       <h3 className="text-sm font-bold mb-2">Debug Info</h3>
       <div className="text-xs space-y-1">
         <div>UserId: {userId?.slice(0, 8) || 'None'}</div>
+        <div>Connected To Server: {isConnectedToServer ? 'Yes' : 'No'}</div>
+        <div>Profile.connected: {profile?.connected ? 'Yes' : 'No'}</div>
         <div>Avatar: {avatar || 'None'}</div>
         <div>Room Code: {roomCode || 'N/A'}</div>
         <div>State: {state}</div>
@@ -66,6 +70,7 @@ export default function DebugFloatingBox() {
         <div>Players: {players.length}</div>
         <div>Answered: {answeredPlayers.length}</div>
         <div>Pack: {selectedPack || 'N/A'}</div>
+
       </div>
     </div>
   );

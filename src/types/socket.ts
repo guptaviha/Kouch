@@ -47,6 +47,7 @@ export type ServerMessage =
     hint?: string;
     timerEndsAt: number;
     totalQuestionDuration: number;
+    answeredPlayers?: string[];
   }
   | {
     type: 'round_result';
