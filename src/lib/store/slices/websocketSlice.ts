@@ -7,6 +7,7 @@ import { StateCreator } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 
 import { ClientToServerEvents, ServerToClientEvents } from '@/types/socket';
+import { toast } from '@/hooks/use-toast';
 
 type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -14,6 +15,7 @@ export type WebSocketSlice = {
 	socket: TypedClientSocket | null;
 	setSocket: (s: TypedClientSocket | null) => void;
 	isConnectedToServer: boolean;
+	isReconnecting: boolean;
 	connect: (serverUrl: string) => TypedClientSocket;
 	disconnect: () => void;
 	emit: (event: keyof ClientToServerEvents, payload: Parameters<ClientToServerEvents[keyof ClientToServerEvents]>[0]) => void;
@@ -23,11 +25,14 @@ export type WebSocketSlice = {
 
 import { getStorageItem } from '@/hooks/use-local-storage';
 
+let hasConnectedOnce = false;
+
 export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => ({
 	// ... (socket, setSocket, connect, disconnect, on, off impl) 
 	socket: null,
 	setSocket: (s: TypedClientSocket | null) => set({ socket: s }),
 	isConnectedToServer: false,
+	isReconnecting: false,
 	connect: (serverUrl: string) => {
 		const existing = get().socket;
 		if (existing) {
@@ -36,8 +41,43 @@ export const createWebSocketSlice: StateCreator<WebSocketSlice> = (set, get) => 
 		}
 		const s = io(serverUrl, { path: '/ws' }) as TypedClientSocket;
 
-		s.on('connect', () => { set({ isConnectedToServer: true }) });
-		s.on('disconnect', () => { set({ isConnectedToServer: false }) });
+		const showReconnectingModal = () => {
+			set({ isReconnecting: true });
+		};
+
+		const clearReconnectingModal = () => {
+			set({ isReconnecting: false });
+		};
+
+		const showReconnectedToast = () => {
+			toast({
+				title: 'Back online',
+				description: 'Connection restored.',
+				duration: 2500,
+				className: "bg-green-500 text-white border-none",
+			});
+		};
+
+		s.on('connect', () => {
+			set({ isConnectedToServer: true });
+			clearReconnectingModal();
+			if (hasConnectedOnce) showReconnectedToast();
+			hasConnectedOnce = true;
+		});
+
+		s.on('disconnect', (reason) => {
+			set({ isConnectedToServer: false });
+			if (reason === 'io client disconnect') return;
+			showReconnectingModal();
+		});
+
+		s.io.on('reconnect_attempt', () => {
+			showReconnectingModal();
+		});
+
+		s.io.on('reconnect_error', () => {
+			showReconnectingModal();
+		});
 
 		set({ socket: s });
 		return s;

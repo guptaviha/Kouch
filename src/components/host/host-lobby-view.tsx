@@ -113,8 +113,9 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
                 >
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h3>
-                        <Button variant="destructive" className="text-sm px-4 py-2" onClick={() => { if (roomCode) emit('message', { type: 'mock', roomCode }); }}>Load Mock Players</Button>
-
+                        {process.env.NODE_ENV === 'development' && (
+                            <Button variant="destructive" className="text-sm px-4 py-2" onClick={() => { if (roomCode) emit('message', { type: 'mock', roomCode }); }}>Load Mock Players</Button>
+                        )}
                         <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full font-bold">{players.length} joined</span>
                     </div>
 

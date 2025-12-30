@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
 import DebugFloatingBox from "@/components/shared/debug-floating-box";
+import GlobalOverlays from "@/components/shared/global-overlays";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,6 +42,7 @@ export default function RootLayout({
                         <div className="relative">{children}</div>
                         <DebugFloatingBox />
                         <Toaster />
+                        <GlobalOverlays />
                     </ThemeProvider>
                 </PWAWrapper>
             </body>
