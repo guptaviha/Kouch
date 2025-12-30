@@ -22,7 +22,7 @@ export type RoundResultEntry = {
 };
 
 export type ClientMessage =
-  | { type: 'create_room'; name?: string; pack?: string; userId?: string; avatar?: string }
+  | { type: 'fetch_room_for_game'; name?: string; pack?: string; userId?: string; avatar?: string }
   | { type: 'join'; roomCode: string; name?: string; userId?: string; avatar?: string }
   | { type: 'start_game'; roomCode: string; playerId: string }
   | { type: 'pause_game' }
@@ -35,7 +35,7 @@ export type ClientMessage =
   | { type: 'mock'; roomCode?: string };
 
 export type ServerMessage =
-  | { type: 'room_created'; roomCode: string; player: PlayerWire }
+  | { type: 'room_created'; roomCode: string; player: PlayerWire; pack?: string; reused?: boolean; players?: PlayerWire[]; state?: RoomPhase }
   | { type: 'lobby_update'; roomCode: string; players: PlayerWire[]; state: RoomPhase }
   | {
     type: 'game_state';

@@ -6,7 +6,7 @@ Run (after starting Next on :3000):
 
 This server implements a simple room-based quiz game with 3 hardcoded rounds.
 Protocol (client -> server): JSON messages with `type`.
-- create_room: { type: 'create_room', name }
+- fetch_room_for_game: { type: 'fetch_room_for_game', name, pack }
 - join: { type: 'join', roomCode, name }
 - start_game: { type: 'start_game', roomCode, playerId }
 - submit_answer: { type: 'submit_answer', roomCode, playerId, answer }
@@ -109,6 +109,21 @@ const BASE_POINTS = 100;
 const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
 
 const rooms = new Map<string, Room>();
+
+function resolvePack(pack?: string) {
+  if (pack && PACKS[pack]) return pack;
+  return 'trivia';
+}
+
+function findRoomByHostAndPack(hostId: string, pack: string) {
+  console.log('Searching for existing room for host:', { hostId, pack });
+  console.log('Current rooms:', Array.from(rooms.keys()));
+  console.log('Room details:', Array.from(rooms.values()).map(r => ({ code: r.code, hostId: r.hostId, selectedPack: r.selectedPack })));
+  for (const room of rooms.values()) {
+    if (room.hostId === hostId && room.selectedPack === pack) return room;
+  }
+  return undefined;
+}
 
 // Create a four-letter room code.
 function genCode(): string {
@@ -323,19 +338,48 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     if (sock && sock.connected) sock.emit('server', payload);
   };
 
-  if (msgType === 'create_room') {
+  if (msgType === 'fetch_room_for_game') {
     const name = messageObj.name || 'Host';
-    const pack = messageObj.pack || 'trivia'; // Default to trivia if not specified
+    const pack = resolvePack(messageObj.pack);
+    const isNewUser = !messageObj.userId;
+    const hostId = messageObj.userId || makeId();
+    const hostAvatar = messageObj.avatar || pickAvatar();
+
+    const existingRoom = !isNewUser ? findRoomByHostAndPack(hostId, pack) : undefined;
+
+    if (existingRoom) {
+      // Attach the new socket to the existing host without mutating game state.
+      const existingHost = existingRoom.host;
+      const effectiveHost = {
+        id: hostId,
+        name: existingHost?.name || name,
+        avatar: existingHost?.avatar || hostAvatar,
+      };
+      existingRoom.hostId = hostId;
+      existingRoom.host = { ...effectiveHost, socket };
+
+      socket.data = { roomCode: existingRoom.code, hostId };
+
+      const existingPlayers = Array.from(existingRoom.players.values()).map(cleanPlayerForWire);
+
+      send(socket, {
+        type: 'room_created',
+        roomCode: existingRoom.code,
+        player: { id: effectiveHost.id, name: effectiveHost.name, score: 0, avatar: effectiveHost.avatar, isNewUser },
+        pack: existingRoom.selectedPack,
+        reused: true,
+        players: existingPlayers,
+        state: existingRoom.state,
+      });
+      return;
+    }
+
     const code = (() => {
       let newCode = genCode();
       while (rooms.has(newCode)) newCode = genCode();
       return newCode;
     })();
 
-    // Use provided userId if available, otherwise generate new
-    const isNewUser = !messageObj.userId;
-    const hostId = messageObj.userId || makeId();
-    const hostAvatar = isNewUser ? pickAvatar() : messageObj.avatar;
     const room: Room = {
       code,
       players: new Map(),
@@ -353,7 +397,15 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
 
     socket.data = { roomCode: code, hostId };
 
-    send(socket, { type: 'room_created', roomCode: code, player: { id: hostId, name, score: 0, avatar: hostAvatar, isNewUser } });
+    send(socket, {
+      type: 'room_created',
+      roomCode: code,
+      player: { id: hostId, name, score: 0, avatar: hostAvatar, isNewUser },
+      pack,
+      reused: false,
+      players: [],
+      state: room.state,
+    });
     broadcastLobby(room);
     return;
   }
@@ -378,7 +430,6 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
 
     if (playerObj) {
       // Rejoining player
-      console.log('Player rejoining:', playerId);
       playerObj.socket = socket;
       playerObj.connected = true;
       // Keep the old name/avatar if rejoining.
@@ -647,13 +698,6 @@ const io = new IOServer<ClientToServerEvents, ServerToClientEvents, any, SocketD
 
 // Wire Socket.IO connection handlers with typed events.
 io.on('connection', (socket: TypedSocket) => {
-  // forward client payloads to the shared handler
-  if (socket.recovered) {
-    console.log('Client reconnected');
-  }
-  else {
-    console.log('Client connected first time');
-  }
   socket.on('message', (m: ClientMessage | string) => {
     try {
       handleMessage(socket, m);
@@ -698,24 +742,6 @@ io.on('connection', (socket: TypedSocket) => {
       // If host is gone and all players are disconnected, maybe cleanup?
       // For now, stick to the request: "do not delete players if they disconnect".
 
-      broadcastLobby(room);
-      return;
-    }
-
-    if (meta.hostId) {
-      const firstKey = room.players.keys().next().value;
-      if (firstKey) {
-        const promoted = room.players.get(firstKey)!;
-        room.hostId = promoted.id;
-        room.host = { id: promoted.id, name: promoted.name, socket: promoted.socket, avatar: promoted.avatar };
-        if (promoted.socket) promoted.socket.data = { roomCode: room.code, hostId: promoted.id };
-        try {
-          room.host.socket.emit('server', { type: 'host_promoted', roomCode: room.code, hostId: promoted.id });
-        } catch (e) { }
-      } else {
-        Object.values(room.timers || {}).forEach((t) => clearTimeout(t));
-        rooms.delete(room.code);
-      }
       broadcastLobby(room);
       return;
     }

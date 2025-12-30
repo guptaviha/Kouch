@@ -124,3 +124,11 @@ In redis, we will store the room code as the key and the room data as the value.
 ## Game end action button
 - Show a recommendation marquee at the end of the game with the list of other packs available to play.
 - Add another button below this to go to "Explore Game Library".
+
+
+
+---------------------
+If user opens same game in new tab -> asks you to go to old (existing/active/paused) room OR it asks you to create new room - √
+If user opens different game in new tab -> 
+    a. Allowed to create new room -> Logic: If there is a room for this player+game -> return it, else create new.
+    b. Not allowed to create new room -> In the response for create_room -> Say "You have another game going on" -> End it and start new room here OR Go to that game -> This prevents users from sharing logins and using account for hosting multiple games.

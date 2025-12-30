@@ -76,7 +76,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     connect(SERVER);
 
     // Register event handler synchronously to avoid race conditions
-    // where we emit 'create_room' before listening for 'room_created'
+    // where we emit 'fetch_room_for_game' before listening for 'room_created'
     on('server', serverMessageHandler);
 
     return () => {
@@ -121,7 +121,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   }, []);
 
   const createRoom = () => {
-    emit('message', { type: 'create_room', name: 'Host', pack: game });
+    emit('message', { type: 'fetch_room_for_game', name: 'Host', pack: game });
   };
 
   useEffect(() => {

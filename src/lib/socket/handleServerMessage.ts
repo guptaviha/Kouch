@@ -1,5 +1,6 @@
 import { useGameStore } from '@/lib/store';
 import { ServerMessage, PlayerWire } from '@/types/socket';
+import { GamePack, isValidGame } from '@/types/games';
 import { toast } from '@/hooks/use-toast';
 
 import { setStorageItem } from '@/hooks/use-local-storage';
@@ -34,13 +35,52 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setJoined,
     setStatusMessage,
     setSubmitted,
+    setSelectedPack,
+    setPlayersWithHints,
+    setAnswer,
+    setHintUsed,
   } = s;
+
+  const resetStateForNewRoom = () => {
+    setState?.('lobby');
+    setPlayers?.([]);
+    setCurrentQuestion?.('');
+    setQuestionImage?.(null);
+    setCurrentHint?.(undefined);
+    setTimerEndsAt?.(null);
+    setTotalQuestionDuration?.(null);
+    setRoundIndex?.(null);
+    setRoundResults?.(null);
+    setAnsweredPlayers?.([]);
+    setPlayersWithHints?.([]);
+    setNextTimerDurationMs?.(null);
+    setPaused?.(false);
+    setPauseRemainingMs?.(null);
+    setCountdown?.(0);
+    setJoined?.(false);
+    setStatusMessage?.(null);
+    setSubmitted?.(false);
+    setHintUsed?.(false);
+    setAnswer?.('');
+  };
 
   try {
     switch (msg.type) {
       case 'room_created':
+        if (!msg.reused) {
+          resetStateForNewRoom();
+        }
+        if (msg.pack && isValidGame(msg.pack)) {
+          setSelectedPack?.(msg.pack as GamePack);
+        }
         setRoomCode?.(msg.roomCode);
         setProfile?.(msg.player);
+        if (Array.isArray(msg.players)) {
+          setPlayers?.(msg.players);
+        }
+        if (msg.state) {
+          setState?.(msg.state as any);
+        }
         // Save host ID to localStorage
         if (msg.player?.id && msg.player?.avatar && msg.player?.isNewUser) {
           setStorageItem('kouch_userId', msg.player.id);

@@ -22,7 +22,7 @@ export default function HostFinishedView() {
         if (!roomCode || !profile) return;
         emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
         setPlayAgainPending(true);
-        emit('message', { type: 'create_room', name: 'Host' });
+        emit('message', { type: 'fetch_room_for_game', name: 'Host' });
     };
     return (
         <motion.div

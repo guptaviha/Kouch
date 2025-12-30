@@ -21,9 +21,9 @@ Environment variables
 
 Socket.IO protocol (JSON messages)
 Client -> Server
-- create_room
-  { type: 'create_room', name: 'Host name' }
-  -> server replies with { type: 'room_created', roomCode, player }
+- fetch_room_for_game
+  { type: 'fetch_room_for_game', name: 'Host name', pack: 'trivia' }
+  -> server replies with { type: 'room_created', roomCode, player, players, state, pack, reused }
 
 - join
   { type: 'join', roomCode: 'ABCD', name: 'Alice' }
