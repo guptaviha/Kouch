@@ -6,11 +6,12 @@ import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PacksTab from './packs-tab';
 import QuestionsTab from './questions-tab';
-import type { TriviaQuestion, TriviaTag } from '@/types/trivia';
+import type { TriviaPack, TriviaQuestion, TriviaTag } from '@/types/trivia';
 
 export default function AdminContributePage() {
   const [tags, setTags] = useState<TriviaTag[]>([]);
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
+  const [packs, setPacks] = useState<TriviaPack[]>([]);
 
   const refreshTags = useCallback(async (query?: string) => {
     const search = query ? `?q=${encodeURIComponent(query)}` : '';
@@ -27,10 +28,18 @@ export default function AdminContributePage() {
     setQuestions(data);
   }, []);
 
+  const refreshPacks = useCallback(async () => {
+    const response = await fetch('/api/admin/trivia/packs?limit=100', { cache: 'no-store' });
+    if (!response.ok) return;
+    const data = (await response.json()) as TriviaPack[];
+    setPacks(data);
+  }, []);
+
   useEffect(() => {
     void refreshTags();
     void refreshQuestions();
-  }, [refreshTags, refreshQuestions]);
+    void refreshPacks();
+  }, [refreshTags, refreshQuestions, refreshPacks]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10">
@@ -54,11 +63,21 @@ export default function AdminContributePage() {
         </TabsList>
 
         <TabsContent value="questions" className="mt-4">
-          <QuestionsTab tags={tags} onRefreshTags={refreshTags} onRefreshQuestions={refreshQuestions} />
+          <QuestionsTab
+            tags={tags}
+            questions={questions}
+            onRefreshTags={refreshTags}
+            onRefreshQuestions={refreshQuestions}
+          />
         </TabsContent>
 
         <TabsContent value="packs" className="mt-4">
-          <PacksTab questions={questions} onRefreshQuestions={refreshQuestions} />
+          <PacksTab
+            questions={questions}
+            packs={packs}
+            onRefreshQuestions={refreshQuestions}
+            onRefreshPacks={refreshPacks}
+          />
         </TabsContent>
       </Tabs>
     </div>

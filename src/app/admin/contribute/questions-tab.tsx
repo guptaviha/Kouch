@@ -10,6 +10,7 @@ import type {
   QuestionType,
   TriviaMultiPart,
   TriviaTag,
+  TriviaQuestion,
 } from '@/types/trivia';
 
 const cardMotion = {
@@ -33,11 +34,16 @@ function lowercaseUnique(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.toLowerCase())));
 }
 
+import { QuestionsTable } from '@/components/admin/questions-table'; // Added import
+
 interface QuestionsTabProps {
   tags: TriviaTag[];
+  questions: TriviaQuestion[];
   onRefreshTags: (query?: string) => Promise<void>;
   onRefreshQuestions: () => Promise<void>;
 }
+
+// ... existing interfaces ...
 
 interface MultiPartFormPart {
   prompt: string;
@@ -63,7 +69,7 @@ const defaultMultiParts: MultiPartFormPart[] = [
   { prompt: '', answersInput: '', imagePreview: '' },
 ];
 
-export default function QuestionsTab({ tags, onRefreshTags, onRefreshQuestions }: QuestionsTabProps) {
+export default function QuestionsTab({ tags, questions, onRefreshTags, onRefreshQuestions }: QuestionsTabProps) {
   const { toast } = useToast();
 
   const [tagQuery, setTagQuery] = useState('');
@@ -553,6 +559,10 @@ Answer B`}
           </Button>
         </div>
       </form>
+
+      <div className="mt-10 border-t border-gray-100 pt-8 dark:border-gray-800">
+        <QuestionsTable questions={questions} />
+      </div>
     </GenericCard>
   );
 }

@@ -5,7 +5,8 @@ import { useMemo, useState } from 'react';
 import GenericCard from '@/components/shared/generic-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { CreatePackPayload, TriviaQuestion } from '@/types/trivia';
+import type { CreatePackPayload, TriviaPack, TriviaQuestion } from '@/types/trivia';
+import { PacksTable } from '@/components/admin/packs-table';
 
 const cardMotion = {
   initial: { opacity: 0, y: 16 },
@@ -26,10 +27,12 @@ interface PackFormState {
 
 interface PacksTabProps {
   questions: TriviaQuestion[];
+  packs: TriviaPack[];
   onRefreshQuestions: () => Promise<void>;
+  onRefreshPacks: () => Promise<void>;
 }
 
-export default function PacksTab({ questions, onRefreshQuestions }: PacksTabProps) {
+export default function PacksTab({ questions, packs, onRefreshQuestions, onRefreshPacks }: PacksTabProps) {
   const { toast } = useToast();
 
   const [isSubmittingPack, setIsSubmittingPack] = useState(false);
@@ -88,7 +91,7 @@ export default function PacksTab({ questions, onRefreshQuestions }: PacksTabProp
       });
 
       setPackForm({ name: '', description: '', selectedQuestionIds: [], imagePreview: '' });
-      await onRefreshQuestions();
+      await Promise.all([onRefreshQuestions(), onRefreshPacks()]);
     } catch (error: any) {
       toast({
         title: 'Could not save pack',
@@ -209,6 +212,10 @@ export default function PacksTab({ questions, onRefreshQuestions }: PacksTabProp
           </Button>
         </div>
       </form>
+
+      <div className="mt-10 border-t border-gray-100 pt-8 dark:border-gray-800">
+        <PacksTable packs={packs} />
+      </div>
     </GenericCard>
   );
 }
