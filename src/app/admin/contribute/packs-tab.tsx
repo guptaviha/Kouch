@@ -23,6 +23,7 @@ interface PackFormState {
   description: string;
   selectedQuestionIds: number[];
   imagePreview: string;
+  imageUploadUrl: string;
 }
 
 interface PacksTabProps {
@@ -41,6 +42,7 @@ export default function PacksTab({ questions, packs, onRefreshQuestions, onRefre
     description: '',
     selectedQuestionIds: [],
     imagePreview: '',
+    imageUploadUrl: '',
   });
 
   const displayQuestions = useMemo(() => {
@@ -63,16 +65,16 @@ export default function PacksTab({ questions, packs, onRefreshQuestions, onRefre
     setIsSubmittingPack(true);
 
     try {
+      if (!packForm.imageUploadUrl) {
+        throw new Error('A pack image is required. Please upload one.');
+      }
+
       const payload: CreatePackPayload = {
         name: packForm.name.trim(),
         description: packForm.description.trim() || null,
         question_ids: packForm.selectedQuestionIds,
+        image_url: packForm.imageUploadUrl,
       };
-
-      if (packForm.imagePreview) {
-        // Placeholder until pack images are persisted server-side
-        payload.image_url = packForm.imagePreview;
-      }
 
       const response = await fetch('/api/admin/trivia/packs', {
         method: 'POST',
@@ -90,7 +92,7 @@ export default function PacksTab({ questions, packs, onRefreshQuestions, onRefre
         description: 'Questions have been linked to this pack.',
       });
 
-      setPackForm({ name: '', description: '', selectedQuestionIds: [], imagePreview: '' });
+      setPackForm({ name: '', description: '', selectedQuestionIds: [], imagePreview: '', imageUploadUrl: '' });
       await Promise.all([onRefreshQuestions(), onRefreshPacks()]);
     } catch (error: any) {
       toast({
@@ -141,21 +143,25 @@ export default function PacksTab({ questions, packs, onRefreshQuestions, onRefre
           <label className={labelClass}>Pack image</label>
           <div className="flex items-center gap-3">
             <input
+              required
               type="file"
               accept="image/*"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (!file) {
-                  setPackForm((prev) => ({ ...prev, imagePreview: '' }));
+                  setPackForm((prev) => ({ ...prev, imagePreview: '', imageUploadUrl: '' }));
                   return;
                 }
                 const preview = URL.createObjectURL(file);
-                setPackForm((prev) => ({ ...prev, imagePreview: preview }));
+                // Pick a random placeholder URL until S3 is wired
+                const placeholders = ['/Trivia-Default.png'];
+                const selectedUrl = placeholders[Math.floor(Math.random() * placeholders.length)];
+                setPackForm((prev) => ({ ...prev, imagePreview: preview, imageUploadUrl: selectedUrl }));
               }}
               className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 dark:text-gray-200"
             />
             {packForm.imagePreview && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => setPackForm((prev) => ({ ...prev, imagePreview: '' }))}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPackForm((prev) => ({ ...prev, imagePreview: '', imageUploadUrl: '' }))}>
                 Remove
               </Button>
             )}

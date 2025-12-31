@@ -13,6 +13,10 @@ function sanitizeName(name?: string): string {
   return (name ?? '').trim();
 }
 
+function sanitizeImageUrl(url?: string): string {
+  return (url ?? '').trim();
+}
+
 function sanitizeQuestionIds(ids?: number[]): number[] {
   return Array.from(new Set((ids ?? []).map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)));
 }
@@ -50,10 +54,15 @@ export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as CreatePackPayload;
     const name = sanitizeName(payload.name);
+    const imageUrl = sanitizeImageUrl(payload.image_url);
     const questionIds = sanitizeQuestionIds(payload.question_ids);
 
     if (!name) {
       return badRequest('Pack name is required');
+    }
+
+    if (!imageUrl) {
+      return badRequest('Pack image_url is required');
     }
 
     if (questionIds.length === 0) {
@@ -70,10 +79,10 @@ export async function POST(request: NextRequest) {
 
     const pack = await withTransaction(async (tx) => {
       const [created] = (await tx`
-        INSERT INTO trivia_packs (name, description)
-        VALUES (${name}, ${payload.description ?? null})
-        ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, updated_at = now()
-        RETURNING id, name, description, user_id, created_at, updated_at;
+        INSERT INTO trivia_packs (name, description, image_url)
+        VALUES (${name}, ${payload.description ?? null}, ${imageUrl})
+        ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, image_url = EXCLUDED.image_url, updated_at = now()
+        RETURNING id, name, description, image_url, user_id, created_at, updated_at;
       `) as unknown as TriviaPack[];
 
       for (const [position, questionId] of questionIds.entries()) {

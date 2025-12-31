@@ -38,6 +38,7 @@ export interface TriviaPack {
   id: number;
   name: string;
   description: string | null;
+  image_url: string;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -69,5 +70,5 @@ export interface CreatePackPayload {
   name: string;
   description?: string | null;
   question_ids: number[];
-  image_url?: string | null;
+  image_url: string;
 }

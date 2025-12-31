@@ -40,6 +40,21 @@ export function PacksTable({ packs }: PacksTableProps) {
                 ),
             },
             {
+                id: "image",
+                header: "Image",
+                cell: ({ row }) => {
+                    const src = row.original.image_url;
+                    if (!src) return <span className="text-muted-foreground">-</span>;
+                    return (
+                        <img
+                            src={src}
+                            alt={`Pack ${row.original.name}`}
+                            className="h-10 w-10 rounded-md object-cover"
+                        />
+                    );
+                }
+            },
+            {
                 accessorKey: "description",
                 header: "Description",
                 cell: ({ row }) => (
