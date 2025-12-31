@@ -4,6 +4,15 @@ This document describes the critical business logic and flow for the Kouch app, 
 
 ---
 
+## Table of Contents
+- [1. Room Management](#1-room-management)
+- [2. Trivia Scoring](#2-trivia-scoring)
+- [3. Rebus Scoring](#3-rebus-scoring)
+- [4. User Journey](#4-user-journey)
+- [5. Trivia Content Contribution](#5-trivia-content-contribution)
+
+---
+
 ## 1. Room Management
 
 ### Overview
@@ -244,6 +253,17 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 - Server broadcasts relevant updates to host and other players in real-time
 - Leaderboard updates immediately after each round scores are calculated
 - Player states (idle, active, waiting, answered, used_hint, answered_with_hint) are reflected visually on host
+
+---
+
+## 5. Trivia Content Contribution
+
+- Admin-only flow at `/admin/contribute` creates trivia questions, tags, and packs without a separate trivia database.
+- Questions support `multiple_choice` (ordered choices with a single correct index), `open_ended` (multiple accepted answers), and `multi_part` (2-4 parts, each with its own prompt, accepted answers, and optional image). Clues remain optional; labels were removed.
+- Each question has a `difficulty` slider (1-5, default 3) and an optional image at the question level. Images selected in the UI are stored with a placeholder URL until S3 upload is implemented.
+- Tags are suggested from existing entries; new tags entered on a question are auto-created and attached. Tags are normalized to lowercase for reuse.
+- Packs are ordered sets of questions; at least one question is required when creating a pack so hosts can run complete rounds.
+- Every record (tags, questions, packs, and their links) carries `created_at`, `updated_at`, and `user_id` metadata, defaulting to `admin` for now.
 
 ---
 
