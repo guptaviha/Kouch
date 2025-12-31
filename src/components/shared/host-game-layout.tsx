@@ -51,12 +51,8 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
   useQRGenerator(roomCode);
 
-  // Validate game parameter
-  useEffect(() => {
-    if (game !== 'rebus' && game !== 'trivia') {
-      router.push('/');
-    }
-  }, [game, router]);
+  // We allow the game to start and let the server/API handle validation if needed.
+  // Previously this blocked anything other than 'rebus' or 'trivia'.
 
   // Set selected pack based on URL game parameter
   useEffect(() => {
@@ -66,11 +62,11 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   }, [game, selectedPack, setSelectedPack]);
 
   // Redirect if pack changes unexpectedly
-  useEffect(() => {
-    if (selectedPack && selectedPack !== game) {
-      router.push(`/host/${selectedPack}`);
-    }
-  }, [selectedPack, game, router]);
+  // useEffect(() => {
+  //   if (selectedPack && selectedPack !== game) {
+  //     router.push(`/host/${selectedPack}`);
+  //   }
+  // }, [selectedPack, game, router]);
 
   useEffect(() => {
     connect(SERVER);

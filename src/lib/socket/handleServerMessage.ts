@@ -71,6 +71,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
           resetStateForNewRoom();
         }
         if (msg.pack && isValidGame(msg.pack)) {
+          console.log('Setting selected pack', msg.pack);
           setSelectedPack?.(msg.pack as GamePack);
         }
         setRoomCode?.(msg.roomCode);

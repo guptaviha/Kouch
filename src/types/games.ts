@@ -2,13 +2,11 @@
  * Shared game types - single source of truth for valid games
  */
 
-export const VALID_GAMES = ['rebus', 'trivia'] as const;
-
-export type GamePack = typeof VALID_GAMES[number];
+export type GamePack = string;
 
 /**
- * Type guard to check if a string is a valid game
+ * Type guard to check if a string is a valid game - for now accepts any string as we have dynamic packs
  */
 export function isValidGame(value: unknown): value is GamePack {
-  return typeof value === 'string' && VALID_GAMES.includes(value as GamePack);
+  return typeof value === 'string' && value.length > 0;
 }

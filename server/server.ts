@@ -19,6 +19,10 @@ Server emits 'server' events to clients with payloads containing `type`.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
+import { PackService } from '../src/services/pack-service';
+
+// DB pool is managed by PackService/Neon lib now
+// const pool = new Pool(...);
 
 import type {
   ClientMessage,
@@ -36,6 +40,13 @@ type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, Socke
 interface SubmittedAnswer {
   answer: string;
   timeTaken: number;
+}
+
+interface ServerQuestion {
+  question: string;
+  answers: string[];
+  image?: string;
+  hint?: string;
 }
 
 interface Player {
@@ -63,6 +74,7 @@ interface Room {
   roundIndex: number;
   roundStart?: number;
   timers: { round?: NodeJS.Timeout; next?: NodeJS.Timeout };
+  questions: ServerQuestion[];
   // pause support
   paused?: boolean;
   nextTimerEndsAt?: number | null;
@@ -88,17 +100,16 @@ const server = http.createServer((req, res) => {
 });
 
 // Hardcoded questions (3 rounds)
-// Hardcoded questions (3 rounds)
-const PACKS: Record<string, { question: string; answer: string; image?: string; hint?: string }[]> = {
-  trivia: [
-    { question: 'What is the capital of France?', answer: 'paris' },
-    { question: 'What is 5 + 7?', answer: '12' },
-    { question: 'Which planet is known as the Red Planet?', answer: 'mars' },
+const PACKS: Record<string, ServerQuestion[]> = {
+  1: [
+    { question: 'What is the capital of France?', answers: ['paris'] },
+    { question: 'What is 5 + 7?', answers: ['12'] },
+    { question: 'Which planet is known as the Red Planet?', answers: ['mars'] },
   ],
   rebus: [
-    { question: 'Solve the rebus puzzle!', answer: 'starfish', image: '/rebus-1.png', hint: 'Celestial body + ocean creature' },
-    { question: 'Solve the rebus puzzle!', answer: 'buttercup', image: '/rebus-2.png', hint: 'Dairy product + drinking vessel' },
-    { question: 'Solve the rebus puzzle!', answer: 'fireman', image: '/rebus-3.png', hint: 'Hot element + human male' },
+    { question: 'Solve the rebus puzzle!', answers: ['starfish'], image: '/rebus-1.png', hint: 'Celestial body + ocean creature' },
+    { question: 'Solve the rebus puzzle!', answers: ['buttercup'], image: '/rebus-2.png', hint: 'Dairy product + drinking vessel' },
+    { question: 'Solve the rebus puzzle!', answers: ['fireman'], image: '/rebus-3.png', hint: 'Hot element + human male' },
   ]
 };
 
@@ -111,8 +122,7 @@ const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
 const rooms = new Map<string, Room>();
 
 function resolvePack(pack?: string) {
-  if (pack && PACKS[pack]) return pack;
-  return 'trivia';
+  return pack || 'trivia';
 }
 
 function findRoomByHostAndPack(hostId: string, pack: string) {
@@ -217,8 +227,8 @@ function leaderboardFor(room: Room) {
 // Begin a round, broadcast the question, and arm the round timer.
 function startRound(room: Room) {
   const currentRoundIndex = room.roundIndex;
-  const pack = PACKS[room.selectedPack] || PACKS['trivia'];
-  if (currentRoundIndex >= pack.length) {
+  const questions = room.questions;
+  if (!questions || currentRoundIndex >= questions.length) {
     room.state = 'finished';
     broadcast(room, { type: 'final_leaderboard', roomCode: room.code, leaderboard: leaderboardFor(room) });
     return;
@@ -233,15 +243,17 @@ function startRound(room: Room) {
   room.timerEndsAt = roundEnd;
   room.totalQuestionDuration = ROUND_DURATION_MS;
 
+  const q = questions[currentRoundIndex];
+
   // Players get state without hint initially
   broadcast(room, {
     type: 'game_state',
     state: 'playing',
     roomCode: room.code,
     roundIndex: currentRoundIndex,
-    question: pack[currentRoundIndex].question,
-    image: pack[currentRoundIndex].image, // send image URL if available
-    hint: pack[currentRoundIndex].hint, // Send hint data to client
+    question: q.question,
+    image: q.image, // send image URL if available
+    hint: q.hint, // Send hint data to client
     timerEndsAt: roundEnd,
     totalQuestionDuration: ROUND_DURATION_MS,
     answeredPlayers: [],
@@ -254,8 +266,12 @@ function startRound(room: Room) {
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
   const currentRoundIndex = room.roundIndex;
-  const pack = PACKS[room.selectedPack] || PACKS['trivia'];
-  const correctAnswer = pack[currentRoundIndex].answer.toLowerCase().trim();
+  const questions = room.questions;
+  if (!questions || !questions[currentRoundIndex]) return;
+
+  const correctAnswers = questions[currentRoundIndex].answers.map(a => a.toLowerCase().trim());
+  // Pick the first answer as the "display" answer
+  const displayAnswer = questions[currentRoundIndex].answers[0];
 
   const results: RoundResultEntry[] = [];
 
@@ -264,7 +280,8 @@ function endRound(room: Room) {
     const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
 
     if (submitted) {
-      const correct = submitted.answer.trim().toLowerCase() === correctAnswer;
+      const submittedText = submitted.answer.trim().toLowerCase();
+      const correct = correctAnswers.includes(submittedText);
       const timeTaken = submitted.timeTaken;
       let points = 0;
       let base = 0;
@@ -306,14 +323,14 @@ function endRound(room: Room) {
     results,
     leaderboard: leaderboardFor(room),
     // include the correct answer so hosts can display it
-    correctAnswer: pack[currentRoundIndex].answer,
+    correctAnswer: displayAnswer,
     nextTimerEndsAt: nextEndsAt,
     nextTimerDurationMs: BETWEEN_ROUND_MS,
   });
 
   room.roundIndex++;
 
-  if (room.roundIndex < pack.length) {
+  if (room.roundIndex < questions.length) {
     room.timers.next = setTimeout(() => startRound(room), BETWEEN_ROUND_MS);
   } else {
     room.timers.next = setTimeout(() => {
@@ -324,7 +341,8 @@ function endRound(room: Room) {
 }
 
 // Main message dispatcher for all client-to-server traffic.
-function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
+// Main message dispatcher for all client-to-server traffic.
+async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
   console.log('Received message:', msg);
   const messageObj = parseClientMessage(msg);
   if (!messageObj) {
@@ -345,6 +363,27 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     const hostId = messageObj.userId || makeId();
     const hostAvatar = messageObj.avatar || pickAvatar();
 
+    // Load questions
+    let questions: ServerQuestion[] = [];
+    if (PACKS[pack]) {
+      questions = PACKS[pack];
+    } else {
+      // Try fetching from DB
+      const packId = parseInt(pack, 10);
+      if (!isNaN(packId)) {
+        try {
+          questions = await PackService.getQuestionsForPack(packId);
+        } catch (e) {
+          console.error('Error fetching pack from DB:', e);
+        }
+      }
+    }
+
+    if (questions.length === 0) {
+      console.warn(`No questions found for pack ${pack}, defaulting to trivia`);
+      questions = PACKS['trivia'];
+    }
+
     const existingRoom = !isNewUser ? findRoomByHostAndPack(hostId, pack) : undefined;
 
     if (existingRoom) {
@@ -357,6 +396,9 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
       };
       existingRoom.hostId = hostId;
       existingRoom.host = { ...effectiveHost, socket };
+
+      // Update questions for existing room
+      existingRoom.questions = questions;
 
       socket.data = { roomCode: existingRoom.code, hostId };
 
@@ -373,6 +415,9 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
       });
       return;
     }
+
+
+
 
     const code = (() => {
       let newCode = genCode();
@@ -391,6 +436,7 @@ function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
       answers: new Map(),
       hintsUsed: new Set(),
       selectedPack: pack,
+      questions,
     };
 
     rooms.set(code, room);

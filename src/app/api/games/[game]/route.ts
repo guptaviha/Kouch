@@ -1,4 +1,6 @@
-import { getGameDetails } from '@/lib/games-data';
+import { GAMES_DATA } from '@/lib/games-data';
+import { mapPackToGame } from '@/lib/game-mapper';
+import { PackService } from '@/services/pack-service';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -6,11 +8,25 @@ export async function GET(
   { params }: { params: Promise<{ game: string }> }
 ) {
   const gameId = (await params).game;
-  const gameDetails = getGameDetails(gameId);
 
-  if (!gameDetails) {
+  // Handle static games first
+  if (gameId === 'rebus') {
+    return NextResponse.json(GAMES_DATA.rebus);
+  }
+
+  // Handle dynamic packs
+  const packId = Number(gameId);
+  if (isNaN(packId)) {
     return NextResponse.json({ error: 'Game not found' }, { status: 404 });
   }
+
+  const pack = await PackService.getPackById(packId);
+
+  if (!pack) {
+    return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+  }
+
+  const gameDetails = mapPackToGame(pack);
 
   return NextResponse.json(gameDetails);
 }
