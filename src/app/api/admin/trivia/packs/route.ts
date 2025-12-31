@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
       return badRequest('At least one question_id is required to create a pack');
     }
 
-    const existing = (await sql`SELECT id FROM trivia_questions WHERE id = ANY(${questionIds});`) as Array<{ id: number }>;
-    const existingIds = existing.map((row) => row.id);
+    const existing = (await sql`SELECT id FROM trivia_questions WHERE id = ANY(${questionIds}::int[]);`) as Array<{ id: number | string }>;
+    const existingIds = existing.map((row) => Number(row.id));
     const missing = questionIds.filter((id) => !existingIds.includes(id));
 
     if (missing.length > 0) {
