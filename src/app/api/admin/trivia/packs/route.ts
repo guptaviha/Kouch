@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         p.id,
         p.name,
         p.description,
+        p.image_url,
         p.user_id,
         p.created_at,
         p.updated_at,

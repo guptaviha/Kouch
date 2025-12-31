@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import {
     ColumnDef,
     flexRender,
@@ -78,6 +79,17 @@ export function PacksTable({ packs }: PacksTableProps) {
                 cell: ({ row }) => {
                     return new Date(row.getValue("updated_at")).toLocaleDateString();
                 }
+            },
+            {
+                id: "actions",
+                header: "Actions",
+                cell: ({ row }) => (
+                    <div className="flex justify-end">
+                        <Link href={`/admin/contribute/pack/${row.original.id}`}>
+                            <Button variant="outline" size="sm">Edit</Button>
+                        </Link>
+                    </div>
+                )
             },
         ],
         []
