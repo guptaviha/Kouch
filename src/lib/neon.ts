@@ -1,4 +1,5 @@
-import { Pool, PoolClient } from '@neondatabase/serverless';
+import { Pool } from '@neondatabase/serverless';
+import type { PoolClient } from '@neondatabase/serverless';
 
 const connectionString = process.env.NEXT_PUBLIC_NEON_URL;
 

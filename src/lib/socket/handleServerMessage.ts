@@ -199,6 +199,19 @@ export default function serverMessageHandler(msg: ServerMessage) {
         setRoundResults?.({ final: msg.leaderboard });
         break;
 
+      case 'room_closed': {
+        resetStateForNewRoom();
+        setRoomCode?.(null);
+        setSelectedPack?.(null);
+        const reason = msg.reason || 'The host closed the room.';
+        toast({
+          variant: 'destructive',
+          title: 'Room closed',
+          description: reason,
+        });
+        break;
+      }
+
       case 'game_paused':
         setPaused?.(true);
         if (typeof msg.pauseRemainingMs === 'number') {

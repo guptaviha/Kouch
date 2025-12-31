@@ -25,6 +25,7 @@ export type ClientMessage =
   | { type: 'fetch_room_for_game'; name?: string; pack?: string; userId?: string; avatar?: string }
   | { type: 'join'; roomCode: string; name?: string; userId?: string; avatar?: string }
   | { type: 'start_game'; roomCode: string; playerId: string }
+  | { type: 'close_room'; roomCode: string }
   | { type: 'pause_game' }
   | { type: 'resume_game' }
   | { type: 'submit_answer'; roomCode: string; playerId: string; answer: string }
@@ -60,6 +61,7 @@ export type ServerMessage =
     nextTimerDurationMs: number;
   }
   | { type: 'final_leaderboard'; roomCode: string; leaderboard: PlayerWire[] }
+  | { type: 'room_closed'; roomCode: string; reason?: string }
   | { type: 'game_paused'; roomCode: string; pauseRemainingMs: number }
   | { type: 'game_resumed'; roomCode: string; nextTimerEndsAt: number }
   | { type: 'timer_updated'; roomCode: string; timerEndsAt: number; totalQuestionDuration: number }

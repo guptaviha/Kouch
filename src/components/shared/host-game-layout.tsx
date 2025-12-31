@@ -15,6 +15,8 @@ import HostFinishedView from '@/components/host/host-finished-view';
 import PausedOverlay from '@/components/shared/paused-overlay';
 import { useQRGenerator } from '@/hooks/useQRGenerator';
 import serverMessageHandler from '@/lib/socket/handleServerMessage';
+import { Button } from '@/components/ui/button';
+import { FaDoorClosed } from 'react-icons/fa';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -120,6 +122,11 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     emit('message', { type: 'fetch_room_for_game', name: 'Host', pack: game });
   };
 
+  const closeRoom = () => {
+    if (!roomCode) return;
+    emit('message', { type: 'close_room', roomCode });
+  };
+
   useEffect(() => {
     console.log('game, roomCode', game, roomCode);
     if (game && !roomCode) {
@@ -136,8 +143,20 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       className="min-h-[calc(100vh-7rem)] mt-20 w-full relative"
     >
       <Header roomCode={roomCode} avatarKey={profile?.avatar} name={profile?.name ?? null} role="host" roomState={state} />
-
-      <div className="mb-4"></div>
+      {roomCode && state !== 'lobby' && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={closeRoom}
+            title="End game"
+            aria-label="End game"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            <FaDoorClosed className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
 
       {/* <PausedOverlay isPaused={paused} onResume={resumeGame} /> */}
 

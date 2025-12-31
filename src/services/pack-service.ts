@@ -1,5 +1,5 @@
-import { getSqlClient } from '@/lib/neon';
-import type { TriviaPack } from '@/types/trivia';
+import { getSqlClient } from '../lib/neon.ts';
+import type { TriviaPack } from '../types/trivia.ts';
 
 const sql = getSqlClient();
 

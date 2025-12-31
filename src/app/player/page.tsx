@@ -139,7 +139,7 @@ export default function PlayerPage() {
       />
 
 
-      {/* <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} /> */}
+      <PausedOverlay isPaused={paused} title="Game Paused" message={pausedMessage} />
 
       {!joined ? (
         <PlayerJoinView />

@@ -19,7 +19,7 @@ Server emits 'server' events to clients with payloads containing `type`.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
-import { PackService } from '../src/services/pack-service';
+import { PackService } from '../src/services/pack-service.ts';
 
 // DB pool is managed by PackService/Neon lib now
 // const pool = new Pool(...);
@@ -101,11 +101,6 @@ const server = http.createServer((req, res) => {
 
 // Hardcoded questions (3 rounds)
 const PACKS: Record<string, ServerQuestion[]> = {
-  1: [
-    { question: 'What is the capital of France?', answers: ['paris'] },
-    { question: 'What is 5 + 7?', answers: ['12'] },
-    { question: 'Which planet is known as the Red Planet?', answers: ['mars'] },
-  ],
   rebus: [
     { question: 'Solve the rebus puzzle!', answers: ['starfish'], image: '/rebus-1.png', hint: 'Celestial body + ocean creature' },
     { question: 'Solve the rebus puzzle!', answers: ['buttercup'], image: '/rebus-2.png', hint: 'Dairy product + drinking vessel' },
@@ -122,7 +117,7 @@ const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
 const rooms = new Map<string, Room>();
 
 function resolvePack(pack?: string) {
-  return pack || 'trivia';
+  return pack || 'rebus';
 }
 
 function findRoomByHostAndPack(hostId: string, pack: string) {
@@ -380,8 +375,8 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     }
 
     if (questions.length === 0) {
-      console.warn(`No questions found for pack ${pack}, defaulting to trivia`);
-      questions = PACKS['trivia'];
+      console.warn(`No questions found for pack ${pack}, defaulting to rebus`);
+      questions = PACKS['rebus'];
     }
 
     const existingRoom = !isNewUser ? findRoomByHostAndPack(hostId, pack) : undefined;
@@ -534,6 +529,32 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     }
     room.roundIndex = 0;
     startRound(room);
+    return;
+  }
+
+  if (msgType === 'close_room') {
+    const meta = (socket.data || {}) as { roomCode?: string; hostId?: string };
+    const targetRoomCode = messageObj.roomCode || meta.roomCode;
+    const room = targetRoomCode ? rooms.get(targetRoomCode) : null;
+    if (!room) {
+      send(socket, { type: 'error', message: 'room not found' });
+      return;
+    }
+
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can close room' });
+      return;
+    }
+
+    try {
+      broadcast(room, { type: 'room_closed', roomCode: room.code, reason: 'Host closed the room' });
+    } catch (e) {
+      // ignore
+    }
+
+    if (room.timers.round) { clearTimeout(room.timers.round); }
+    if (room.timers.next) { clearTimeout(room.timers.next); }
+    rooms.delete(room.code);
     return;
   }
 
