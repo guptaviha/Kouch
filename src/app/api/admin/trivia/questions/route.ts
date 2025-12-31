@@ -5,7 +5,6 @@ import type {
   CreateQuestionPayload,
   QuestionType,
   TriviaQuestion,
-  TriviaMultiPart,
   TriviaTag,
 } from '@/types/trivia';
 
@@ -26,21 +25,8 @@ function cleanStrings(values?: string[], toLower = false): string[] {
   return Array.from(new Set(cleaned));
 }
 
-function validatePayload(payload: CreateQuestionPayload): { error: string } | { prompt: string } {
-  const prompt = (payload.prompt ?? '').trim();
-  if (prompt.length < 5) {
-    return { error: 'Question prompt must be at least 5 characters long' };
-  }
-
-  if (
-    payload.question_type !== 'multiple_choice' &&
-    payload.question_type !== 'open_ended' &&
-    payload.question_type !== 'multi_part'
-  ) {
-    return { error: 'Invalid question_type. Use multiple_choice, open_ended, or multi_part' };
-  }
-
-  return { prompt };
+function validateQuestionType(type: string): type is QuestionType {
+  return type === 'multiple_choice' || type === 'open_ended' || type === 'multi_part';
 }
 
 async function upsertTags(
@@ -76,6 +62,8 @@ export async function GET(request: NextRequest) {
           q.id,
           q.prompt,
           q.question_type,
+          q.prompts,
+          q.prompt_images,
           q.difficulty,
           q.clues,
           q.image_url,
@@ -114,6 +102,8 @@ export async function GET(request: NextRequest) {
           q.id,
           q.prompt,
           q.question_type,
+          q.prompts,
+          q.prompt_images,
           q.difficulty,
           q.clues,
           q.image_url,
@@ -150,10 +140,6 @@ export async function GET(request: NextRequest) {
     const questions: TriviaQuestion[] = rows.map((row: any) => ({
       ...row,
       tags: (row.tags as TriviaTag[]) ?? [],
-      multi_parts:
-        typeof row.multi_parts === 'string'
-          ? (JSON.parse(row.multi_parts) as TriviaMultiPart[])
-          : (row.multi_parts as TriviaMultiPart[] | null),
     }));
 
     return NextResponse.json(questions);
@@ -166,9 +152,30 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as CreateQuestionPayload;
-    const validation = validatePayload(payload);
-    if ('error' in validation) {
-      return badRequest(validation.error);
+
+    if (!validateQuestionType(payload.question_type)) {
+      return badRequest('Invalid question_type. Use multiple_choice, open_ended, or multi_part');
+    }
+
+    const promptsRaw = Array.isArray(payload.prompts) ? payload.prompts : [];
+    const promptImagesRaw = Array.isArray(payload.prompt_images) ? payload.prompt_images : [];
+
+    const prompts = promptsRaw.map((p) => (p ?? '').trim()).filter((p) => p.length > 0);
+    if (prompts.length === 0) {
+      return badRequest('At least one prompt is required');
+    }
+
+    const promptImages = prompts.map((_, index) => {
+      const img = promptImagesRaw[index];
+      return img ? PLACEHOLDER_IMAGE_URL : null;
+    });
+
+    if (payload.question_type === 'multi_part' && (prompts.length < 2 || prompts.length > 4)) {
+      return badRequest('Multi-part questions need between 2 and 4 prompts');
+    }
+
+    if (payload.question_type !== 'multi_part' && prompts.length !== 1) {
+      return badRequest('This question type requires exactly one prompt');
     }
 
     const difficulty = Number.isInteger(payload.difficulty)
@@ -179,13 +186,12 @@ export async function POST(request: NextRequest) {
     const tagNames = cleanStrings(payload.tag_names, true);
     const questionType: QuestionType = payload.question_type;
 
-    const baseImageRequested = Boolean(payload.image_url);
-    const imageUrl = baseImageRequested ? PLACEHOLDER_IMAGE_URL : null;
+    const basePrompt = prompts[0];
+    const imageUrl = promptImages[0] ?? null;
 
     let choices: string[] | null = null;
     let correctChoiceIndex: number | null = null;
     let correctAnswers: string[] | null = null;
-    let multiParts: TriviaMultiPart[] | null = null;
 
     if (questionType === 'multiple_choice') {
       choices = cleanStrings(payload.choices ?? []);
@@ -198,45 +204,19 @@ export async function POST(request: NextRequest) {
         return badRequest('correct_choice_index must point to one of the provided options');
       }
       correctChoiceIndex = suppliedIndex;
-    } else if (questionType === 'open_ended') {
+    } else {
       correctAnswers = cleanStrings(payload.correct_answers ?? [], true);
       if (correctAnswers.length === 0) {
-        return badRequest('Open ended questions need at least one accepted answer');
+        return badRequest('Open ended and multi-part questions need at least one accepted answer');
       }
-    } else {
-      const parts = Array.isArray(payload.multi_parts) ? payload.multi_parts : [];
-      if (parts.length < 2 || parts.length > 4) {
-        return badRequest('Multi-part questions need between 2 and 4 parts');
-      }
-
-      const builtParts: TriviaMultiPart[] = [];
-      for (const [index, part] of parts.entries()) {
-        const prompt = (part.prompt ?? '').trim();
-        if (prompt.length < 3) {
-          return badRequest(`Part ${index + 1} prompt must be at least 3 characters`);
-        }
-
-        const answers = cleanStrings(part.correct_answers, true);
-        if (answers.length === 0) {
-          return badRequest(`Part ${index + 1} needs at least one accepted answer`);
-        }
-
-        const partImageUrl = part.image_url ? PLACEHOLDER_IMAGE_URL : null;
-
-        builtParts.push({
-          prompt,
-          correct_answers: answers,
-          image_url: partImageUrl,
-        });
-      }
-
-      multiParts = builtParts;
     }
 
     const question = await withTransaction(async (tx) => {
       const [created] = (await tx`
         INSERT INTO trivia_questions (
           prompt,
+          prompts,
+          prompt_images,
           question_type,
           difficulty,
           clues,
@@ -246,7 +226,9 @@ export async function POST(request: NextRequest) {
           correct_answers,
           multi_parts
         ) VALUES (
-          ${validation.prompt},
+          ${basePrompt},
+          ${prompts},
+          ${promptImages},
           ${questionType},
           ${difficulty},
           ${clues},
@@ -254,9 +236,9 @@ export async function POST(request: NextRequest) {
           ${choices},
           ${correctChoiceIndex},
           ${correctAnswers},
-          ${multiParts ? JSON.stringify(multiParts) : null}
+          ${null}
         )
-        RETURNING id, prompt, question_type, difficulty, clues, image_url, choices, correct_choice_index, correct_answers, multi_parts, user_id, created_at, updated_at;
+        RETURNING id, prompt, prompts, prompt_images, question_type, difficulty, clues, image_url, choices, correct_choice_index, correct_answers, multi_parts, user_id, created_at, updated_at;
       `) as unknown as TriviaQuestion[];
 
       const tags = await upsertTags(tx, tagNames);

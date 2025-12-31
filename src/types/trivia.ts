@@ -18,6 +18,8 @@ export interface TriviaTag {
 export interface TriviaQuestion {
   id: number;
   prompt: string;
+  prompts: string[];
+  prompt_images: Array<string | null>;
   question_type: QuestionType;
   difficulty: number;
   clues: string[];
@@ -49,7 +51,9 @@ export interface CreateTagPayload {
 }
 
 export interface CreateQuestionPayload {
-  prompt: string;
+  prompt?: string;
+  prompts: string[];
+  prompt_images?: Array<string | null>;
   question_type: QuestionType;
   difficulty?: number;
   clues?: string[];

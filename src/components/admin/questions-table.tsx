@@ -69,10 +69,8 @@ export function QuestionsTable({ questions }: QuestionsTableProps) {
                     let answerText = '';
                     if (q.question_type === 'multiple_choice' && q.choices && q.correct_choice_index !== null) {
                         answerText = q.choices[q.correct_choice_index];
-                    } else if (q.question_type === 'open_ended' && q.correct_answers) {
+                    } else if ((q.question_type === 'open_ended' || q.question_type === 'multi_part') && q.correct_answers) {
                         answerText = q.correct_answers.join(', ');
-                    } else if (q.question_type === 'multi_part' && q.multi_parts) {
-                        answerText = q.multi_parts.map(p => p.correct_answers.join('|')).join(', ');
                     }
 
                     return (

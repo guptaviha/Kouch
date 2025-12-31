@@ -2,16 +2,11 @@
 
 import { useMemo, useState } from 'react';
 
+import { QuestionsTable } from '@/components/admin/questions-table';
 import GenericCard from '@/components/shared/generic-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type {
-  CreateQuestionPayload,
-  QuestionType,
-  TriviaMultiPart,
-  TriviaTag,
-  TriviaQuestion,
-} from '@/types/trivia';
+import type { CreateQuestionPayload, QuestionType, TriviaQuestion, TriviaTag } from '@/types/trivia';
 
 const cardMotion = {
   initial: { opacity: 0, y: 16 },
@@ -34,8 +29,6 @@ function lowercaseUnique(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.toLowerCase())));
 }
 
-import { QuestionsTable } from '@/components/admin/questions-table'; // Added import
-
 interface QuestionsTabProps {
   tags: TriviaTag[];
   questions: TriviaQuestion[];
@@ -43,16 +36,13 @@ interface QuestionsTabProps {
   onRefreshQuestions: () => Promise<void>;
 }
 
-// ... existing interfaces ...
-
-interface MultiPartFormPart {
+interface PromptInput {
   prompt: string;
-  answersInput: string;
   imagePreview: string;
 }
 
 interface QuestionFormState {
-  prompt: string;
+  prompts: PromptInput[];
   question_type: QuestionType;
   difficulty: number;
   cluesInput: string;
@@ -60,14 +50,9 @@ interface QuestionFormState {
   correct_choice_index: number;
   correctAnswersInput: string;
   tagInput: string;
-  imagePreview: string;
-  multiParts: MultiPartFormPart[];
 }
 
-const defaultMultiParts: MultiPartFormPart[] = [
-  { prompt: '', answersInput: '', imagePreview: '' },
-  { prompt: '', answersInput: '', imagePreview: '' },
-];
+const defaultPrompts: PromptInput[] = [{ prompt: '', imagePreview: '' }];
 
 export default function QuestionsTab({ tags, questions, onRefreshTags, onRefreshQuestions }: QuestionsTabProps) {
   const { toast } = useToast();
@@ -77,7 +62,7 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
 
   const [questionForm, setQuestionForm] = useState<QuestionFormState>({
-    prompt: '',
+    prompts: defaultPrompts,
     question_type: 'multiple_choice',
     difficulty: 3,
     cluesInput: '',
@@ -85,8 +70,6 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
     correct_choice_index: 0,
     correctAnswersInput: '',
     tagInput: '',
-    imagePreview: '',
-    multiParts: defaultMultiParts,
   });
 
   const filteredTagSuggestions = useMemo(() => {
@@ -126,48 +109,36 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
     });
   }
 
-  function handleAddMultiPart() {
+  function handleAddPrompt() {
     setQuestionForm((prev) => {
-      if (prev.multiParts.length >= 4) return prev;
-      return {
-        ...prev,
-        multiParts: [...prev.multiParts, { prompt: '', answersInput: '', imagePreview: '' }],
-      };
+      if (prev.prompts.length >= 4) return prev;
+      return { ...prev, prompts: [...prev.prompts, { prompt: '', imagePreview: '' }] };
     });
   }
 
-  function handleRemoveMultiPart(index: number) {
+  function handleRemovePrompt(index: number) {
     setQuestionForm((prev) => {
-      if (prev.multiParts.length <= 2) return prev;
-      const nextParts = prev.multiParts.filter((_, i) => i !== index);
-      return { ...prev, multiParts: nextParts };
+      if (prev.prompts.length <= 1) return prev;
+      const nextPrompts = prev.prompts.filter((_, i) => i !== index);
+      return { ...prev, prompts: nextPrompts };
     });
   }
 
-  function handleMultiPartChange(index: number, key: keyof MultiPartFormPart, value: string) {
+  function handlePromptChange(index: number, value: string) {
     setQuestionForm((prev) => {
-      const nextParts = [...prev.multiParts];
-      nextParts[index] = { ...nextParts[index], [key]: value };
-      return { ...prev, multiParts: nextParts };
+      const nextPrompts = [...prev.prompts];
+      nextPrompts[index] = { ...nextPrompts[index], prompt: value };
+      return { ...prev, prompts: nextPrompts };
     });
   }
 
-  function handleImageSelect(file?: File | null) {
-    if (!file) {
-      setQuestionForm((prev) => ({ ...prev, imagePreview: '' }));
-      return;
-    }
-    const preview = URL.createObjectURL(file);
-    setQuestionForm((prev) => ({ ...prev, imagePreview: preview }));
-  }
-
-  function handleMultiPartImageSelect(index: number, file?: File | null) {
-    if (!file) {
-      handleMultiPartChange(index, 'imagePreview', '');
-      return;
-    }
-    const preview = URL.createObjectURL(file);
-    handleMultiPartChange(index, 'imagePreview', preview);
+  function handlePromptImageSelect(index: number, file?: File | null) {
+    setQuestionForm((prev) => {
+      const nextPrompts = [...prev.prompts];
+      const imagePreview = file ? URL.createObjectURL(file) : '';
+      nextPrompts[index] = { ...nextPrompts[index], imagePreview };
+      return { ...prev, prompts: nextPrompts };
+    });
   }
 
   async function handleCreateQuestion(event: React.FormEvent) {
@@ -175,17 +146,36 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
     setIsSubmittingQuestion(true);
 
     try {
+      let prompts = questionForm.prompts.map((p) => p.prompt.trim());
+      if (questionForm.question_type !== 'multi_part') {
+        prompts = [prompts[0] ?? ''];
+      }
+
+      if (prompts.some((prompt) => prompt.length < 3)) {
+        throw new Error('Each prompt must be at least 3 characters.');
+      }
+
+      if (questionForm.question_type === 'multi_part' && (prompts.length < 2 || prompts.length > 4)) {
+        throw new Error('Multi-part questions need between 2 and 4 prompts.');
+      }
+
+      if (questionForm.question_type !== 'multi_part' && prompts.length !== 1) {
+        throw new Error('This question type requires exactly one prompt.');
+      }
+
+      let promptImages = questionForm.prompts.map((p) => (p.imagePreview ? p.imagePreview : null));
+      if (questionForm.question_type !== 'multi_part') {
+        promptImages = [promptImages[0] ?? null];
+      }
+
       const payload: CreateQuestionPayload = {
-        prompt: questionForm.prompt.trim(),
+        prompts,
+        prompt_images: promptImages,
         question_type: questionForm.question_type,
         difficulty: questionForm.difficulty,
         clues: parseLines(questionForm.cluesInput),
         tag_names: lowercaseUnique(selectedTags),
       };
-
-      if (questionForm.imagePreview) {
-        payload.image_url = questionForm.imagePreview;
-      }
 
       if (questionForm.question_type === 'multiple_choice') {
         const trimmedChoices = questionForm.choices
@@ -200,31 +190,11 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
 
         payload.choices = trimmedChoices;
         payload.correct_choice_index = boundedIndex;
-      } else if (questionForm.question_type === 'open_ended') {
+      } else {
         payload.correct_answers = parseLines(questionForm.correctAnswersInput);
         if ((payload.correct_answers?.length ?? 0) === 0) {
           throw new Error('Add at least one accepted answer.');
         }
-      } else {
-        const parts: TriviaMultiPart[] = questionForm.multiParts.map((part) => ({
-          prompt: part.prompt.trim(),
-          correct_answers: parseLines(part.answersInput),
-          image_url: part.imagePreview || null,
-        }));
-
-        if (parts.length < 2 || parts.length > 4) {
-          throw new Error('Multi-part questions need 2 to 4 parts.');
-        }
-
-        if (parts.some((part) => part.prompt.length < 3)) {
-          throw new Error('Each part needs a prompt of at least 3 characters.');
-        }
-
-        if (parts.some((part) => (part.correct_answers?.length ?? 0) === 0)) {
-          throw new Error('Each part needs at least one accepted answer.');
-        }
-
-        payload.multi_parts = parts;
       }
 
       const response = await fetch('/api/admin/trivia/questions', {
@@ -243,8 +213,12 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
         description: 'Your question is now ready to add to packs.',
       });
 
+      const resetPrompts = questionForm.question_type === 'multi_part'
+        ? [{ prompt: '', imagePreview: '' }, { prompt: '', imagePreview: '' }]
+        : defaultPrompts;
+
       setQuestionForm({
-        prompt: '',
+        prompts: resetPrompts,
         question_type: questionForm.question_type,
         difficulty: 3,
         cluesInput: '',
@@ -252,8 +226,6 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
         correct_choice_index: 0,
         correctAnswersInput: '',
         tagInput: '',
-        imagePreview: '',
-        multiParts: defaultMultiParts,
       });
       setSelectedTags([]);
       await Promise.all([onRefreshTags(), onRefreshQuestions()]);
@@ -277,20 +249,6 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
 
       <form className="mt-6 space-y-5 text-[15px]" onSubmit={handleCreateQuestion}>
         <p className="text-sm text-gray-600 dark:text-gray-300">Fields marked with <span className="text-red-500">*</span> are required.</p>
-        <div className="space-y-2">
-          <label className={labelClass}>
-            Prompt <span className="text-red-500" aria-hidden>*</span>
-          </label>
-          <textarea
-            required
-            value={questionForm.prompt}
-            onChange={(event) => setQuestionForm((prev) => ({ ...prev, prompt: event.target.value }))}
-            className={inputClass}
-            placeholder="Enter the trivia question prompt"
-            rows={3}
-          />
-        </div>
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className={labelClass}>
@@ -330,6 +288,70 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
           </div>
         </div>
 
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className={labelClass}>
+                Prompts <span className="text-red-500" aria-hidden>*</span>
+              </label>
+              <p className={helperClass}>
+                {questionForm.question_type === 'multi_part'
+                  ? 'Add 2-4 prompts, each with an optional image.'
+                  : 'Single prompt with an optional image.'}
+              </p>
+            </div>
+            {questionForm.question_type === 'multi_part' && (
+              <Button type="button" variant="outline" size="sm" onClick={handleAddPrompt} disabled={questionForm.prompts.length >= 4}>
+                Add prompt
+              </Button>
+            )}
+          </div>
+          <div className="space-y-3">
+            {questionForm.prompts.map((prompt, index) => (
+              <div key={index} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-base font-semibold text-gray-800 dark:text-gray-100">
+                      Prompt {index + 1} <span className="text-red-500" aria-hidden>*</span>
+                    </label>
+                    <textarea
+                      value={prompt.prompt}
+                      onChange={(event) => handlePromptChange(index, event.target.value)}
+                      className={inputClass}
+                      placeholder="Enter the prompt text"
+                      rows={3}
+                    />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-800 dark:text-gray-100">Prompt image</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => handlePromptImageSelect(index, event.target.files?.[0])}
+                          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 dark:text-gray-200"
+                        />
+                        {prompt.imagePreview && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => handlePromptImageSelect(index, null)}>
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      {prompt.imagePreview && (
+                        <img src={prompt.imagePreview} alt={`Prompt ${index + 1} preview`} className="h-28 w-full rounded-lg object-cover" />
+                      )}
+                    </div>
+                  </div>
+                  {questionForm.question_type === 'multi_part' && questionForm.prompts.length > 2 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRemovePrompt(index)}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label className={labelClass}>Clues (one per line)</label>
           <textarea
@@ -339,31 +361,6 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
             placeholder="Optional clues..."
             rows={3}
           />
-        </div>
-
-        <div className="space-y-2">
-          <label className={labelClass}>Question image</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => handleImageSelect(event.target.files?.[0])}
-              className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 dark:text-gray-200"
-            />
-            {questionForm.imagePreview && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => handleImageSelect(null)}>
-                Remove
-              </Button>
-            )}
-          </div>
-          {questionForm.imagePreview && (
-            <img
-              src={questionForm.imagePreview}
-              alt="Question preview"
-              className="h-28 w-full rounded-lg object-cover"
-            />
-          )}
-          <p className="text-sm text-gray-500 dark:text-gray-400">Images will be uploaded to storage later; a placeholder URL is stored for now.</p>
         </div>
 
         {questionForm.question_type === 'multiple_choice' && (
@@ -404,7 +401,7 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
           </div>
         )}
 
-        {questionForm.question_type === 'open_ended' && (
+        {(questionForm.question_type === 'open_ended' || questionForm.question_type === 'multi_part') && (
           <div className="space-y-2">
             <label className={labelClass}>
               Accepted answers (one per line) <span className="text-red-500" aria-hidden>*</span>
@@ -417,75 +414,6 @@ export default function QuestionsTab({ tags, questions, onRefreshTags, onRefresh
 Answer B`}
               rows={3}
             />
-          </div>
-        )}
-
-        {questionForm.question_type === 'multi_part' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className={labelClass}>
-                  Parts <span className="text-red-500" aria-hidden>*</span>
-                </label>
-                <p className={helperClass}>Each part can include text answers and an optional image (min 2, max 4).</p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddMultiPart} disabled={questionForm.multiParts.length >= 4}>
-                Add part
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {questionForm.multiParts.map((part, index) => (
-                <div key={index} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-2">
-                      <label className="text-base font-semibold text-gray-800 dark:text-gray-100">
-                        Part {index + 1} <span className="text-red-500" aria-hidden>*</span>
-                      </label>
-                      <input
-                        value={part.prompt}
-                        onChange={(event) => handleMultiPartChange(index, 'prompt', event.target.value)}
-                        className={inputClass}
-                        placeholder="Enter the part prompt"
-                      />
-                      <label className="text-base font-semibold text-gray-800 dark:text-gray-100">
-                        Accepted answers <span className="text-red-500" aria-hidden>*</span>
-                      </label>
-                      <textarea
-                        value={part.answersInput}
-                        onChange={(event) => handleMultiPartChange(index, 'answersInput', event.target.value)}
-                        className={inputClass}
-                        placeholder="Accepted answers (one per line)"
-                        rows={3}
-                      />
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-800 dark:text-gray-100">Part image</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(event) => handleMultiPartImageSelect(index, event.target.files?.[0])}
-                            className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 dark:text-gray-200"
-                          />
-                          {part.imagePreview && (
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleMultiPartImageSelect(index, null)}>
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                        {part.imagePreview && (
-                          <img src={part.imagePreview} alt={`Part ${index + 1} preview`} className="h-24 w-full rounded-lg object-cover" />
-                        )}
-                      </div>
-                    </div>
-                    {questionForm.multiParts.length > 2 && (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveMultiPart(index)}>
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
