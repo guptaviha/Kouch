@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Edit } from 'lucide-react';
 
 import GenericCard from '@/components/shared/generic-card';
 import { Button } from '@/components/ui/button';
@@ -230,14 +231,10 @@ export default function EditPackPage() {
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Edit pack</p>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">{pack.name}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">Pack ID: {pack.id}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/admin/contribute">Back</Link>
-          </Button>
           {isEditing ? (
             <>
               <Button variant="secondary" onClick={cancelEditing} disabled={isSaving}>Cancel</Button>
@@ -246,7 +243,10 @@ export default function EditPackPage() {
               </Button>
             </>
           ) : (
-            <Button onClick={startEditing}>Edit pack</Button>
+            <Button onClick={startEditing} size="lg">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit pack
+            </Button>
           )}
         </div>
       </div>
