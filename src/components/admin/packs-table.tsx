@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     ColumnDef,
     flexRender,
@@ -26,6 +26,7 @@ interface PacksTableProps {
 }
 
 export function PacksTable({ packs }: PacksTableProps) {
+    const router = useRouter();
     const columns: ColumnDef<TriviaPack>[] = useMemo(
         () => [
             {
@@ -50,7 +51,7 @@ export function PacksTable({ packs }: PacksTableProps) {
                         <img
                             src={src}
                             alt={`Pack ${row.original.name}`}
-                            className="h-10 w-10 rounded-md object-cover"
+                            className="h-12 w-12 rounded-md object-cover"
                         />
                     );
                 }
@@ -79,17 +80,6 @@ export function PacksTable({ packs }: PacksTableProps) {
                 cell: ({ row }) => {
                     return new Date(row.getValue("updated_at")).toLocaleDateString();
                 }
-            },
-            {
-                id: "actions",
-                header: "Actions",
-                cell: ({ row }) => (
-                    <div className="flex justify-end">
-                        <Link href={`/admin/contribute/pack/${row.original.id}`}>
-                            <Button variant="outline" size="sm">Edit</Button>
-                        </Link>
-                    </div>
-                )
             },
         ],
         []
@@ -138,6 +128,8 @@ export function PacksTable({ packs }: PacksTableProps) {
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    className="cursor-pointer transition hover:bg-muted/60"
+                                    onClick={() => router.push(`/admin/contribute/pack/${row.original.id}`)}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
