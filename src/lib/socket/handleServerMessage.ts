@@ -20,6 +20,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setPlayers,
     setState,
     setCurrentQuestion,
+    setCurrentQuestionType,
     setCurrentHint,
     setQuestionImage,
     setTimerEndsAt,
@@ -45,6 +46,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setState?.('lobby');
     setPlayers?.([]);
     setCurrentQuestion?.('');
+    setCurrentQuestionType?.(null);
     setQuestionImage?.(null);
     setCurrentHint?.(undefined);
     setTimerEndsAt?.(null);
@@ -155,6 +157,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
       case 'game_state':
         setState?.('playing');
         setCurrentQuestion?.(msg.question || '');
+        setCurrentQuestionType?.(msg.questionType || null);
         setQuestionImage?.(msg.image || null);
         setCurrentHint?.(msg.hint || undefined); // Update current hint
         setTimerEndsAt?.(msg.timerEndsAt || null);

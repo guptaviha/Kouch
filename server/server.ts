@@ -20,6 +20,7 @@ import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
 import { PackService } from '../src/services/pack-service.ts';
+import type { TriviaGameQuestion } from '../src/types/trivia.ts';
 
 // DB pool is managed by PackService/Neon lib now
 // const pool = new Pool(...);
@@ -35,18 +36,13 @@ import type {
   RoundResultEntry,
 } from '../src/types/socket.ts';
 
+type ServerQuestion = TriviaGameQuestion;
+
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, SocketData>;
 
 interface SubmittedAnswer {
   answer: string;
   timeTaken: number;
-}
-
-interface ServerQuestion {
-  question: string;
-  answers: string[];
-  image?: string;
-  hint?: string;
 }
 
 interface Player {
@@ -102,9 +98,9 @@ const server = http.createServer((req, res) => {
 // Hardcoded questions (3 rounds)
 const PACKS: Record<string, ServerQuestion[]> = {
   rebus: [
-    { question: 'Solve the rebus puzzle!', answers: ['starfish'], image: '/rebus-1.png', hint: 'Celestial body + ocean creature' },
-    { question: 'Solve the rebus puzzle!', answers: ['buttercup'], image: '/rebus-2.png', hint: 'Dairy product + drinking vessel' },
-    { question: 'Solve the rebus puzzle!', answers: ['fireman'], image: '/rebus-3.png', hint: 'Hot element + human male' },
+    { question: 'Solve the rebus puzzle!', answers: ['starfish'], image: '/rebus-1.png', hint: 'Celestial body + ocean creature', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-1.png'] },
+    { question: 'Solve the rebus puzzle!', answers: ['buttercup'], image: '/rebus-2.png', hint: 'Dairy product + drinking vessel', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-2.png'] },
+    { question: 'Solve the rebus puzzle!', answers: ['fireman'], image: '/rebus-3.png', hint: 'Hot element + human male', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-3.png'] },
   ]
 };
 
@@ -246,7 +242,10 @@ function startRound(room: Room) {
     state: 'playing',
     roomCode: room.code,
     roundIndex: currentRoundIndex,
-    question: q.question,
+    question: q.question, // equivalent to the prompt field. applies only to open_ended
+    questionType: q.questionType, // eg 'open_ended' or 'multi_part'
+    prompts: q.prompts,
+    promptImages: q.promptImages,
     image: q.image, // send image URL if available
     hint: q.hint, // Send hint data to client
     timerEndsAt: roundEnd,
@@ -500,6 +499,9 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
         roomCode: room.code,
         roundIndex: currentRoundIndex,
         question: pack[currentRoundIndex].question,
+        questionType: pack[currentRoundIndex].questionType,
+        prompts: pack[currentRoundIndex].prompts,
+        promptImages: pack[currentRoundIndex].promptImages,
         image: pack[currentRoundIndex].image,
         hint: pack[currentRoundIndex].hint,
         timerEndsAt: room.timerEndsAt || 0,

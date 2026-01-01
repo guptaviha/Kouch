@@ -1,5 +1,5 @@
 import { getSqlClient } from '../lib/neon.ts';
-import type { TriviaPack } from '../types/trivia.ts';
+import type { QuestionType, TriviaGameQuestion, TriviaPack } from '../types/trivia.ts';
 
 const sql = getSqlClient();
 
@@ -44,25 +44,31 @@ export class PackService {
     return packs[0] || null;
   }
 
-  static async getQuestionsForPack(id: number): Promise<any[]> {
+  static async getQuestionsForPack(id: number): Promise<TriviaGameQuestion[]> {
     const questions = await sql`
       SELECT 
-        q.prompt as question, 
-        q.correct_answers as answers, 
-        q.image_url as image, 
-        q.clues
+        q.prompt AS question, 
+        q.correct_answers AS answers, 
+        q.image_url AS image, 
+        q.clues,
+        q.question_type,
+        q.prompts,
+        q.prompt_images
       FROM trivia_packs p
       JOIN trivia_pack_questions ppq ON p.id = ppq.pack_id
       JOIN trivia_questions q ON ppq.question_id = q.id
       WHERE p.id = ${id}
       ORDER BY ppq.position
-    `;
+    ` as Array<{ question: string; answers: string[] | null; image: string | null; clues: string[] | null; question_type: QuestionType; prompts: string[] | null; prompt_images: Array<string | null> | null }>;
 
     return questions.map(row => ({
       question: row.question,
       answers: row.answers || [],
       image: row.image,
-      hint: (row.clues && row.clues.length > 0) ? row.clues[0] : undefined
+      hint: (row.clues && row.clues.length > 0) ? row.clues[0] : undefined,
+      questionType: row.question_type || 'open_ended',
+      prompts: row.prompts || undefined,
+      promptImages: row.prompt_images || undefined,
     }));
   }
 }

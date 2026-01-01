@@ -1,3 +1,5 @@
+import type { QuestionType } from './trivia';
+
 export type RoomPhase = 'lobby' | 'playing' | 'round_result' | 'finished';
 
 export type PlayerWire = {
@@ -44,6 +46,9 @@ export type ServerMessage =
     roomCode: string;
     roundIndex: number;
     question: string;
+    questionType: QuestionType;
+    prompts?: string[];
+    promptImages?: Array<string | null> | null;
     image?: string;
     hint?: string;
     timerEndsAt: number;

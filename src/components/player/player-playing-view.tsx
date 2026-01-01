@@ -6,9 +6,17 @@ import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/store';
 import TrailingDots from '@/components/trailing-dots';
 import { getRandomMessage } from '@/utils/messages';
+import type { QuestionType } from '@/types/trivia';
+
+const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+    multiple_choice: 'Multiple Choice',
+    open_ended: 'Open Ended',
+    multi_part: 'Multi Part',
+};
 
 export default function PlayerPlayingView() {
     const roundIndex = useGameStore((s) => s.roundIndex);
+    const questionType = useGameStore((s) => s.currentQuestionType);
     const currentHint = useGameStore((s) => s.currentHint);
     const hintUsed = useGameStore((s) => s.hintUsed);
     const answer = useGameStore((s) => s.answer);
@@ -70,7 +78,12 @@ export default function PlayerPlayingView() {
         >
             <div className="mb-6 flex justify-between items-start">
                 <div>
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Question {(roundIndex ?? 0) + 1}</h2>
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">Question {(roundIndex ?? 0) + 1}</h2>
+                    {questionType && (
+                        <span className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-[10px] font-semibold">
+                            {QUESTION_TYPE_LABELS[questionType] ?? 'Open Ended'}
+                        </span>
+                    )}
                 </div>
                 {currentHint && !hintUsed && (
                     <button

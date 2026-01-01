@@ -8,10 +8,18 @@ import GenericCard from '../shared/generic-card';
 import TimerProgress from '../shared/timer-progress';
 import { PlayerInfo } from '@/lib/store/types';
 import { useGameStore } from '@/lib/store';
+import type { QuestionType } from '@/types/trivia';
+
+const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+    multiple_choice: 'Multiple Choice',
+    open_ended: 'Open Ended',
+    multi_part: 'Multi Part',
+};
 
 export default function HostPlayingView() {
     // Store selectors
     const question = useGameStore((s) => s.currentQuestion);
+    const questionType = useGameStore((s) => s.currentQuestionType);
     const questionImage = useGameStore((s) => s.questionImage as string | null);
     const timerEndsAt = useGameStore((s) => s.timerEndsAt);
     const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
@@ -45,7 +53,14 @@ export default function HostPlayingView() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="p-10 text-center mb-16"
                     >
-                        <p className="text-xl text-blue-600 dark:text-blue-400 uppercase tracking-wider font-bold mb-4">Question {(roundIndex ?? 0) + 1}</p>
+                        <div className="mb-4">
+                            <p className="text-xl text-blue-600 dark:text-blue-400 uppercase tracking-wider font-bold">Question {(roundIndex ?? 0) + 1}</p>
+                            {questionType && (
+                                <span className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-semibold">
+                                    {QUESTION_TYPE_LABELS[questionType] ?? 'Open Ended'}
+                                </span>
+                            )}
+                        </div>
                         <h2 className={`${questionImage ? 'text-2xl sm:text-3xl' : 'text-6xl sm:text-7xl'} font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight`}>
                             {question}
                         </h2>

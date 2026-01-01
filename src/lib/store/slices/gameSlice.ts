@@ -5,6 +5,7 @@
 
 import { StateCreator } from 'zustand';
 import { RoomStates } from '@/lib/store/types';
+import type { QuestionType } from '@/types/trivia';
 
 export type GameSlice = {
     // use the shared RoomStates type here so the UI and store agree
@@ -12,6 +13,8 @@ export type GameSlice = {
     setState: (state: GameSlice['state']) => void;
     currentQuestion: string;
     setCurrentQuestion: (question: string) => void;
+    currentQuestionType: QuestionType | null;
+    setCurrentQuestionType: (questionType: QuestionType | null) => void;
     // room code (4-letter) created by host and shown to players
     roomCode: string | null;
     setRoomCode: (code: string | null) => void;
@@ -44,6 +47,8 @@ export const createGameSlice: StateCreator<GameSlice> = (set) => ({
     setState: (state) => set({ state }),
     currentQuestion: '',
     setCurrentQuestion: (question) => set({ currentQuestion: question }),
+    currentQuestionType: null,
+    setCurrentQuestionType: (questionType) => set({ currentQuestionType: questionType }),
     roomCode: null,
     setRoomCode: (code) => set({ roomCode: code }),
     timerEndsAt: null,

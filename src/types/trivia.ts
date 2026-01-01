@@ -34,6 +34,16 @@ export interface TriviaQuestion {
   tags?: TriviaTag[];
 }
 
+export interface TriviaGameQuestion {
+  question: string;
+  answers: string[];
+  image?: string | null;
+  hint?: string;
+  questionType: QuestionType;
+  prompts?: string[];
+  promptImages?: Array<string | null> | null;
+}
+
 export interface TriviaPack {
   id: number;
   name: string;
