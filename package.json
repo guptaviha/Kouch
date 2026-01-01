@@ -6,7 +6,7 @@
   "scripts": {
     "dev:next": "next dev",
     "dev:server": "node server/server.ts",
-    "dev": "concurrently \"npm:dev:next\" \"npm:dev:server\"",
+    "dev": "NEXT_PUBLIC_NEON_URL=$(cat .env.local | grep NEXT_PUBLIC_NEON_URL | cut -d '=' -f2) concurrently \"npm:dev:next\" \"npm:dev:server\"",
     "dev-https": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
