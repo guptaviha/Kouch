@@ -34,6 +34,7 @@ export type ClientMessage =
   | { type: 'use_hint'; roomCode: string; playerId: string }
   | { type: 'reset_game'; roomCode?: string; playerId?: string; hostId?: string }
   | { type: 'extend_timer'; roomCode?: string; playerId?: string; hostId?: string }
+  | { type: 'skip_timer'; roomCode?: string; playerId?: string; hostId?: string }
   | { type: 'ping' }
   | { type: 'mock'; roomCode?: string };
 

@@ -177,12 +177,12 @@ export default function HostPlayingView() {
                     </motion.div>
                 )}
 
-                {/* Extend Timer Button (during the round) */}
+                {/* Extend Timer & Next Buttons (during the round) */}
                 {!paused && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="fixed top-24 right-8 z-30"
+                        className="fixed top-24 right-8 z-30 flex flex-col gap-4"
                     >
                         <Button
                             onClick={extendTimer}
@@ -190,6 +190,16 @@ export default function HostPlayingView() {
                             className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg cursor-pointer"
                         >
                             ⏱ +30s
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (!roomCode) return;
+                                emit('message', { type: 'skip_timer', roomCode, hostId: profile?.id });
+                            }}
+                            size="lg"
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg cursor-pointer"
+                        >
+                            ⏭ Next
                         </Button>
                     </motion.div>
                 )}

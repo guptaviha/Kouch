@@ -128,7 +128,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   };
 
   useEffect(() => {
-    console.log('game, roomCode', game, roomCode);
     if (game && !roomCode) {
       createRoom();
     }
