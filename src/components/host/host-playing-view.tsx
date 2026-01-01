@@ -19,7 +19,10 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 export default function HostPlayingView() {
     // Store selectors
     const question = useGameStore((s) => s.currentQuestion);
+    const currentPrompts = useGameStore((s) => s.currentPrompts);
     const questionType = useGameStore((s) => s.currentQuestionType);
+    const currentPartIndex = useGameStore((s) => s.currentPartIndex);
+    const totalParts = useGameStore((s) => s.totalParts);
     const questionImage = useGameStore((s) => s.questionImage as string | null);
     const timerEndsAt = useGameStore((s) => s.timerEndsAt);
     const totalQuestionDuration = useGameStore((s) => s.totalQuestionDuration);
@@ -60,10 +63,34 @@ export default function HostPlayingView() {
                                     {QUESTION_TYPE_LABELS[questionType] ?? 'Open Ended'}
                                 </span>
                             )}
+                            {typeof currentPartIndex === 'number' && typeof totalParts === 'number' && totalParts > 0 && (
+                                <span className="ml-2 mt-2 inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200 text-xs font-semibold">
+                                    Part {currentPartIndex + 1}/{totalParts}
+                                </span>
+                            )}
                         </div>
-                        <h2 className={`${questionImage ? 'text-2xl sm:text-3xl' : 'text-6xl sm:text-7xl'} font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight`}>
-                            {question}
-                        </h2>
+
+                        <div className="space-y-4 text-left sm:text-center">
+                            {questionType !== 'multi_part' && (
+                                <h2 className={`${questionImage ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'} font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight`}>
+                                    {question}
+                                </h2>
+                            )}
+
+                            {(() => {
+                                const promptsToShow = questionType === 'multi_part'
+                                    ? (currentPrompts || [])
+                                    : (currentPrompts?.length ? currentPrompts : question ? [question] : []);
+                                return promptsToShow.map((prompt, idx) => (
+                                    <p
+                                        key={`prompt-${idx}`}
+                                        className="text-lg sm:text-xl text-gray-700 dark:text-gray-200 leading-relaxed"
+                                    >
+                                        {prompt}
+                                    </p>
+                                ));
+                            })()}
+                        </div>
 
                         {/* Question Image - Large & Centered */}
                         {questionImage && (

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import Leaderboard from '@/components/shared/leaderboard';
+// import Leaderboard from '@/components/shared/leaderboard';
 import { useGameStore } from '@/lib/store';
 
 export default function PlayerRoundResultView() {
@@ -37,8 +37,8 @@ export default function PlayerRoundResultView() {
                 </div>
             </motion.div>
 
-            {/* Leaderboard Card */}
-            <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={profile?.id} showAnswers avatarSize={32} />
+            {/* Leaderboard Card temporarily hidden per request */}
+            {/* <Leaderboard leaderboard={roundResults.leaderboard || []} results={roundResults.results} highlightPlayerId={profile?.id} showAnswers avatarSize={32} /> */}
         </div>
     );
 }

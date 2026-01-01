@@ -118,6 +118,14 @@ Final Score = Base Points + Speed Bonus - Hint Penalty
 | Correct, 15 sec, used hint | 100 | +30 | -25 | **105** |
 | Incorrect, 5 sec, no hint | 0 | 0 | 0 | **0** |
 
+#### Multi-Part Questions
+
+- Multi-part prompts reveal progressively across sub-rounds (Part 1/3, Part 2/3, etc.), showing all prompts up to the active part.
+- Each part uses the normal round timer; hosts can extend the timer per part.
+- Scoring rewards early solves: Part 1 = 300 pts, Part 2 = 200 pts, Part 3 = 100 pts, later parts floor at 50 pts. Hint usage halves the awarded points for that question.
+- When a player solves in any part, they are locked out from answering later parts of that question, but they keep their awarded score.
+- After the final part (or once everyone has solved), the round result screen shows the accumulated scores and leaderboard as usual.
+
 ---
 
 ## 3. Rebus Scoring

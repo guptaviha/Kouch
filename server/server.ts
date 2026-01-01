@@ -19,6 +19,7 @@ Server emits 'server' events to clients with payloads containing `type`.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
+// @ts-ignore allow ts extension for runtime Node ESM
 import { PackService } from '../src/services/pack-service.ts';
 import type { TriviaGameQuestion } from '../src/types/trivia.ts';
 
@@ -43,6 +44,14 @@ type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, Socke
 interface SubmittedAnswer {
   answer: string;
   timeTaken: number;
+}
+
+interface MultiPartProgressEntry {
+  solvedPart?: number;
+  solvedAnswer?: string;
+  solvedTime?: number;
+  pointsAwarded?: number;
+  lastAttempt?: { partIndex: number; answer: string; timeTaken: number };
 }
 
 interface Player {
@@ -80,6 +89,10 @@ interface Room {
   timerEndsAt?: number;
   totalQuestionDuration?: number;
   hintsUsed?: Set<string>;
+  currentQuestion?: ServerQuestion;
+  currentPartIndex?: number | null;
+  totalParts?: number | null;
+  multiPartProgress?: Map<string, MultiPartProgressEntry>;
 }
 
 const NEXT_TARGET = process.env.NEXT_TARGET || 'http://localhost:3000';
@@ -109,6 +122,13 @@ const BETWEEN_ROUND_MS = 10_000; // 10s pause between rounds (result screen)
 // Scoring: base points + time bonus
 const BASE_POINTS = 100;
 const MAX_TIME_BONUS = 200; // maximum bonus if answered instantly
+const MULTI_PART_POINTS = [300, 200, 100];
+
+function multiPartPointsFor(partIndex: number) {
+  if (MULTI_PART_POINTS[partIndex] != null) return MULTI_PART_POINTS[partIndex];
+  const last = MULTI_PART_POINTS[MULTI_PART_POINTS.length - 1];
+  return Math.max(50, last - (partIndex - MULTI_PART_POINTS.length + 1) * 25);
+}
 
 const rooms = new Map<string, Room>();
 
@@ -124,6 +144,18 @@ function findRoomByHostAndPack(hostId: string, pack: string) {
     if (room.hostId === hostId && room.selectedPack === pack) return room;
   }
   return undefined;
+}
+
+function isPlayerSolved(room: Room, playerId: string) {
+  const progress = room.multiPartProgress?.get(playerId);
+  return progress != null && progress.solvedPart !== undefined;
+}
+
+function getTotalParts(question: ServerQuestion) {
+  if (Array.isArray(question.prompts) && question.prompts.length > 0) {
+    return question.prompts.length;
+  }
+  return 1;
 }
 
 // Create a four-letter room code.
@@ -181,7 +213,7 @@ function broadcast(room: Room, msg: ServerMessage) {
 
 // Notify lobby participants of the latest lobby state.
 function broadcastLobby(room: Room) {
-  const payload = {
+  const payload: ServerMessage = {
     type: 'lobby_update',
     roomCode: room.code,
     players: Array.from(room.players.values()).map(cleanPlayerForWire),
@@ -225,16 +257,25 @@ function startRound(room: Room) {
     return;
   }
 
+  const q = questions[currentRoundIndex];
+  room.currentQuestion = q;
   room.state = 'playing';
   room.roundStart = Date.now();
   room.answers = new Map<string, SubmittedAnswer>();
   room.hintsUsed = new Set<string>(); // Reset hints for new round
+  room.currentPartIndex = null;
+  room.totalParts = null;
+  room.multiPartProgress = q.questionType === 'multi_part' ? new Map<string, MultiPartProgressEntry>() : undefined;
+
+  if (q.questionType === 'multi_part') {
+    room.totalParts = getTotalParts(q);
+    startMultiPartStage(room, 0);
+    return;
+  }
 
   const roundEnd = room.roundStart + ROUND_DURATION_MS;
   room.timerEndsAt = roundEnd;
   room.totalQuestionDuration = ROUND_DURATION_MS;
-
-  const q = questions[currentRoundIndex];
 
   // Players get state without hint initially
   broadcast(room, {
@@ -246,7 +287,7 @@ function startRound(room: Room) {
     questionType: q.questionType, // eg 'open_ended' or 'multi_part'
     prompts: q.prompts,
     promptImages: q.promptImages,
-    image: q.image, // send image URL if available
+    image: q.image || undefined, // send image URL if available
     hint: q.hint, // Send hint data to client
     timerEndsAt: roundEnd,
     totalQuestionDuration: ROUND_DURATION_MS,
@@ -256,6 +297,118 @@ function startRound(room: Room) {
   room.timers.round = setTimeout(() => endRound(room), ROUND_DURATION_MS);
 }
 
+function startMultiPartStage(room: Room, partIndex: number) {
+  const currentRoundIndex = room.roundIndex;
+  const question = room.currentQuestion || (room.questions ? room.questions[currentRoundIndex] : null);
+  if (!question) return;
+
+  room.state = 'playing';
+  room.roundStart = Date.now();
+  room.answers = new Map<string, SubmittedAnswer>();
+  room.currentPartIndex = partIndex;
+
+  const roundEnd = room.roundStart + ROUND_DURATION_MS;
+  room.timerEndsAt = roundEnd;
+  room.totalQuestionDuration = ROUND_DURATION_MS;
+
+  const totalParts = room.totalParts ?? getTotalParts(question);
+  room.totalParts = totalParts;
+
+  const promptsForPart = Array.isArray(question.prompts) && question.prompts.length > 0
+    ? question.prompts.slice(0, Math.min(partIndex + 1, question.prompts.length))
+    : [question.question];
+
+  // Players who have already solved should remain marked as answered
+  const answeredPlayers = new Set<string>();
+  if (room.multiPartProgress) {
+    for (const [pid, progress] of room.multiPartProgress.entries()) {
+      if (progress && progress.solvedPart !== undefined) answeredPlayers.add(pid);
+    }
+  }
+
+  broadcast(room, {
+    type: 'game_state',
+    state: 'playing',
+    roomCode: room.code,
+    roundIndex: currentRoundIndex,
+    currentPartIndex: partIndex,
+    totalParts,
+    question: question.question,
+    questionType: question.questionType,
+    prompts: promptsForPart,
+    promptImages: question.promptImages,
+    image: question.image || undefined,
+    hint: question.hint,
+    timerEndsAt: roundEnd,
+    totalQuestionDuration: ROUND_DURATION_MS,
+    answeredPlayers: Array.from(answeredPlayers),
+  });
+
+  room.timers.round = setTimeout(() => endPartRound(room), ROUND_DURATION_MS);
+}
+
+function endPartRound(room: Room) {
+  if (room.timers.round) clearTimeout(room.timers.round);
+  const question = room.currentQuestion || (room.questions ? room.questions[room.roundIndex] : null);
+  if (!question || question.questionType !== 'multi_part') return;
+
+  const correctAnswers = question.answers.map(a => a.toLowerCase().trim());
+  const partIndex = room.currentPartIndex ?? 0;
+
+  if (!room.multiPartProgress) room.multiPartProgress = new Map<string, MultiPartProgressEntry>();
+
+  for (const [pid, player] of room.players) {
+    const progress = room.multiPartProgress.get(pid) || {};
+    const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
+
+    if (progress.solvedPart !== undefined) {
+      room.multiPartProgress.set(pid, progress);
+      continue;
+    }
+
+    const submitted = room.answers.get(pid);
+    if (submitted) {
+      const submittedText = submitted.answer.trim().toLowerCase();
+      const correct = correctAnswers.includes(submittedText);
+      progress.lastAttempt = { partIndex, answer: submitted.answer, timeTaken: submitted.timeTaken };
+
+      if (correct) {
+        let points = multiPartPointsFor(partIndex);
+        if (hintUsed) points = Math.floor(points / 2);
+
+        player.score = (player.score || 0) + points;
+        progress.solvedPart = partIndex;
+        progress.solvedAnswer = submitted.answer;
+        progress.solvedTime = submitted.timeTaken;
+        progress.pointsAwarded = points;
+      }
+    }
+
+    room.multiPartProgress.set(pid, progress);
+  }
+
+  room.answers = new Map<string, SubmittedAnswer>();
+
+  const everyoneSolved = room.players.size > 0 && Array.from(room.players.keys()).every(pid => isPlayerSolved(room, pid));
+  if (everyoneSolved) {
+    room.currentPartIndex = null;
+    room.totalParts = null;
+    endRound(room);
+    return;
+  }
+
+  const totalParts = room.totalParts ?? getTotalParts(question);
+  const nextPart = partIndex + 1;
+  if (nextPart < totalParts) {
+    startMultiPartStage(room, nextPart);
+    return;
+  }
+
+  room.currentPartIndex = null;
+  room.totalParts = null;
+  endRound(room);
+}
+
 // Finish a round, score answers, and schedule the next phase.
 function endRound(room: Room) {
   if (room.timers.round) clearTimeout(room.timers.round);
@@ -263,38 +416,77 @@ function endRound(room: Room) {
   const questions = room.questions;
   if (!questions || !questions[currentRoundIndex]) return;
 
-  const correctAnswers = questions[currentRoundIndex].answers.map(a => a.toLowerCase().trim());
+  const question = room.currentQuestion || questions[currentRoundIndex];
+  const isMultiPart = question.questionType === 'multi_part';
+  const correctAnswers = question.answers.map(a => a.toLowerCase().trim());
   // Pick the first answer as the "display" answer
-  const displayAnswer = questions[currentRoundIndex].answers[0];
+  const displayAnswer = question.answers[0];
 
   const results: RoundResultEntry[] = [];
 
-  for (const [pid, player] of room.players) {
-    const submitted = room.answers.get(pid);
-    const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
+  if (isMultiPart) {
+    const progressMap = room.multiPartProgress || new Map<string, MultiPartProgressEntry>();
 
-    if (submitted) {
-      const submittedText = submitted.answer.trim().toLowerCase();
-      const correct = correctAnswers.includes(submittedText);
-      const timeTaken = submitted.timeTaken;
-      let points = 0;
-      let base = 0;
-      let bonus = 0;
-      if (correct) {
-        // linear bonus based on how quickly they answered in the round
-        bonus = Math.max(0, Math.round(MAX_TIME_BONUS * (1 - timeTaken / ROUND_DURATION_MS)));
-        base = BASE_POINTS;
-        points = base + bonus;
+    for (const [pid, player] of room.players) {
+      const progress = progressMap.get(pid);
+      const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
 
-        // Halve points if hint was used
-        if (hintUsed) {
-          points = Math.floor(points / 2);
-        }
+      if (progress && progress.solvedPart !== undefined) {
+        const points = progress.pointsAwarded ?? multiPartPointsFor(progress.solvedPart);
+        results.push({
+          playerId: pid,
+          name: player.name,
+          answer: progress.solvedAnswer || (progress.lastAttempt ? progress.lastAttempt.answer : null),
+          correct: true,
+          timeTaken: progress.solvedTime ?? (progress.lastAttempt ? progress.lastAttempt.timeTaken : null),
+          points,
+          base: points,
+          bonus: 0,
+          hintUsed,
+        });
+      } else {
+        const lastAttempt = progress?.lastAttempt;
+        results.push({
+          playerId: pid,
+          name: player.name,
+          answer: lastAttempt ? lastAttempt.answer : null,
+          correct: false,
+          timeTaken: lastAttempt ? lastAttempt.timeTaken : null,
+          points: 0,
+          base: 0,
+          bonus: 0,
+          hintUsed,
+        });
       }
-      player.score = (player.score || 0) + points;
-      results.push({ playerId: pid, name: player.name, answer: submitted.answer, correct, timeTaken, points, base, bonus, hintUsed });
-    } else {
-      results.push({ playerId: pid, name: player.name, answer: null, correct: false, timeTaken: null, points: 0, base: 0, bonus: 0, hintUsed });
+    }
+  } else {
+    for (const [pid, player] of room.players) {
+      const submitted = room.answers.get(pid);
+      const hintUsed = room.hintsUsed ? room.hintsUsed.has(pid) : false;
+
+      if (submitted) {
+        const submittedText = submitted.answer.trim().toLowerCase();
+        const correct = correctAnswers.includes(submittedText);
+        const timeTaken = submitted.timeTaken;
+        let points = 0;
+        let base = 0;
+        let bonus = 0;
+        if (correct) {
+          // linear bonus based on how quickly they answered in the round
+          bonus = Math.max(0, Math.round(MAX_TIME_BONUS * (1 - timeTaken / ROUND_DURATION_MS)));
+          base = BASE_POINTS;
+          points = base + bonus;
+
+          // Halve points if hint was used
+          if (hintUsed) {
+            points = Math.floor(points / 2);
+          }
+        }
+        player.score = (player.score || 0) + points;
+        results.push({ playerId: pid, name: player.name, answer: submitted.answer, correct, timeTaken, points, base, bonus, hintUsed });
+      } else {
+        results.push({ playerId: pid, name: player.name, answer: null, correct: false, timeTaken: null, points: 0, base: 0, bonus: 0, hintUsed });
+      }
     }
   }
 
@@ -431,6 +623,10 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
       hintsUsed: new Set(),
       selectedPack: pack,
       questions,
+      currentQuestion: undefined,
+      currentPartIndex: null,
+      totalParts: null,
+      multiPartProgress: undefined,
     };
 
     rooms.set(code, room);
@@ -492,21 +688,35 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     // If rejoining mid-game, send current state
     if (room.state === 'playing') {
       const currentRoundIndex = room.roundIndex;
-      const pack = PACKS[room.selectedPack] || PACKS['trivia'];
+      const question = room.questions?.[currentRoundIndex] || (PACKS[room.selectedPack] || PACKS['rebus'])[currentRoundIndex];
+      const isMultiPart = question?.questionType === 'multi_part';
+      const partIndex = isMultiPart ? (room.currentPartIndex ?? 0) : null;
+      const totalParts = isMultiPart ? (room.totalParts ?? getTotalParts(question)) : null;
+      const prompts = question?.prompts ? (isMultiPart ? question.prompts.slice(0, Math.min((partIndex ?? 0) + 1, question.prompts.length)) : question.prompts) : undefined;
+
+      const answeredPlayers = new Set<string>(Array.from(room.answers.keys()));
+      if (isMultiPart && room.multiPartProgress) {
+        for (const [pid, progress] of room.multiPartProgress.entries()) {
+          if (progress && progress.solvedPart !== undefined) answeredPlayers.add(pid);
+        }
+      }
+
       send(socket, {
         type: 'game_state',
         state: 'playing',
         roomCode: room.code,
         roundIndex: currentRoundIndex,
-        question: pack[currentRoundIndex].question,
-        questionType: pack[currentRoundIndex].questionType,
-        prompts: pack[currentRoundIndex].prompts,
-        promptImages: pack[currentRoundIndex].promptImages,
-        image: pack[currentRoundIndex].image,
-        hint: pack[currentRoundIndex].hint,
+        currentPartIndex: partIndex,
+        totalParts,
+        question: question?.question || '',
+        questionType: question?.questionType || 'open_ended',
+        prompts,
+        promptImages: question?.promptImages,
+        image: question?.image || undefined,
+        hint: question?.hint,
         timerEndsAt: room.timerEndsAt || 0,
         totalQuestionDuration: room.totalQuestionDuration || ROUND_DURATION_MS,
-        answeredPlayers: Array.from(room.answers.keys()),
+        answeredPlayers: Array.from(answeredPlayers),
       });
     } else if (room.state === 'round_result') {
       // Should probably send last round result... 
@@ -609,6 +819,13 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     if (!room || room.state !== 'playing') return;
     const player = room.players.get(playerId);
     if (!player) return;
+    const isMultiPart = room.currentQuestion?.questionType === 'multi_part';
+
+    if (isMultiPart && isPlayerSolved(room, playerId)) {
+      send(socket, { type: 'error', message: 'already solved this question' });
+      return;
+    }
+
     if (room.answers.has(playerId)) return;
     const timeTaken = Date.now() - (room.roundStart || Date.now());
     room.answers.set(playerId, { answer: String(answer || ''), timeTaken });
@@ -617,7 +834,11 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     } catch (e) { }
     // If all players have answered, end the round early
     try {
-      if (room.answers.size === room.players.size) {
+      const activePlayers = isMultiPart
+        ? Array.from(room.players.keys()).filter(pid => !isPlayerSolved(room, pid)).length
+        : room.players.size;
+
+      if (room.answers.size === activePlayers) {
         // clear the round timer if present and end round now
         if (room.timers.round) {
           clearTimeout(room.timers.round);
@@ -627,7 +848,13 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
         if (room.state === 'playing') {
           // Add a slight delay before showing results for better UX
           setTimeout(() => {
-            if (room.state === 'playing') endRound(room);
+            if (room.state === 'playing') {
+              if (isMultiPart) {
+                endPartRound(room);
+              } else {
+                endRound(room);
+              }
+            }
           }, 1500);
         }
       }
@@ -667,6 +894,10 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     // reset game state back to lobby
     room.state = 'lobby';
     room.roundIndex = 0;
+    room.currentQuestion = undefined;
+    room.currentPartIndex = null;
+    room.totalParts = null;
+    room.multiPartProgress = undefined;
     room.nextTimerEndsAt = null;
     room.pauseRemainingMs = null;
     room.paused = false;
@@ -674,6 +905,7 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     // clear timers
     if (room.timers.round) { clearTimeout(room.timers.round); room.timers.round = undefined; }
     if (room.timers.next) { clearTimeout(room.timers.next); room.timers.next = undefined; }
+    room.answers = new Map();
     // reset player scores
     for (const player of room.players.values()) {
       player.score = 0;

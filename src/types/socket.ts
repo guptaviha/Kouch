@@ -45,6 +45,8 @@ export type ServerMessage =
     state: 'playing';
     roomCode: string;
     roundIndex: number;
+    currentPartIndex?: number | null;
+    totalParts?: number | null;
     question: string;
     questionType: QuestionType;
     prompts?: string[];

@@ -16,6 +16,8 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 
 export default function PlayerPlayingView() {
     const roundIndex = useGameStore((s) => s.roundIndex);
+    const currentPartIndex = useGameStore((s) => s.currentPartIndex);
+    const totalParts = useGameStore((s) => s.totalParts);
     const questionType = useGameStore((s) => s.currentQuestionType);
     const currentHint = useGameStore((s) => s.currentHint);
     const hintUsed = useGameStore((s) => s.hintUsed);
@@ -27,6 +29,7 @@ export default function PlayerPlayingView() {
     const profile = useGameStore((s) => s.profile);
     const roomCode = useGameStore((s) => s.roomCode);
     const paused = useGameStore((s) => s.paused);
+    const answeredPlayers = useGameStore((s) => s.answeredPlayers as string[]);
     const setHintUsed = useGameStore((s) => s.setHintUsed);
     const setStatusMessage = useGameStore((s) => s.setStatusMessage);
     const setSubmitted = useGameStore((s) => s.setSubmitted);
@@ -48,20 +51,24 @@ export default function PlayerPlayingView() {
         setSubmitted(true);
     };
 
-    if (statusMessage === 'Answer received') {
+    const isSolvedMultiPart = statusMessage === 'Solved - waiting for others';
+    const isSubmittedNotSolved = questionType === 'multi_part' && submitted && !isSolvedMultiPart;
+    const isWaitingGeneric = statusMessage === 'Answer received' || statusMessage === 'Waiting for other players to answer...';
+
+    if (isSolvedMultiPart || isSubmittedNotSolved || isWaitingGeneric) {
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-xl p-6 md:p-8 text-center"
+                className={`${isSubmittedNotSolved ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'} shadow-xl border rounded-xl p-6 md:p-8 text-center`}
             >
                 <div className="mb-4">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        {answerReceivedMessage}
+                        {isSolvedMultiPart ? 'You solved it!' : (isSubmittedNotSolved ? 'Answer recorded' : answerReceivedMessage)}
                     </h2>
                     <div className="flex items-center justify-center space-x-1 text-gray-500 font-medium">
                         <span>
-                            {waitingForPlayersMessage}
+                            {isSolvedMultiPart ? 'Waiting for other players to finish...' : (isSubmittedNotSolved ? 'Your answer was not correct. Waiting for next prompt...' : waitingForPlayersMessage)}
                             <TrailingDots />
                         </span>
                     </div>
@@ -84,6 +91,11 @@ export default function PlayerPlayingView() {
                             {QUESTION_TYPE_LABELS[questionType] ?? 'Open Ended'}
                         </span>
                     )}
+                    {typeof currentPartIndex === 'number' && typeof totalParts === 'number' && totalParts > 0 && (
+                        <span className="ml-2 mt-2 inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200 text-[10px] font-semibold">
+                            Part {currentPartIndex + 1}/{totalParts}
+                        </span>
+                    )}
                 </div>
                 {currentHint && !hintUsed && (
                     <button
@@ -104,6 +116,8 @@ export default function PlayerPlayingView() {
                     <span className="font-bold mr-1">Hint:</span> {currentHint}
                 </motion.div>
             )}
+
+            {/* Player view stays minimal: no prompts or titles, just input */}
 
             <input
                 className="w-full mb-4 p-4 text-lg border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 bg-gray-50 dark:bg-gray-900 transition-colors"

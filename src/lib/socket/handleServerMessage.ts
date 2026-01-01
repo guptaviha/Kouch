@@ -21,6 +21,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setState,
     setCurrentQuestion,
     setCurrentQuestionType,
+    setCurrentPrompts,
+    setCurrentPartIndex,
+    setTotalParts,
     setCurrentHint,
     setQuestionImage,
     setTimerEndsAt,
@@ -34,12 +37,12 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setPauseRemainingMs,
     setCountdown,
     setJoined,
-    setStatusMessage,
     setSubmitted,
     setSelectedPack,
     setPlayersWithHints,
     setAnswer,
     setHintUsed,
+    setStatusMessage,
   } = s;
 
   const resetStateForNewRoom = () => {
@@ -47,6 +50,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setPlayers?.([]);
     setCurrentQuestion?.('');
     setCurrentQuestionType?.(null);
+    setCurrentPrompts?.([]);
+    setCurrentPartIndex?.(null);
+    setTotalParts?.(null);
     setQuestionImage?.(null);
     setCurrentHint?.(undefined);
     setTimerEndsAt?.(null);
@@ -158,6 +164,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
         setState?.('playing');
         setCurrentQuestion?.(msg.question || '');
         setCurrentQuestionType?.(msg.questionType || null);
+        setCurrentPrompts?.(msg.prompts || []);
+        setCurrentPartIndex?.(typeof msg.currentPartIndex === 'number' ? msg.currentPartIndex : null);
+        setTotalParts?.(typeof msg.totalParts === 'number' ? msg.totalParts : null);
         setQuestionImage?.(msg.image || null);
         setCurrentHint?.(msg.hint || undefined); // Update current hint
         setTimerEndsAt?.(msg.timerEndsAt || null);
@@ -165,6 +174,8 @@ export default function serverMessageHandler(msg: ServerMessage) {
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
         setAnsweredPlayers?.(msg.answeredPlayers || []);
+        setStatusMessage?.('');
+        setAnswer?.('');
         // Reset playersWithHints for new round
         if (s.setPlayersWithHints) s.setPlayersWithHints([]);
         if (s.setHintUsed) s.setHintUsed(false);
@@ -172,7 +183,8 @@ export default function serverMessageHandler(msg: ServerMessage) {
 
         // If we are rejoining and have already answered
         if (msg.answeredPlayers && s.profile?.id && msg.answeredPlayers.includes(s.profile.id)) {
-          setStatusMessage?.('Answer received');
+          const solvedMessage = msg.questionType === 'multi_part' ? 'Solved - waiting for others' : 'Answer received';
+          setStatusMessage?.(solvedMessage);
           setSubmitted?.(true);
         }
         break;
@@ -191,6 +203,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
         setStatusMessage?.('');
         setState?.('round_result');
         setRoundResults?.(msg);
+        setCurrentPrompts?.([]);
+        setCurrentPartIndex?.(null);
+        setTotalParts?.(null);
         if (msg.nextTimerEndsAt) setTimerEndsAt?.(msg.nextTimerEndsAt);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs?.(msg.nextTimerDurationMs);
@@ -200,6 +215,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
         setStatusMessage?.('');
         setState?.('finished');
         setRoundResults?.({ final: msg.leaderboard });
+        setCurrentPrompts?.([]);
+        setCurrentPartIndex?.(null);
+        setTotalParts?.(null);
         break;
 
       case 'room_closed': {

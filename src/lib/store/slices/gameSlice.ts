@@ -15,6 +15,12 @@ export type GameSlice = {
     setCurrentQuestion: (question: string) => void;
     currentQuestionType: QuestionType | null;
     setCurrentQuestionType: (questionType: QuestionType | null) => void;
+    currentPrompts: string[];
+    setCurrentPrompts: (prompts: string[]) => void;
+    currentPartIndex: number | null;
+    setCurrentPartIndex: (idx: number | null) => void;
+    totalParts: number | null;
+    setTotalParts: (count: number | null) => void;
     // room code (4-letter) created by host and shown to players
     roomCode: string | null;
     setRoomCode: (code: string | null) => void;
@@ -49,6 +55,12 @@ export const createGameSlice: StateCreator<GameSlice> = (set) => ({
     setCurrentQuestion: (question) => set({ currentQuestion: question }),
     currentQuestionType: null,
     setCurrentQuestionType: (questionType) => set({ currentQuestionType: questionType }),
+    currentPrompts: [],
+    setCurrentPrompts: (prompts) => set({ currentPrompts: prompts }),
+    currentPartIndex: null,
+    setCurrentPartIndex: (idx) => set({ currentPartIndex: idx }),
+    totalParts: null,
+    setTotalParts: (count) => set({ totalParts: count }),
     roomCode: null,
     setRoomCode: (code) => set({ roomCode: code }),
     timerEndsAt: null,
