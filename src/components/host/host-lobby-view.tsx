@@ -162,7 +162,7 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
                 disabled={players.length === 0}
             >
                 {players.length === 0 ? (
-                    <span className="flex items-center gap-2">Waiting<TrailingDots /></span>
+                    <span className="flex items-center gap-2">Waiting<TrailingDots variant="lg" /></span>
                 ) : (
                     'Start Game'
                 )}

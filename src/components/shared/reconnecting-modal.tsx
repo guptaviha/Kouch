@@ -2,12 +2,17 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Trio } from 'ldrs/react';
+import 'ldrs/react/Trio.css';
+import { useTheme } from 'next-themes';
 
 interface ReconnectingModalProps {
   isVisible: boolean;
 }
 
 export default function ReconnectingModal({ isVisible }: ReconnectingModalProps) {
+  const { resolvedTheme } = useTheme();
+
   if (!isVisible) return null;
 
   return (
@@ -24,7 +29,9 @@ export default function ReconnectingModal({ isVisible }: ReconnectingModalProps)
         className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-xl max-w-md w-full mx-4"
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+          <div className="mx-auto mb-4">
+            <Trio size={48} color={resolvedTheme === 'dark' ? '#ffffff' : '#374151'} />
+          </div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Connection Lost</h2>
           <p className="text-gray-600 dark:text-gray-400">Trying to reconnect...</p>
         </div>
