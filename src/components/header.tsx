@@ -9,6 +9,8 @@ import PlayerAvatar from './player-avatar';
 import { Button } from "./ui/button";
 import { RoomStates } from "@/lib/store/types";
 import { useGameStore } from "@/lib/store";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useQRGenerator } from "@/hooks/useQRGenerator";
 
 type Props = {
   roomCode?: string | null;
@@ -21,6 +23,10 @@ type Props = {
 export default function Header({ roomCode, avatarKey, name, role = 'guest', roomState }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Ensure QR code is generated when roomCode is present
+  useQRGenerator(roomCode ?? null);
+  const qrDataUrl = useGameStore((s) => s.qrDataUrl);
 
   const toggleFullscreen = async () => {
     try {
@@ -67,8 +73,35 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
           </Link>
           {/* Room Code Centered Below Logo */}
           {roomCode && roomState !== 'lobby' && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Room Code: <span className="">{roomCode}</span>
+            <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <span className="font-bold cursor-pointer hover:underline hover:text-primary transition-colors" title="Click to show QR Code">
+                    Room Code: {roomCode}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-xl rounded-xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Scan to join</p>
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt={`QR Code for room ${roomCode}`}
+                        className="w-48 h-48 rounded-lg border border-gray-100 dark:border-gray-800"
+                        width={192}
+                        height={192}
+                      />
+                    ) : (
+                      <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center animate-pulse">
+                        <span className="text-xs text-gray-400">Loading QR...</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-center text-gray-400 max-w-[200px]">
+                      Or visit <span className="font-mono text-primary">kouch.party</span> and enter code <span className="font-bold">{roomCode}</span>
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
         </div>

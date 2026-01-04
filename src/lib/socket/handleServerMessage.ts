@@ -104,8 +104,6 @@ export default function serverMessageHandler(msg: ServerMessage) {
         break;
 
       case 'lobby_update':
-        console.log('lobby_update', msg);
-
         // Notify about disconnects/reconnects if we have previous players
         const currentPlayers = s.players as PlayerWire[];
         const newPlayers = msg.players || [];

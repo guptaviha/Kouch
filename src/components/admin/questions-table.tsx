@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     ColumnDef,
     flexRender,
@@ -27,6 +28,7 @@ interface QuestionsTableProps {
 }
 
 export function QuestionsTable({ questions }: QuestionsTableProps) {
+    const router = useRouter();
     const [showAnswers, setShowAnswers] = useLocalStorage<boolean>('show-answers-admin', false);
 
     const columns: ColumnDef<TriviaQuestion>[] = useMemo(
@@ -151,6 +153,8 @@ export function QuestionsTable({ questions }: QuestionsTableProps) {
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    className="cursor-pointer transition hover:bg-muted/60"
+                                    onClick={() => router.push(`/admin/contribute/question/${row.original.id}`)}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>

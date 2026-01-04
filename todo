@@ -3,49 +3,40 @@
 - if player is disconnected in the result page, disconnected icon does not show in leaderboard
 - dont allow the same avatar to be picked by multiple players
 - long username limit/truncation
-- play again is starting a new game
 - Trailing dots may go to the next line on smaller screens
-- result screen
-    - player: remove leaderboard or fix the cropping
-    - host: make the leaderboard more compact. its scrolling too much cant see progress bar
-- if you refresh a game, it gets stuck on a screen that says "setting up game room..." unless you do a hard reload
+- make the leaderboard on host more compact. its scrolling too much cant see progress bar
 - if x players start the game but one drops off and the remianing players submit their answers, question round should end
-- should be able to rejoin a current game
-
-IF There is a big issue with the height, add back the min-h-screen class to the relevant divs in host-game-layout.tsx
+- when a player submits a correct answer, it should show the green correct like the incorrect one
+- when player is resubmitting an answer, show "try again for x points"
+- i typed in the correct answer but it said incorrect on the immediate feedback but correct on the round result screen (maybe lowercase issue)
+- first load doesnt show anything on the home page
 
 
 ## ENHANCEMENTS
-- place a toast msg on the player view when reconnecting
-- when restarting a game, take back to qr lobby with the same room code
+- when comparing submitted answer to correct answer, do a lowercase of both and then compare
 - rebus and trivia should have diff rooms
-- Handle room lifecycle events better
-    - if host disconnects, end the game for everyone
-    - if a user disconnects, show a message to the host (maybe pause the game?)
-
+- add game rules/ scoring to the lobby of each game
+- Add types all across the app
+- game library can be a crousel with horizontal scroll
+- deleting a pack
+- store pack images to s3
+- ai to match a users input to the correct answer
+- if you click on the room code on the top left, open up a modal with the qr code
 
 ## FEATURES
-- connect to rebus db 
-- repick an avatar
-- player extra time request (later)
-    - add an option to request for an extra 15 seconds on the player view
-    - if everyone requests it, add 15 seconds to the timer. 
-    - show a small counter of how many people have requested extra time on the host view.
+- connect to rebus db for live rebus
 - sound effects
     - ticking sound during last 5 seconds
     - sound when time is up
     - sound when answer is submitted
-- host needs an account
-    - to purchase packs later on
 - Skeleton
     - Use Shadcn UI's Skeleton component to show loading states
     - Show loading sign on the main screen before launching the game
+- (later) store avatars in neondb
+- (later) store userids in neondb
+- (later) create user accounts
+- (later) repick an avatar
 
-## Code improvements
-- Add types all across the app
-- Custom components for buttons, modals, etc. to avoid code duplication
-- reate a refactor expert agent and use. it every so often
-- Remove console logs from server.ts and other files
 
 ## Larger ideas
 - Users should be able to create their own trivia questions and submit it to a database. We should then be able to review and add it to the game packs.
@@ -54,31 +45,16 @@ IF There is a big issue with the height, add back the min-h-screen class to the 
     - thumbs up, clap, laugh, etc.
     - show a small animation on the player view when an emote is sent
     - limit the number of emotes per game to avoid spam
-
-
-## Game flow improvements
-- Rejoining
-    - allow players to rejoin if they get disconnected. We need to keep track of players by their unique ids and allow them to rejoin the game in progress, and restore their state (score, avatar, etc.)
-    - Show the player a message if they get disconnected. Show a reconnect button that tries to reconnect them to the game. Reconnection: Allow a connection only if the cookie or deviceId matches a player already in the list (handling disconnects).
-    - Explicit End: Host clicks "End Game" -> Delete key from Redis immediately.
-
+- (later) player extra time request 
+    - add an option to request for an extra 15 seconds on the player view
+    - if everyone requests it, add 15 seconds to the timer. 
+    - show a small counter of how many people have requested extra time on the host view.
+- (later) create host account to purchase packs
 
 ## Different game layouts
 - Common landing page layout for all games extracted out from host-game-layout.tsx
 - Each game layout should accept a gameData and roomState prop to deal with common room related state as well as specific game data.
 
-
-## User-id
-
-Logic: Create a user-id concept, for every user that comes to our system. Store this in local storage and send this user id with certain messages to the websocket like join_game, create_room etc where it makes sense. Store this user id also in the appropriate types that already exist. The user id should be created by the server and sent back to the client if the request does not come with a user id.
-
-On the client side, we should store this user id in local storage and send it with every request to the server.
-
-- For avatars, we should store the avatar somewhere. Maybe local storage for now? db later.
-(Remove this from `emit` function later)
-
-- (later) store users in neondb
-- (later) user accounts
 
 ## Room Code Management
 - Room code Uniqueness: Ensure generated room codes are unique and not currently in use.
@@ -102,12 +78,7 @@ In redis, we will store the room code as the key and the room data as the value.
 
 ## Disconnection plan
 - If the host disconnects, pause the game and show a message to the players
-- If a player disconnects, show a message to the host
 - Remove the logic from server.ts that deletes the room when there is nobody in the room
-- Don't delete players from the room when they disconnect. Only maintain a status of the player and set that to be disconnected.
-
-
-- On the UI, keep the player in the room and their profile has a dotted border to show that they are disconnected.
 
 ## Host promotion makes no sense
 - It needs to be removed because there can be only one host and the players cannot be promoted to host.
@@ -120,4 +91,3 @@ In redis, we will store the room code as the key and the room data as the value.
 
 ## Game end action button
 - Show a recommendation marquee at the end of the game with the list of other packs available to play.
-- Add another button below this to go to "Explore Game Library".

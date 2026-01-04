@@ -23,13 +23,15 @@ export default function Leaderboard({
   highlightPlayerId,
   showAnswers = false,
   showPositions = false,
-  title = 'Leaderboard'
-  , showWinnerSpotlight = false
-}: LeaderboardProps) {
+  title = 'Leaderboard',
+  showWinnerSpotlight = false,
+  className = "",
+  listClassName = "max-h-96"
+}: LeaderboardProps & { className?: string; listClassName?: string }) {
   const hasWinner = showWinnerSpotlight && Array.isArray(leaderboard) && leaderboard.length > 0;
   const listToRender = hasWinner ? leaderboard.slice(1) : leaderboard;
   const inner = (
-    <div className="space-y-4 max-h-96 overflow-y-auto">
+    <div className={`space-y-4 overflow-y-auto ${listClassName}`}>
       <AnimatePresence>
         {listToRender.map((p, index) => {
           const result = results.find((r) => r.playerId === p.id);
@@ -102,7 +104,7 @@ export default function Leaderboard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className={`p-0 overflow-visible`}
+      className={`p-0 overflow-visible ${className}`}
     >
       {hasWinner && (
         <motion.div
@@ -127,7 +129,7 @@ export default function Leaderboard({
         </motion.div>
       )}
 
-      <div className='p-4'>
+      <div className={`p-4 flex flex-col h-full`}>
         {!showWinnerSpotlight && <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h3>}
         {inner}
       </div>

@@ -182,8 +182,6 @@ const AVATAR_KEYS = [
 function pickAvatar() {
   const avatarIndex = Math.floor(Math.random() * AVATAR_KEYS.length);
   const avatarKey = AVATAR_KEYS[avatarIndex];
-  // Debug: log chosen avatar (index + key) to help trace avatar assignment
-  console.log('pickAvatar ->', { avatarIndex, avatarKey });
   return avatarKey;
 }
 
@@ -194,7 +192,6 @@ function cleanPlayerForWire(player: Player): PlayerWire {
 
 // Emit a typed server message to every participant in a room.
 function broadcast(room: Room, msg: ServerMessage) {
-  console.log('broadcasting to room', { roomCode: room.code, msg });
   for (const player of room.players.values()) {
     try {
       if (player.socket && player.socket.connected) player.socket.emit('server', msg);
@@ -789,7 +786,6 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
         room.timers.next = undefined;
       }
       room.paused = true;
-      console.log('pause_game ->', { roomCode: room.code, remainingMs: room.pauseRemainingMs });
       broadcast(room, { type: 'game_paused', roomCode: room.code, pauseRemainingMs: room.pauseRemainingMs });
     }
     return;
@@ -945,6 +941,45 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
 
     console.log(`Timer extended by ${EXTENSION_MS}ms. New end: ${newEnd}`);
     broadcast(room, { type: 'timer_updated', roomCode: room.code, timerEndsAt: newEnd, totalQuestionDuration: room.totalQuestionDuration });
+    return;
+  }
+
+  if (msgType === 'skip_timer') {
+    const meta = (socket.data || {}) as { roomCode?: string; playerId?: string; hostId?: string };
+    const room = meta.roomCode ? rooms.get(meta.roomCode) : null;
+    if (!room) return;
+    // only host can skip
+    if (!meta.hostId || room.hostId !== meta.hostId) {
+      send(socket, { type: 'error', message: 'only host can skip timer' });
+      return;
+    }
+
+    if (room.state !== 'playing' || !room.timers.round) {
+      send(socket, { type: 'error', message: 'can only skip timer during a round' });
+      return;
+    }
+
+    // Set timer to end immediately (visual update)
+    const newEnd = Date.now();
+    room.timerEndsAt = newEnd;
+
+    // Broadcast immediate timer end so clients snap to 0
+    broadcast(room, { type: 'timer_updated', roomCode: room.code, timerEndsAt: newEnd, totalQuestionDuration: room.totalQuestionDuration || 0 });
+
+    // Clear existing endRound timer
+    if (room.timers.round) clearTimeout(room.timers.round);
+
+    // Schedule actual end of round with a short delay for UX
+    room.timers.round = setTimeout(() => {
+      if (room.state === 'playing') {
+        if (room.currentQuestion?.questionType === 'multi_part') {
+          endPartRound(room);
+        } else {
+          endRound(room);
+        }
+      }
+    }, 1000);
+
     return;
   }
 
