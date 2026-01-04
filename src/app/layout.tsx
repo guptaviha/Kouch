@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
 import DebugFloatingBox from "@/components/shared/debug-floating-box";
 import GlobalOverlays from "@/components/shared/global-overlays";
+import { Particles } from "@/components/ui/particles";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,6 +37,15 @@ export default function RootLayout({
                         enableSystem
                         disableTransitionOnChange
                     >
+                        {/* Particles Background */}
+                        <Particles
+                            className="fixed inset-0 -z-10"
+                            quantity={50}
+                            ease={80}
+                            color="#ffffff"
+                            refresh={false}
+                        />
+
                         {/* Background (client-only) */}
                         {/* <HexagonBackground className="fixed inset-0 -z-10" hexagonSize={80} hexagonMargin={4} /> */}
 

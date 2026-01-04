@@ -54,14 +54,14 @@ export default function Home() {
             y: 0,
             opacity: 1,
             transition: {
-                type: "spring",
+                type: "spring" as const,
                 stiffness: 100,
             },
         },
     };
 
     return (
-        <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground">
+        <main className="min-h-screen text-foreground overflow-x-hidden selection:bg-primary selection:text-primary-foreground relative">
             {/* Navigation */}
             <div className="p-8 max-w-3xl mx-auto relative">
                 <Header roomState="home" />

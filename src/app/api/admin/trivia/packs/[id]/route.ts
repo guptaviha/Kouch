@@ -25,9 +25,10 @@ function sanitizeQuestionIds(ids?: number[]): number[] {
   return Array.from(new Set((ids ?? []).map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)));
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const packId = Number(id);
+  if (!Number.isInteger(packId) || packId <= 0) {
     return badRequest('Invalid pack id');
   }
 
@@ -44,7 +45,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         COALESCE(array_agg(ppq.question_id ORDER BY ppq.position) FILTER (WHERE ppq.question_id IS NOT NULL), '{}') AS question_ids
       FROM trivia_packs p
       LEFT JOIN trivia_pack_questions ppq ON ppq.pack_id = p.id
-      WHERE p.id = ${id}
+      WHERE p.id = ${packId}
       GROUP BY p.id;
     `) as unknown as Array<TriviaPack & { question_ids: number[] }>;
 
@@ -59,9 +60,10 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const packId = Number(id);
+  if (!Number.isInteger(packId) || packId <= 0) {
     return badRequest('Invalid pack id');
   }
 
@@ -95,7 +97,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const [updated] = (await tx`
         UPDATE trivia_packs
         SET name = ${name}, description = ${payload.description ?? null}, image_url = ${imageUrl}, updated_at = now()
-        WHERE id = ${id}
+        WHERE id = ${packId}
         RETURNING id, name, description, image_url, user_id, created_at, updated_at;
       `) as unknown as TriviaPack[];
 
@@ -103,12 +105,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         throw notFound('Pack not found');
       }
 
-      await tx`DELETE FROM trivia_pack_questions WHERE pack_id = ${id};`;
+      await tx`DELETE FROM trivia_pack_questions WHERE pack_id = ${packId};`;
 
       for (const [position, questionId] of questionIds.entries()) {
         await tx`
           INSERT INTO trivia_pack_questions (pack_id, question_id, position)
-          VALUES (${id}, ${questionId}, ${position})
+          VALUES (${packId}, ${questionId}, ${position})
           ON CONFLICT (pack_id, question_id) DO UPDATE SET position = EXCLUDED.position, updated_at = now();
         `;
       }
