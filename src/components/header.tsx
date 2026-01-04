@@ -74,11 +74,10 @@ export default function Header({ roomCode, avatarKey, name, role = 'guest', room
           {/* Room Code Centered Below Logo */}
           {roomCode && roomState !== 'lobby' && (
             <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-              <span>Room Code:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <span className="font-bold cursor-pointer hover:underline hover:text-primary transition-colors" title="Click to show QR Code">
-                    {roomCode}
+                    Room Code: {roomCode}
                   </span>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-4 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-xl rounded-xl">

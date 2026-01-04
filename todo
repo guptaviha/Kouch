@@ -9,6 +9,7 @@
 - when a player submits a correct answer, it should show the green correct like the incorrect one
 - when player is resubmitting an answer, show "try again for x points"
 - i typed in the correct answer but it said incorrect on the immediate feedback but correct on the round result screen (maybe lowercase issue)
+- first load doesnt show anything on the home page
 
 
 ## ENHANCEMENTS
