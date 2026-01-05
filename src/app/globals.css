@@ -73,4 +73,13 @@
     body {
       @apply bg-background text-foreground;
     }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .theme-transition,
+      .theme-transition *:where(:not(.theme-transition-skip)) {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-duration: 1000ms;
+        transition-timing-function: ease;
+      }
+    }
   }

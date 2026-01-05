@@ -98,7 +98,11 @@ export default function Home() {
                         Host Party
                     </Button>
                     <Link href="/player" className="w-full sm:w-auto">
-                        <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 h-auto hover:bg-secondary/80">
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="w-full sm:w-auto text-lg px-8 py-6 h-auto hover:bg-secondary/80"
+                        >
                             <Smartphone className="mr-2 w-5 h-5" />
                             Join Room
                         </Button>
