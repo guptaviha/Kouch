@@ -78,7 +78,7 @@
       .theme-transition,
       .theme-transition *:where(:not(.theme-transition-skip)) {
         transition-property: background-color, border-color, color, fill, stroke;
-        transition-duration: 1000ms;
+        transition-duration: 300ms;
         transition-timing-function: ease;
       }
     }
