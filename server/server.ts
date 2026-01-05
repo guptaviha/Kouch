@@ -23,9 +23,6 @@ import { Server as IOServer, Socket } from 'socket.io';
 import { PackService } from '../src/services/pack-service.ts';
 import type { TriviaGameQuestion } from '../src/types/trivia.ts';
 
-// DB pool is managed by PackService/Neon lib now
-// const pool = new Pool(...);
-
 import type {
   ClientMessage,
   ServerMessage,
@@ -108,15 +105,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-// Hardcoded questions (3 rounds)
-const PACKS: Record<string, ServerQuestion[]> = {
-  rebus: [
-    { question: 'Solve the rebus puzzle!', answers: ['starfish'], image: '/rebus-1.png', hint: 'Celestial body + ocean creature', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-1.png'] },
-    { question: 'Solve the rebus puzzle!', answers: ['buttercup'], image: '/rebus-2.png', hint: 'Dairy product + drinking vessel', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-2.png'] },
-    { question: 'Solve the rebus puzzle!', answers: ['fireman'], image: '/rebus-3.png', hint: 'Hot element + human male', questionType: 'open_ended', prompts: ['Solve the rebus puzzle!'], promptImages: ['/rebus-3.png'] },
-  ]
-};
-
 const ROUND_DURATION_MS = 8_000; // 30s per round
 const BETWEEN_ROUND_MS = 10_000; // 10s pause between rounds (result screen)
 // Scoring: base points + time bonus
@@ -133,7 +121,8 @@ function multiPartPointsFor(partIndex: number) {
 const rooms = new Map<string, Room>();
 
 function resolvePack(pack?: string) {
-  return pack || 'rebus';
+  // Simplified: assume pack is always a valid pack ID string; remove default to 'rebus'
+  return pack;
 }
 
 function findRoomByHostAndPack(hostId: string, pack: string) {
@@ -542,29 +531,32 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
   if (msgType === 'fetch_room_for_game') {
     const name = messageObj.name || 'Host';
     const pack = resolvePack(messageObj.pack);
+    if (!pack) {
+      send(socket, { type: 'error', message: 'pack is required' });
+      return;
+    }
+    const packId = parseInt(pack, 10);
+    if (isNaN(packId)) {
+      send(socket, { type: 'error', message: 'invalid pack ID' });
+      return;
+    }
     const isNewUser = !messageObj.userId;
     const hostId = messageObj.userId || makeId();
     const hostAvatar = messageObj.avatar || pickAvatar();
 
-    // Load questions
+    // Load questions from service
     let questions: ServerQuestion[] = [];
-    if (PACKS[pack]) {
-      questions = PACKS[pack];
-    } else {
-      // Try fetching from DB
-      const packId = parseInt(pack, 10);
-      if (!isNaN(packId)) {
-        try {
-          questions = await PackService.getQuestionsForPack(packId);
-        } catch (e) {
-          console.error('Error fetching pack from DB:', e);
-        }
-      }
+    try {
+      questions = await PackService.getQuestionsForPack(packId);
+    } catch (e) {
+      console.error('Error fetching pack from DB:', e);
+      send(socket, { type: 'error', message: 'failed to load pack' });
+      return;
     }
 
     if (questions.length === 0) {
-      console.warn(`No questions found for pack ${pack}, defaulting to rebus`);
-      questions = PACKS['rebus'];
+      send(socket, { type: 'error', message: 'no questions found for pack' });
+      return;
     }
 
     const existingRoom = !isNewUser ? findRoomByHostAndPack(hostId, pack) : undefined;
@@ -685,7 +677,11 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     // If rejoining mid-game, send current state
     if (room.state === 'playing') {
       const currentRoundIndex = room.roundIndex;
-      const question = room.questions?.[currentRoundIndex] || (PACKS[room.selectedPack] || PACKS['rebus'])[currentRoundIndex];
+      const question = room.questions?.[currentRoundIndex];
+      if (!question) {
+        send(socket, { type: 'error', message: 'question not found' });
+        return;
+      }
       const isMultiPart = question?.questionType === 'multi_part';
       const partIndex = isMultiPart ? (room.currentPartIndex ?? 0) : null;
       const totalParts = isMultiPart ? (room.totalParts ?? getTotalParts(question)) : null;

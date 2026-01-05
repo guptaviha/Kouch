@@ -9,11 +9,6 @@ export async function GET(
 ) {
   const gameId = (await params).game;
 
-  // Handle static games first
-  if (gameId === 'rebus') {
-    return NextResponse.json(GAMES_DATA.rebus);
-  }
-
   // Handle dynamic packs
   const packId = Number(gameId);
   if (isNaN(packId)) {

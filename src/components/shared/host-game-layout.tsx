@@ -53,9 +53,6 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
   useQRGenerator(roomCode);
 
-  // We allow the game to start and let the server/API handle validation if needed.
-  // Previously this blocked anything other than 'rebus' or 'trivia'.
-
   // Set selected pack based on URL game parameter
   useEffect(() => {
     if (selectedPack !== game) {
