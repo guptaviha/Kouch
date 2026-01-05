@@ -1,4 +1,3 @@
-import { GAMES_DATA } from '@/lib/games-data';
 import { mapPackToGame } from '@/lib/game-mapper';
 import { PackService } from '@/services/pack-service';
 import { NextRequest, NextResponse } from 'next/server';

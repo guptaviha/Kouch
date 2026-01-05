@@ -6,8 +6,7 @@ import { useGameStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion } from 'framer-motion';
-import TrailingDots from '@/components/trailing-dots';
-import { GamePack } from '@/types/games';
+import { GamePack } from '@/types/game-types';
 import HostLobbyView from '@/components/host/host-lobby-view';
 import HostPlayingView from '@/components/host/host-playing-view';
 import HostRoundResultView from '@/components/host/host-round-result-view';
@@ -17,6 +16,7 @@ import { useQRGenerator } from '@/hooks/useQRGenerator';
 import serverMessageHandler from '@/lib/socket/handleServerMessage';
 import { Button } from '@/components/ui/button';
 import { FaDoorClosed } from 'react-icons/fa';
+import SettingUp from '@/components/shared/setting-up';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -157,12 +157,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
       {/* <PausedOverlay isPaused={paused} onResume={resumeGame} /> */}
 
       {!roomCode ? (
-        <div className="flex items-center justify-center h-screen">
-          <p className="text-xl text-muted-foreground">
-            Setting up game room
-            <TrailingDots />
-          </p>
-        </div>
+        <SettingUp />
       ) : (
         <div className="w-full max-w-7xl mx-auto relative">
           {state === 'lobby' && (

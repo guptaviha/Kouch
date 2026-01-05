@@ -8,7 +8,7 @@ import GenericCard from '../shared/generic-card';
 import TimerProgress from '../shared/timer-progress';
 import { PlayerInfo } from '@/lib/store/types';
 import { useGameStore } from '@/lib/store';
-import type { QuestionType } from '@/types/trivia';
+import type { QuestionType } from '@/types/game-types';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
     multiple_choice: 'Multiple Choice',

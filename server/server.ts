@@ -21,7 +21,7 @@ import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
 // @ts-ignore allow ts extension for runtime Node ESM
 import { PackService } from '../src/services/pack-service.ts';
-import type { TriviaGameQuestion } from '../src/types/trivia.ts';
+import type { TriviaGameQuestion } from '../src/types/game-types.ts';
 
 import type {
   ClientMessage,

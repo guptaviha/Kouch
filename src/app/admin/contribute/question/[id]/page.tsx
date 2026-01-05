@@ -9,7 +9,7 @@ import { Edit } from 'lucide-react';
 import GenericCard from '@/components/shared/generic-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { CreateQuestionPayload, QuestionType, TriviaQuestion, TriviaTag } from '@/types/trivia';
+import type { CreateQuestionPayload, QuestionType, TriviaQuestion, TriviaTag } from '@/types/game-types';
 
 const cardMotion = {
   initial: { opacity: 0, y: 16 },

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import HostGameLayout from '@/components/shared/host-game-layout';
+import SettingUp from '@/components/shared/setting-up';
 import { useEffect, useState } from 'react';
 
 export default function HostGamePage() {
@@ -36,11 +37,7 @@ export default function HostGamePage() {
   }, [game, router]);
 
   if (isValid === null) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <SettingUp message="Loading game..." />;
   }
 
   return <HostGameLayout game={game} />;

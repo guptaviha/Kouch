@@ -1,4 +1,4 @@
-import { GamePack } from './games';
+import { GameType, GamePack } from './game-types';
 
 export interface GameDetails {
   id: GamePack;
@@ -10,4 +10,5 @@ export interface GameDetails {
   thumbnailUrl?: string;
   imageUrl: string;
   features: string[];
+  gameType?: GameType;
 }

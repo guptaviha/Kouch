@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { FaClock, FaUsers } from "react-icons/fa";
 import { Play } from "lucide-react";
 import { GameDetails } from "@/types/game-details";
-import { GamePack } from "@/types/games";
+import { GamePack } from "@/types/game-types";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/lib/store";
 import { Button } from "./ui/button";

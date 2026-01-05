@@ -5,15 +5,84 @@ This document describes the critical business logic and flow for the Kouch app, 
 ---
 
 ## Table of Contents
-- [1. Room Management](#1-room-management)
-- [2. Trivia Scoring](#2-trivia-scoring)
-- [3. Rebus Scoring](#3-rebus-scoring)
-- [4. User Journey](#4-user-journey)
-- [5. Trivia Content Contribution](#5-trivia-content-contribution)
+- [1. Game Types & Pack Management](#1-game-types--pack-management)
+- [2. Room Management](#2-room-management)
+- [3. Trivia Scoring](#3-trivia-scoring)
+- [4. Rebus Scoring](#4-rebus-scoring)
+- [5. User Journey](#5-user-journey)
+- [6. Trivia Content Contribution](#6-trivia-content-contribution)
 
 ---
 
-## 1. Room Management
+## 1. Game Types & Pack Management
+
+### Overview
+The Kouch platform supports multiple game types, each with its own pack of questions/puzzles. Packs are displayed together in the Game Library, regardless of game type.
+
+### Supported Game Types
+
+| Game Type | Source | Description |
+|-----------|--------|-------------|
+| **trivia** | Neon DB | Trivia questions from our database. Includes multiple choice, open-ended, and multi-part questions. |
+| **rebus** | Third-Party API | Rebus puzzles from an external API. Visual puzzles where players type answers. |
+
+### Pack Structure
+
+Each pack has the following properties:
+- `id`: Unique identifier (number)
+- `name`: Pack title
+- `description`: Pack description
+- `image_url`: Pack thumbnail
+- `gameType`: Either 'trivia' or 'rebus'
+- `question_ids`: Array of question IDs (trivia only)
+
+### Data Sources
+
+#### Trivia Packs (Database)
+- Stored in: `trivia_packs` table in Neon DB
+- Questions in: `trivia_questions` table
+- Managed via: Admin panel at `/admin/contribute`
+- Service: `PackService.getAllPacks()` fetches from database
+- Always include `gameType: 'trivia'`
+
+#### Rebus Packs (Third-Party API)
+- API Base URL: `https://rebus.games/api/admin`
+- Authentication: Header `x-api-key` with value from `REBUS_PACKS_API_SECRET_KEY` env variable
+- Endpoints:
+  - `GET /packs` - List all packs
+  - `GET /packs/{id}` - Get specific pack
+  - `GET /packs/{id}/questions` - Get questions for pack
+- Service: `RebusService` handles API communication
+- Always include `gameType: 'rebus'`
+
+### Pack Service Implementation
+
+The `PackService` class handles both game types:
+
+```typescript
+// Get all packs (combines trivia + rebus)
+await PackService.getAllPacks()
+
+// Get pack by ID (auto-detects game type if not specified)
+await PackService.getPackById(packId)
+await PackService.getPackById(packId, 'trivia')
+await PackService.getPackById(packId, 'rebus')
+
+// Get questions for pack (auto-detects game type if not specified)
+await PackService.getQuestionsForPack(packId)
+await PackService.getQuestionsForPack(packId, 'trivia')
+await PackService.getQuestionsForPack(packId, 'rebus')
+```
+
+### Game Library Display
+- All packs (trivia + rebus) are shown together in the Game Library
+- Each pack card shows its game type via features badge
+- Packs are sorted by most recently updated (trivia) and as returned by API (rebus)
+- If rebus API fails, only trivia packs are shown
+
+---
+
+## 2. Room Management
 
 ### Overview
 A room is the central hub that connects a host (display) with multiple players (controllers). Each room is identified by a unique 4-letter code and has a specific lifecycle.
@@ -69,7 +138,7 @@ CLOSED
 
 ---
 
-## 2. Trivia Scoring
+## 3. Trivia Scoring
 
 ### Game Structure
 Trivia consists of multiple rounds. Each round features one question with multiple choice answers.
@@ -128,7 +197,7 @@ Final Score = Base Points + Speed Bonus - Hint Penalty
 
 ---
 
-## 3. Rebus Scoring
+## 4. Rebus Scoring
 
 ### Game Structure
 Rebus consists of multiple rounds. Each round features a visual rebus puzzle that players must solve by typing the answer.
@@ -185,7 +254,7 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 
 ---
 
-## 4. User Journey
+## 5. User Journey
 
 ### Host Journey
 
@@ -264,7 +333,7 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 
 ---
 
-## 5. Trivia Content Contribution
+## 6. Trivia Content Contribution
 
 - Admin-only flow at `/admin/contribute` creates trivia questions, tags, and packs without a separate trivia database.
 - Questions support `multiple_choice` (ordered choices with a single correct index), `open_ended` (multiple accepted answers), and `multi_part` (2-4 parts, each with its own prompt, accepted answers, and optional image). Clues remain optional; labels were removed.

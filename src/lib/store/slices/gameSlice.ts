@@ -5,7 +5,7 @@
 
 import { StateCreator } from 'zustand';
 import { RoomStates } from '@/lib/store/types';
-import type { QuestionType } from '@/types/trivia';
+import type { QuestionType } from '@/types/game-types';
 
 export type GameSlice = {
     // use the shared RoomStates type here so the UI and store agree

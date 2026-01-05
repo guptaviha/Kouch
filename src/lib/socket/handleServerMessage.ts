@@ -1,6 +1,6 @@
 import { useGameStore } from '@/lib/store';
 import { ServerMessage, PlayerWire } from '@/types/socket';
-import { GamePack, isValidGame } from '@/types/games';
+import { GamePack, isValidGame } from '@/types/game-types';
 import { toast } from '@/hooks/use-toast';
 
 import { setStorageItem } from '@/hooks/use-local-storage';

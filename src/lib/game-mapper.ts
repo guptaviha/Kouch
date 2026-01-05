@@ -1,7 +1,9 @@
 import { GameDetails } from '@/types/game-details';
-import { TriviaPack } from '@/types/trivia';
+import type { GamePackDetail } from '@/types/game-types';
 
-export function mapPackToGame(pack: TriviaPack): GameDetails {
+export function mapPackToGame(pack: GamePackDetail): GameDetails {
+    const gameTypeFeature = pack.gameType === 'rebus' ? 'Rebus' : 'Trivia';
+    
     return {
         id: pack.id.toString(),
         title: pack.name,
@@ -11,6 +13,7 @@ export function mapPackToGame(pack: TriviaPack): GameDetails {
         minPlayers: 2,
         maxPlayers: 10,
         estimatedTime: '15-30 mins',
-        features: ['Multiplayer', 'Trivia', 'Live Host'],
+        features: ['Multiplayer', gameTypeFeature, 'Live Host'],
+        gameType: pack.gameType,
     };
 }

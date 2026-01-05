@@ -6,7 +6,7 @@ import type {
   QuestionType,
   TriviaQuestion,
   TriviaTag,
-} from '@/types/trivia';
+} from '@/types/game-types';
 
 const sql = getSqlClient();
 // TODO: Replace placeholder URL with uploaded S3 object URL once upload flow is wired.

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/store';
 import TrailingDots from '@/components/trailing-dots';
 import { getRandomMessage } from '@/utils/messages';
-import type { QuestionType } from '@/types/trivia';
+import type { QuestionType } from '@/types/game-types';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
     multiple_choice: 'Multiple Choice',

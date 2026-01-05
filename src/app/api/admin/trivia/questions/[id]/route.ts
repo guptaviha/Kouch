@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getSqlClient, withTransaction } from '@/lib/neon';
-import type {
-  CreateQuestionPayload,
-  QuestionType,
-  TriviaQuestion,
-  TriviaTag,
-} from '@/types/trivia';
+import type { CreateQuestionPayload, QuestionType, TriviaQuestion, TriviaTag } from '@/types/game-types';
 
 const sql = getSqlClient();
 const PLACEHOLDER_IMAGE_URL = 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d';

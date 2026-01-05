@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getSqlClient } from '@/lib/neon';
-import type { CreateTagPayload, TriviaTag } from '@/types/trivia';
+import type { CreateTagPayload, TriviaTag } from '@/types/game-types';
 
 const sql = getSqlClient();
 

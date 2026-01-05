@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PacksTab from './packs-tab';
 import QuestionsTab from './questions-tab';
-import type { TriviaPack, TriviaQuestion, TriviaTag } from '@/types/trivia';
+import type { TriviaPack, TriviaQuestion, TriviaTag } from '@/types/game-types';
 
 export default function AdminContributePage() {
   const [tags, setTags] = useState<TriviaTag[]>([]);

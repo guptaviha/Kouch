@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import GenericCard from '@/components/shared/generic-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { CreatePackPayload, TriviaPack, TriviaQuestion } from '@/types/trivia';
+import type { CreatePackPayload, TriviaPack, TriviaQuestion } from '@/types/game-types';
 import { PacksTable } from '@/components/admin/packs-table';
 
 const cardMotion = {

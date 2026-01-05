@@ -21,7 +21,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import useLocalStorage from "@/hooks/useLocalStorage";
-import type { TriviaQuestion } from '@/types/trivia';
+import type { TriviaQuestion } from '@/types/game-types';
 
 interface QuestionsTableProps {
     questions: TriviaQuestion[];

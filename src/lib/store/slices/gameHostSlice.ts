@@ -5,7 +5,7 @@
 
 import { StateCreator } from 'zustand';
 import { PlayerInfo } from '../types';
-import { GamePack } from '@/types/games';
+import { GamePack } from '@/types/game-types';
 
 export type GameHostSlice = {
     // players in the current room (host side authoritative)

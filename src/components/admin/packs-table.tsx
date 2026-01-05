@@ -19,7 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { TriviaPack } from '@/types/trivia';
+import type { TriviaPack } from '@/types/game-types';
 
 interface PacksTableProps {
     packs: TriviaPack[];

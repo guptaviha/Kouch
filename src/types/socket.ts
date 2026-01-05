@@ -1,4 +1,4 @@
-import type { QuestionType } from './trivia';
+import type { QuestionType } from './game-types';
 
 export type RoomPhase = 'lobby' | 'playing' | 'round_result' | 'finished';
 
