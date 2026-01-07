@@ -161,7 +161,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
       {/* <PausedOverlay isPaused={paused} onResume={resumeGame} /> */}
 
-      {!roomCode ? (
+      {!(roomCode && state !== 'error') ? (
         <SettingUp />
       ) : (
         <div className="w-full max-w-7xl mx-auto relative">
