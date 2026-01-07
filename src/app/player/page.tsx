@@ -11,6 +11,7 @@ import PlayerLobbyView from '@/components/player/player-lobby-view';
 import PlayerPlayingView from '@/components/player/player-playing-view';
 import PlayerRoundResultView from '@/components/player/player-round-result-view';
 import PlayerFinishedView from '@/components/player/player-finished-view';
+import ErrorState from '@/components/shared/error-state';
 
 // Compute a sensible default server URL at runtime so LAN clients will
 // connect back to the host that served the page. This avoids the common
@@ -50,6 +51,7 @@ export default function PlayerPage() {
   const splashTimerRef = useRef<number | null>(null);
   // paused is now stored centrally in the game slice
   const paused = useGameStore((s) => s.paused);
+  const errorMessage = useGameStore((s) => s.errorMessage);
   const [mounted, setMounted] = useState(false);
   const [pausedMessage, setPausedMessage] = useState(getRandomMessage('game_paused'));
 
@@ -149,6 +151,7 @@ export default function PlayerPage() {
           {state === 'playing' && <PlayerPlayingView />}
           {state === 'round_result' && roundResults && <PlayerRoundResultView />}
           {state === 'finished' && roundResults && <PlayerFinishedView />}
+          {state === 'error' && <ErrorState message={errorMessage || undefined} />}
         </div>
       )}
     </div>

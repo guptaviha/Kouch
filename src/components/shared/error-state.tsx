@@ -1,23 +1,21 @@
 "use client";
 
 import React from 'react';
-import { Quantum } from 'ldrs/react';
+import { MdError } from 'react-icons/md';
 import { useTheme } from 'next-themes';
-import 'ldrs/react/Quantum.css';
 
-interface SettingUpProps {
+interface ErrorStateProps {
   message?: string;
   size?: number;
-  speed?: number;
 }
 
-export default function SettingUp({ message = 'Setting up game room', size = 72, speed = 2 }: SettingUpProps) {
+export default function ErrorState({ message = 'An error occurred', size = 72 }: ErrorStateProps) {
   const { resolvedTheme } = useTheme();
 
   return (
     <div className="flex flex-col items-center justify-center translate-y-[-10%] h-screen" role="status" aria-live="polite">
       <div className="mb-8">
-        <Quantum size={size} speed={speed} color={resolvedTheme === 'dark' ? '#ffffff' : '#374151'} />
+        <MdError size={size} color={resolvedTheme === 'dark' ? '#ffffff' : '#374151'} />
       </div>
       <p className="text-xl text-muted-foreground">{message}</p>
     </div>

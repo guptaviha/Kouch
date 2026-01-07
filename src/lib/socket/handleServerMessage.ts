@@ -43,6 +43,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setAnswer,
     setHintUsed,
     setStatusMessage,
+    setErrorMessage,
   } = s;
 
   const resetStateForNewRoom = () => {
@@ -70,6 +71,7 @@ export default function serverMessageHandler(msg: ServerMessage) {
     setSubmitted?.(false);
     setHintUsed?.(false);
     setAnswer?.('');
+    setErrorMessage?.(null);
   };
 
   try {
@@ -260,7 +262,9 @@ export default function serverMessageHandler(msg: ServerMessage) {
         break;
 
       case 'error':
-        setStatusMessage?.(msg.message || 'An error occurred');
+        console.error('Server error message:', msg.message);
+        setState?.('error');
+        setErrorMessage?.(msg.message || 'An error occurred');
         break;
 
       default:

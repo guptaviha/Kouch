@@ -46,6 +46,9 @@ export type GameSlice = {
     // Current question hint (for rebus)
     currentHint?: string;
     setCurrentHint: (hint: string | undefined) => void;
+    // Error state
+    errorMessage: string | null;
+    setErrorMessage: (msg: string | null) => void;
 };
 
 export const createGameSlice: StateCreator<GameSlice> = (set) => ({
@@ -81,4 +84,6 @@ export const createGameSlice: StateCreator<GameSlice> = (set) => ({
     setNextTimerDurationMs: (ms) => set({ nextTimerDurationMs: ms }),
     currentHint: undefined,
     setCurrentHint: (hint) => set({ currentHint: hint }),
+    errorMessage: null,
+    setErrorMessage: (msg) => set({ errorMessage: msg }),
 });

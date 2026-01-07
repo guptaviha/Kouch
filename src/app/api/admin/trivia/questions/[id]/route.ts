@@ -45,8 +45,9 @@ async function upsertTags(
   return tags;
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = Number(rawId);
   if (!Number.isInteger(id) || id <= 0) {
     return badRequest('Invalid question id');
   }
@@ -101,8 +102,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = Number(rawId);
   if (!Number.isInteger(id) || id <= 0) {
     return badRequest('Invalid question id');
   }
