@@ -17,6 +17,7 @@ import serverMessageHandler from '@/lib/socket/handleServerMessage';
 import { Button } from '@/components/ui/button';
 import { FaDoorClosed } from 'react-icons/fa';
 import SettingUp from '@/components/shared/setting-up';
+import ErrorState from '@/components/shared/error-state';
 
 const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
 
@@ -48,10 +49,14 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const paused = useGameStore((s) => s.paused);
   const selectedPack = useGameStore((s) => s.selectedPack);
   const setSelectedPack = useGameStore((s) => s.setSelectedPack);
+  const errorMessage = useGameStore((s) => s.errorMessage);
 
   const [mounted, setMounted] = useState(false);
 
   useQRGenerator(roomCode);
+
+  console.log('Room state:', state);
+  console.log('Error message:', errorMessage);
 
   // Set selected pack based on URL game parameter
   useEffect(() => {
@@ -177,6 +182,10 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
 
           {state === 'finished' && roundResults && (
             <HostFinishedView />
+          )}
+
+          {state === 'error' && (
+            <ErrorState message={errorMessage || undefined} />
           )}
         </div>
       )}
