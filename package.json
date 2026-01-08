@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "kouch",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,6 +11,7 @@
     "dev-https": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
+    "start:docker": "next start -H 0.0.0.0 -p 3000 & tsx server/server.ts & wait -n",
     "lint": "next lint",
     "kill:3001": "lsof -ti :3001 | xargs kill -9 || true"
   },
@@ -36,6 +37,7 @@
     "react-icons": "^4.12.0",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
+    "tsx": "^4.7.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.9"
