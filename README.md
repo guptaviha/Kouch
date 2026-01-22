@@ -51,7 +51,7 @@ https://docs.google.com/document/d/1T1ganf7wTUQRx4nZxMIN43tdLzcT_OVc4PujUVOd3_Q/
 	```
 2. Run it locally:
 	```bash
-	docker run --platform linux/arm64 -p 3000:3000 -p 3001:3001 kouch-game:latest
+	docker run --platform linux/arm64 -p 3000:3000 -p 3001:3001 --env-file .env.local kouch-game:latest
 	```
 3. Push to AWS ECR (after creating the repo) using the helper script:
 Note: Not tested yet
