@@ -91,3 +91,12 @@ In redis, we will store the room code as the key and the room data as the value.
 
 ## Game end action button
 - Show a recommendation marquee at the end of the game with the list of other packs available to play.
+
+## Breakout the app Next Steps
+1. Move Next.js UI into it's own app
+2. Seperate WebSocket server into it's own app
+3. Test app after seperation
+4. Create a shared library for types and utils used by both apps
+5. Deploy UI app to Netlify
+6. Refactor the WebSocket to be Cloudflare Durable Objects friendly (Hibernatable API, Remove setInterval)
+7. Deploy to Cloudflare Durable Objects
