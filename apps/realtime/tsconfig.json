@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": [
+      "esnext",
+      "webworker"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "party/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

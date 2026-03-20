@@ -1,6 +1,11 @@
-Kouch - Game Server
+Kouch - Legacy Socket Game Server
 
-This folder contains a small standalone Socket.IO game server used by the Kouch app.
+This folder contains the legacy standalone Socket.IO game server used before the PartyKit refactor.
+
+Status
+- Legacy runtime kept temporarily during the monorepo split.
+- New realtime work should go into `apps/realtime`.
+- The web app now lives in `apps/web`.
 
 Overview
 - Socket.IO endpoint (attached to HTTP server): ws://localhost:3001/ws (Socket.IO protocol)

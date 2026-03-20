@@ -6,7 +6,7 @@
 import { StateCreator } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 
-import { ClientToServerEvents, ServerToClientEvents } from '@/types/socket';
+import type { ClientToServerEvents, ServerToClientEvents } from '@kouch/contracts';
 import { toast } from '@/hooks/use-toast';
 
 type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

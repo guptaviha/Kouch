@@ -1,0 +1,6 @@
+{
+  "$schema": "https://www.partykit.io/schema.json",
+  "name": "kouch-party",
+  "main": "party/index.ts",
+  "compatibilityDate": "2026-03-20"
+}

@@ -19,22 +19,23 @@ Server emits 'server' events to clients with payloads containing `type`.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
-// @ts-ignore allow ts extension for runtime Node ESM
-import { PackService } from '../src/services/pack-service.ts';
-import type { TriviaGameQuestion } from '../src/types/game-types.ts';
-
+import { parseClientEvent } from '@kouch/contracts';
+import { createGameContentService, getGameContentConfigFromEnv } from '@kouch/game-content';
 import type {
   ClientMessage,
-  ServerMessage,
   ClientToServerEvents,
+  PlayerWire,
+  RoomPhase,
+  RoundResultEntry,
+  ServerMessage,
   ServerToClientEvents,
   SocketData,
-  RoomPhase,
-  PlayerWire,
-  RoundResultEntry,
-} from '../src/types/socket.ts';
+  TriviaGameQuestion,
+} from '@kouch/contracts';
 
 type ServerQuestion = TriviaGameQuestion;
+
+const gameContentService = createGameContentService(getGameContentConfigFromEnv(process.env));
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, SocketData>;
 
@@ -210,20 +211,11 @@ function broadcastLobby(room: Room) {
 
 // Safely parse incoming payloads into typed client messages.
 function parseClientMessage(msg: ClientMessage | string): ClientMessage | null {
-  if (typeof msg === 'string') {
-    try {
-      const parsed = JSON.parse(msg);
-      return parsed as ClientMessage;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  if (!msg || typeof msg !== 'object' || !('type' in msg)) {
+  try {
+    return parseClientEvent(msg);
+  } catch (e) {
     return null;
   }
-
-  return msg as ClientMessage;
 }
 
 // Compute descending leaderboard for a room.
@@ -547,7 +539,7 @@ async function handleMessage(socket: TypedSocket, msg: ClientMessage | string) {
     // Load questions from service
     let questions: ServerQuestion[] = [];
     try {
-      questions = await PackService.getQuestionsForPack(packId);
+      questions = await gameContentService.getQuestionsForPack(packId);
     } catch (e) {
       console.error('Error fetching pack from DB:', e);
       send(socket, { type: 'error', message: 'failed to load pack' });

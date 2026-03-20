@@ -2,25 +2,30 @@
 
 couch player games for the insane.
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This repo is now organized as a small workspace:
+
+- `apps/web` — Next.js 15 host, player, and admin app
+- `apps/realtime` — PartyKit realtime runtime
+- `server` — legacy Socket.IO runtime kept temporarily during the migration
 
 ## Getting Started
 
-First, run the development server:
+First, run the development servers:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Or run each app independently:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev:web
+npm run dev:realtime
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the web app.
+
+You can start editing the page in `apps/web/src/app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 

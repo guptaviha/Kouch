@@ -1,6 +1,11 @@
 node_modules
 .DS_Store
 .next
+apps/*/.next
+apps/*/.env.local
+apps/*/tsconfig.tsbuildinfo
+.wrangler
+dist
 certificates
 .env.local
 tsconfig.tsbuildinfo
