@@ -19,6 +19,10 @@
     "build:web": "set -a; [ -f ./.env.local ] && . ./.env.local; set +a; npm run build --workspace @kouch/web",
     "build:realtime": "npm run build --workspace @kouch/realtime",
     "lint": "set -a; [ -f ./.env.local ] && . ./.env.local; set +a; npm run lint --workspace @kouch/web",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run test --workspace @kouch/contracts && npm run test --workspace @kouch/game-engine && npm run test --workspace @kouch/web",
+    "test:integration": "npm run test --workspace @kouch/realtime",
+    "ci": "npm run lint && npm run typecheck && npm run test",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "kill:3001": "lsof -ti :3001 | xargs kill -9 || true"
   },

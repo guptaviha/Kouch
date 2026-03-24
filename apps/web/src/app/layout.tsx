@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { PWAWrapper } from "@/components/pwa-wrapper";
-import Script from "next/script";
 import { Toaster } from "@/components/ui/toaster";
 
 import { HexagonBackground } from "@/components/animate-ui/components/backgrounds/hexagon";
@@ -28,7 +27,6 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <Script async src="http://localhost:3000/script.js" data-website-id=""></Script>
             <body className={`${inter.className} theme-transition`}>
                 <PWAWrapper>
                     <ThemeProvider

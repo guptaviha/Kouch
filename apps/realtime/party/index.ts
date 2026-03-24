@@ -57,6 +57,10 @@ const ROOM_CREATE_ATTEMPTS = 12;
 const INVALID_SESSION_WINDOW_MS = 15_000;
 const INVALID_SESSION_LIMIT = 6;
 const INVALID_SESSION_BLOCK_MS = 10_000;
+const ROOM_INACTIVITY_TTL_MS = 15 * 60_000;
+const CHECKPOINT_SCHEMA_VERSION = 1;
+const MAX_RECOVERY_TRANSITIONS = 32;
+const ROOM_INACTIVITY_CLOSE_REASON = 'Room expired after inactivity.';
 
 type RuntimeEnv = Record<string, unknown>;
 
@@ -64,6 +68,24 @@ type ConnectionAttachment = {
   participantId: string;
   role: ParticipantRole;
 };
+
+type RoomCheckpoint = {
+  version: number;
+  state: GameRoomState;
+  lastActiveAt: number;
+  lastCheckpointReason: string;
+  savedAt: number;
+  scheduledAlarmAt: number | null;
+};
+
+type RoomLogLevel = 'info' | 'warn' | 'error';
+type RoomMetricName =
+  | 'room_creates'
+  | 'joins'
+  | 'reconnects'
+  | 'invalid_commands'
+  | 'upstream_content_fetch_failures'
+  | 'round_transitions';
 
 const CreateRoomRequestSchema = z.object({
   participantId: z.string().min(1).optional(),
@@ -232,6 +254,36 @@ function getPackIdentifier(pack?: string, packId?: number): { selectedPack?: str
       : undefined;
 
   return { selectedPack, resolvedPackId };
+}
+
+function isGameRoomState(value: unknown): value is GameRoomState {
+  return isObject(value)
+    && typeof value.roomCode === 'string'
+    && typeof value.protocolVersion === 'number'
+    && typeof value.stateVersion === 'number'
+    && typeof value.phase === 'string'
+    && Array.isArray(value.participants)
+    && isObject(value.round);
+}
+
+function isRoomCheckpoint(value: unknown): value is RoomCheckpoint {
+  return isObject(value)
+    && value.version === CHECKPOINT_SCHEMA_VERSION
+    && isGameRoomState(value.state)
+    && typeof value.lastActiveAt === 'number'
+    && typeof value.lastCheckpointReason === 'string'
+    && typeof value.savedAt === 'number'
+    && (typeof value.scheduledAlarmAt === 'number' || value.scheduledAlarmAt === null);
+}
+
+function getCommandTypeCandidate(message: string | ArrayBuffer | ArrayBufferView): string | undefined {
+  try {
+    const payload = parseMessagePayload(message);
+    const candidate = isObject(payload) && 'event' in payload ? payload.event : payload;
+    return isObject(candidate) && typeof candidate.type === 'string' ? candidate.type : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function toRoomErrorBody(code: RoomErrorCode, message: string, status: number, retryable = false) {
@@ -407,6 +459,9 @@ export default class Server implements Party.Server {
   private invalidSessionWindowStartedAt = 0;
   private invalidSessionAttempts = 0;
   private invalidSessionBlockedUntil = 0;
+  private lastActiveAt = Date.now();
+  private scheduledAlarmAt: number | null = null;
+  private lastCheckpointReason = 'room_initialized';
 
   constructor(readonly room: Party.Room) {
     this.state = createRoomState({
@@ -414,6 +469,7 @@ export default class Server implements Party.Server {
       protocolVersion: PROTOCOL_VERSION,
       now: Date.now(),
     });
+    this.lastActiveAt = this.state.createdAt;
   }
 
   private get roomCode() {
@@ -439,9 +495,21 @@ export default class Server implements Party.Server {
   }
 
   async onStart() {
-    const checkpoint = await this.room.storage.get<GameRoomState>(CHECKPOINT_STORAGE_KEY);
+    const checkpoint = await this.room.storage.get<RoomCheckpoint | GameRoomState>(CHECKPOINT_STORAGE_KEY);
     if (checkpoint) {
-      this.state = checkpoint;
+      if (isRoomCheckpoint(checkpoint)) {
+        this.state = checkpoint.state;
+        this.lastActiveAt = checkpoint.lastActiveAt;
+        this.scheduledAlarmAt = checkpoint.scheduledAlarmAt;
+        this.lastCheckpointReason = checkpoint.lastCheckpointReason;
+      } else if (isGameRoomState(checkpoint)) {
+        this.state = checkpoint;
+        this.lastActiveAt = checkpoint.updatedAt;
+        this.scheduledAlarmAt = checkpoint.round.timerEndsAt;
+        this.lastCheckpointReason = 'legacy_checkpoint_restored';
+      }
+
+      await this.reconcileRecoveredState();
       return;
     }
 
@@ -450,16 +518,24 @@ export default class Server implements Party.Server {
       protocolVersion: PROTOCOL_VERSION,
       now: Date.now(),
     });
+    this.lastActiveAt = this.state.createdAt;
+    this.scheduledAlarmAt = null;
   }
 
   async onConnect(connection: Party.Connection<ConnectionAttachment>, ctx: Party.ConnectionContext) {
+    const correlationId = crypto.randomUUID();
     try {
       this.assertInvalidSessionThrottle();
       const session = await parseSessionFromRequest(ctx.request, this.roomCode, this.room.env);
       this.resetInvalidSessionThrottle();
-      await this.attachConnection(connection, session);
+      await this.attachConnection(connection, session, correlationId);
     } catch (error) {
       this.recordInvalidSessionAttempt();
+      this.log('warn', 'connection_rejected', {
+        correlationId,
+        commandType: 'connect',
+        reason: error instanceof Error ? error.message : 'Failed to attach session',
+      });
       if (error instanceof RoomRuntimeError) {
         this.sendRaw(connection, {
           type: 'error',
@@ -486,10 +562,34 @@ export default class Server implements Party.Server {
   }
 
   async onMessage(message: string | ArrayBuffer | ArrayBufferView, sender: Party.Connection<ConnectionAttachment>) {
+    const correlationId = crypto.randomUUID();
+    const attachment = this.connectionIndex.get(sender.id) ?? sender.state ?? null;
+    const commandType = getCommandTypeCandidate(message);
+
     try {
       const command = parseClientCommand(message);
-      await this.applyCommand(command, sender);
+      this.log('info', 'command_received', {
+        correlationId,
+        commandType: command.type,
+        participantId: attachment?.participantId,
+        role: attachment?.role,
+      });
+      await this.applyCommand(command, sender, correlationId);
     } catch (error) {
+      this.logMetric('invalid_commands', {
+        correlationId,
+        commandType,
+        participantId: attachment?.participantId,
+        role: attachment?.role,
+        reason: error instanceof Error ? error.message : 'Unable to process command',
+      });
+      this.log('warn', 'command_rejected', {
+        correlationId,
+        commandType,
+        participantId: attachment?.participantId,
+        role: attachment?.role,
+        reason: error instanceof Error ? error.message : 'Unable to process command',
+      });
       if (error instanceof RoomRuntimeError) {
         this.sendError(sender, error.code, error.message, error.retryable);
         return;
@@ -510,18 +610,32 @@ export default class Server implements Party.Server {
       return;
     }
 
+    const now = Date.now();
     this.connectionIndex.delete(connection.id);
     const participantConnectionIds = this.participantConnections.get(attachment.participantId);
+    let participantDisconnected = false;
     if (participantConnectionIds) {
       participantConnectionIds.delete(connection.id);
       if (participantConnectionIds.size === 0) {
         this.participantConnections.delete(attachment.participantId);
+        participantDisconnected = true;
       }
+    }
+
+    if (participantDisconnected || this.participantConnections.size === 0) {
+      await this.commitCheckpoint(participantDisconnected ? 'participant_disconnected' : 'room_became_idle', {
+        now,
+        markActivity: true,
+      });
+      this.log('info', 'participant_disconnected', {
+        participantId: attachment.participantId,
+        role: attachment.role,
+        reason: this.participantConnections.size === 0 ? 'room_idle' : 'participant_offline',
+      });
     }
 
     await this.broadcastSnapshot();
     this.broadcastLobbyUpdate();
-    await this.cleanupIfClosedAndIdle();
   }
 
   async onRequest(req: Party.Request) {
@@ -559,6 +673,13 @@ export default class Server implements Party.Server {
           participantId,
           connectionIds: Array.from(ids),
         })),
+        runtime: {
+          lastActiveAt: this.lastActiveAt,
+          inactivityDeadline: this.getInactivityDeadline(),
+          scheduledAlarmAt: this.scheduledAlarmAt,
+          lastCheckpointReason: this.lastCheckpointReason,
+          activeConnectionCount: this.getActiveConnectionCount(),
+        },
         selectedPack: this.state.selectedPack,
         hasPackDefinition: Boolean(this.state.packDefinition),
         roundView: getCurrentRoundView(this.state),
@@ -576,6 +697,10 @@ export default class Server implements Party.Server {
         const response = await this.bootstrapHost(body.session, body.pack, body.packId, body.gameType);
         return jsonResponse(response);
       } catch (error) {
+        this.log('warn', 'bootstrap_host_failed', {
+          commandType: 'bootstrap_host',
+          reason: error instanceof Error ? error.message : 'Failed to bootstrap host',
+        });
         return toRoomErrorResponse(error);
       }
     }
@@ -588,8 +713,18 @@ export default class Server implements Party.Server {
       try {
         const body = JoinAuthorizationRequestSchema.parse(await req.json());
         this.assertJoinAllowed(body.session);
+        this.log('info', 'join_authorized', {
+          participantId: body.session.participantId,
+          role: body.session.role,
+          commandType: 'authorize_join',
+        });
         return jsonResponse({ ok: true, snapshot: this.buildSnapshot() });
       } catch (error) {
+        this.log('warn', 'join_authorization_failed', {
+          participantId: req.headers.get('x-kouch-participant-id') ?? undefined,
+          commandType: 'authorize_join',
+          reason: error instanceof Error ? error.message : 'Join authorization failed',
+        });
         return toRoomErrorResponse(error);
       }
     }
@@ -598,22 +733,33 @@ export default class Server implements Party.Server {
   }
 
   async onAlarm() {
-    if (this.state.closedAt) {
-      await this.clearAlarm();
+    const now = Date.now();
+
+    if (this.isInactiveExpired(now)) {
+      await this.expireRoomForInactivity(now);
       return;
     }
 
     if (this.state.round.pauseRemainingMs && !this.state.round.timerEndsAt) {
+      await this.commitCheckpoint('alarm_noop', { now, markActivity: false });
       return;
     }
 
-    if (this.state.phase === 'playing' || this.state.phase === 'round_result') {
+    if (this.shouldAdvanceExpiredTimer(now)) {
       await this.runTransition(advanceRound(this.state, {
         now: Date.now(),
         roundDurationMs: DEFAULT_ROUND_DURATION_MS,
         roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
-      }));
+      }), {
+        reason: 'round_advanced',
+        commandType: 'alarm',
+        markActivity: false,
+        source: 'alarm',
+      });
+      return;
     }
+
+    await this.commitCheckpoint('alarm_rescheduled', { now, markActivity: false });
   }
 
   private getPlayerParticipants() {
@@ -690,6 +836,44 @@ export default class Server implements Party.Server {
 
   private sendRaw(connection: Party.Connection, event: ServerEvent) {
     connection.send(JSON.stringify(event));
+  }
+
+  private log(level: RoomLogLevel, event: string, context: Record<string, unknown> = {}) {
+    const payload = {
+      ts: new Date().toISOString(),
+      level,
+      source: 'kouch-realtime-room',
+      event,
+      roomCode: this.roomCode,
+      roomState: this.state.phase,
+      stateVersion: this.state.stateVersion,
+      ...context,
+    };
+
+    const message = JSON.stringify(payload);
+    if (level === 'error') {
+      console.error(message);
+      return;
+    }
+
+    if (level === 'warn') {
+      console.warn(message);
+      return;
+    }
+
+    console.info(message);
+  }
+
+  private logMetric(metric: RoomMetricName, context: Record<string, unknown> = {}) {
+    this.log('info', 'metric', {
+      metric,
+      count: 1,
+      ...context,
+    });
+  }
+
+  private getActiveConnectionCount() {
+    return Array.from(this.room.getConnections()).length;
   }
 
   private sendError(connection: Party.Connection, code: RoomErrorCode, message: string, retryable = false) {
@@ -771,25 +955,170 @@ export default class Server implements Party.Server {
     }
   }
 
-  private async persistCheckpoint() {
-    await this.room.storage.put(CHECKPOINT_STORAGE_KEY, this.state);
+  private getRoundAlarmAt() {
+    if ((this.state.phase !== 'playing' && this.state.phase !== 'round_result') || this.state.round.timerEndsAt == null) {
+      return null;
+    }
+
+    return this.state.round.timerEndsAt;
   }
 
-  private async clearAlarm() {
-    await this.room.storage.deleteAlarm();
+  private getInactivityDeadline() {
+    if (this.getActiveConnectionCount() > 0) {
+      return null;
+    }
+
+    return Math.max(this.lastActiveAt, this.state.updatedAt, this.state.createdAt) + ROOM_INACTIVITY_TTL_MS;
   }
 
-  private async applyTimerIntent(timerIntent?: GameTransitionResult['timerIntent']) {
-    if (!timerIntent) {
+  private isInactiveExpired(now = Date.now()) {
+    const inactivityDeadline = this.getInactivityDeadline();
+    return inactivityDeadline != null && inactivityDeadline <= now;
+  }
+
+  private shouldAdvanceExpiredTimer(now = Date.now()) {
+    return (this.state.phase === 'playing' || this.state.phase === 'round_result')
+      && this.state.round.timerEndsAt != null
+      && this.state.round.timerEndsAt <= now;
+  }
+
+  private getDesiredAlarmAt() {
+    const candidates = [this.getRoundAlarmAt(), this.getInactivityDeadline()].filter((value): value is number => value != null);
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    return Math.min(...candidates);
+  }
+
+  private async persistCheckpoint(reason: string, savedAt: number) {
+    this.lastCheckpointReason = reason;
+    await this.room.storage.put(CHECKPOINT_STORAGE_KEY, {
+      version: CHECKPOINT_SCHEMA_VERSION,
+      state: this.state,
+      lastActiveAt: this.lastActiveAt,
+      lastCheckpointReason: reason,
+      savedAt,
+      scheduledAlarmAt: this.scheduledAlarmAt,
+    } satisfies RoomCheckpoint);
+  }
+
+  private async flushAlarm() {
+    if (this.scheduledAlarmAt == null) {
+      await this.room.storage.deleteAlarm();
       return;
     }
 
-    if (timerIntent.at == null) {
-      await this.clearAlarm();
+    await this.room.storage.setAlarm(this.scheduledAlarmAt);
+  }
+
+  private async commitCheckpoint(reason: string, options?: { now?: number; markActivity?: boolean }) {
+    const now = options?.now ?? Date.now();
+    if (options?.markActivity ?? true) {
+      this.lastActiveAt = now;
+    }
+
+    this.scheduledAlarmAt = this.getDesiredAlarmAt();
+    await this.persistCheckpoint(reason, now);
+    await this.flushAlarm();
+  }
+
+  private async reconcileRecoveredState() {
+    const now = Date.now();
+
+    if (this.isInactiveExpired(now)) {
+      this.log('info', 'room_expired_on_start', {
+        reason: 'inactivity',
+        lastActiveAt: this.lastActiveAt,
+      });
+      await this.resetDurableRoom(now);
       return;
     }
 
-    await this.room.storage.setAlarm(timerIntent.at);
+    let recoveryTransitions = 0;
+    while (this.shouldAdvanceExpiredTimer(now) && recoveryTransitions < MAX_RECOVERY_TRANSITIONS) {
+      const result = advanceRound(this.state, {
+        now,
+        roundDurationMs: DEFAULT_ROUND_DURATION_MS,
+        roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
+      });
+
+      if (!result.ok) {
+        this.log('error', 'room_recovery_failed', {
+          commandType: 'recovery',
+          reason: result.error?.message ?? 'Unable to advance recovered room state',
+        });
+        break;
+      }
+
+      this.state = result.state;
+      recoveryTransitions += 1;
+    }
+
+    if (recoveryTransitions >= MAX_RECOVERY_TRANSITIONS && this.shouldAdvanceExpiredTimer(now)) {
+      this.log('warn', 'room_recovery_guard_hit', {
+        commandType: 'recovery',
+        reason: 'Exceeded maximum recovery transitions',
+      });
+    }
+
+    this.scheduledAlarmAt = this.getDesiredAlarmAt();
+    await this.persistCheckpoint(recoveryTransitions > 0 ? 'state_recovered' : this.lastCheckpointReason, now);
+    await this.flushAlarm();
+
+    this.log('info', 'room_recovered', {
+      commandType: 'recovery',
+      reason: recoveryTransitions > 0 ? 'expired_timer_reconciled' : 'checkpoint_restored',
+      recoveredTransitions: recoveryTransitions,
+      scheduledAlarmAt: this.scheduledAlarmAt,
+    });
+
+    if (recoveryTransitions > 0) {
+      this.logMetric('round_transitions', {
+        commandType: 'recovery',
+        count: recoveryTransitions,
+      });
+    }
+  }
+
+  private async resetDurableRoom(now: number) {
+    await this.room.storage.deleteAll();
+    this.state = createRoomState({
+      roomCode: this.roomCode,
+      protocolVersion: PROTOCOL_VERSION,
+      now,
+    });
+    this.connectionIndex.clear();
+    this.participantConnections.clear();
+    this.lastActiveAt = now;
+    this.scheduledAlarmAt = null;
+    this.lastCheckpointReason = 'room_reset';
+  }
+
+  private async expireRoomForInactivity(now: number) {
+    if (!this.state.closedAt) {
+      const result = closeRoomTransition(this.state, {
+        now,
+        reason: ROOM_INACTIVITY_CLOSE_REASON,
+      });
+
+      if (result.ok) {
+        await this.runTransition(result, {
+          reason: 'room_closed',
+          commandType: 'room_expired',
+          markActivity: false,
+          source: 'inactivity',
+        });
+      }
+    }
+
+    this.log('info', 'room_expired', {
+      commandType: 'room_expired',
+      reason: ROOM_INACTIVITY_CLOSE_REASON,
+      lastActiveAt: this.lastActiveAt,
+    });
+
+    await this.resetDurableRoom(now);
   }
 
   private assertSession(session: ParticipantSession) {
@@ -831,6 +1160,7 @@ export default class Server implements Party.Server {
     const now = Date.now();
     let packDefinition: RoomPackDefinition | undefined = this.state.packDefinition;
     const { selectedPack, resolvedPackId } = getPackIdentifier(pack, packId);
+    const isNewRoom = !this.state.hostParticipantId;
 
     if (selectedPack) {
       try {
@@ -838,6 +1168,12 @@ export default class Server implements Party.Server {
           ? await this.gameContentService.getRoomPackDefinition(resolvedPackId, gameType)
           : this.state.packDefinition;
       } catch (error) {
+        this.logMetric('upstream_content_fetch_failures', {
+          commandType: 'bootstrap_host',
+          participantId: session.participantId,
+          role: session.role,
+          reason: error instanceof Error ? error.message : 'Unable to load pack definition',
+        });
         const message = error instanceof GameContentError ? error.message : 'Unable to load pack definition';
         throw new RoomRuntimeError('PACK_LOAD_FAILED', message, 422);
       }
@@ -849,14 +1185,39 @@ export default class Server implements Party.Server {
       displayName: session.displayName ?? 'Host',
       avatar: session.avatar,
       now,
-    }));
+    }), {
+      reason: isNewRoom ? 'room_created' : 'host_reconnected',
+      commandType: 'bootstrap_host',
+      participantId: session.participantId,
+      role: session.role,
+    });
 
     await this.runTransition(configureRoom(this.state, {
       hostParticipantId: session.participantId,
       selectedPack: selectedPack ?? this.state.selectedPack,
       packDefinition,
       now,
-    }));
+    }), {
+      reason: 'room_configured',
+      commandType: 'bootstrap_host',
+      participantId: session.participantId,
+      role: session.role,
+    });
+
+    if (isNewRoom) {
+      this.logMetric('room_creates', {
+        commandType: 'bootstrap_host',
+        participantId: session.participantId,
+        role: session.role,
+      });
+    }
+
+    this.log('info', 'host_bootstrapped', {
+      commandType: 'bootstrap_host',
+      participantId: session.participantId,
+      role: session.role,
+      reason: isNewRoom ? 'room_created' : 'room_reused',
+    });
 
     return {
       ok: true,
@@ -865,10 +1226,12 @@ export default class Server implements Party.Server {
     };
   }
 
-  private async attachConnection(connection: Party.Connection<ConnectionAttachment>, session: ParticipantSession) {
+  private async attachConnection(connection: Party.Connection<ConnectionAttachment>, session: ParticipantSession, correlationId: string) {
     this.assertJoinAllowed(session);
     const now = Date.now();
     const existingParticipant = this.getParticipant(session.participantId);
+    const hadActiveConnection = this.isParticipantConnected(session.participantId);
+    const isReconnect = Boolean(existingParticipant) && !hadActiveConnection;
 
     await this.runTransition(upsertParticipant(this.state, {
       participantId: session.participantId,
@@ -876,7 +1239,13 @@ export default class Server implements Party.Server {
       displayName: session.displayName ?? (session.role === 'host' ? 'Host' : 'Player'),
       avatar: session.avatar,
       now,
-    }));
+    }), {
+      reason: isReconnect ? 'participant_reconnected' : 'participant_connected',
+      commandType: 'connect',
+      participantId: session.participantId,
+      role: session.role,
+      correlationId,
+    });
 
     const attachment: ConnectionAttachment = {
       participantId: session.participantId,
@@ -913,6 +1282,31 @@ export default class Server implements Party.Server {
       snapshot: this.buildSnapshot(),
     });
     this.emitCurrentPhaseState(connection);
+
+    if (isReconnect) {
+      this.logMetric('reconnects', {
+        correlationId,
+        commandType: 'connect',
+        participantId: session.participantId,
+        role: session.role,
+      });
+    } else if (session.role === 'player') {
+      this.logMetric('joins', {
+        correlationId,
+        commandType: 'connect',
+        participantId: session.participantId,
+        role: session.role,
+      });
+    }
+
+    this.log('info', 'participant_connected', {
+      correlationId,
+      commandType: 'connect',
+      participantId: session.participantId,
+      role: session.role,
+      reason: isReconnect ? 'reconnected' : existingParticipant ? 'additional_connection' : 'joined',
+    });
+
     await this.broadcastSnapshot();
     this.broadcastLobbyUpdate();
   }
@@ -941,9 +1335,15 @@ export default class Server implements Party.Server {
     }
   }
 
-  private async applyCommand(command: ClientEvent, sender: Party.Connection<ConnectionAttachment>) {
+  private async applyCommand(command: ClientEvent, sender: Party.Connection<ConnectionAttachment>, correlationId: string) {
     const attachment = this.requireAttachment(sender);
     const now = Date.now();
+    const commandContext = {
+      correlationId,
+      commandType: command.type,
+      participantId: attachment.participantId,
+      role: attachment.role,
+    };
 
     switch (command.type) {
       case 'ping': {
@@ -959,17 +1359,26 @@ export default class Server implements Party.Server {
         await this.runTransition(startGame(this.state, {
           now,
           roundDurationMs: DEFAULT_ROUND_DURATION_MS,
-        }));
+        }), {
+          ...commandContext,
+          reason: 'game_started',
+        });
         return;
       }
       case 'pause_game': {
         this.assertHost(attachment);
-        await this.runTransition(pauseGame(this.state, { now }));
+        await this.runTransition(pauseGame(this.state, { now }), {
+          ...commandContext,
+          reason: 'game_paused',
+        });
         return;
       }
       case 'resume_game': {
         this.assertHost(attachment);
-        await this.runTransition(resumeGame(this.state, { now }));
+        await this.runTransition(resumeGame(this.state, { now }), {
+          ...commandContext,
+          reason: 'game_resumed',
+        });
         return;
       }
       case 'extend_timer': {
@@ -978,7 +1387,10 @@ export default class Server implements Party.Server {
         await this.runTransition(extendTimer(this.state, {
           now,
           extensionMs: DEFAULT_TIMER_EXTENSION_MS,
-        }));
+        }), {
+          ...commandContext,
+          reason: 'timer_extended',
+        });
         return;
       }
       case 'skip_timer': {
@@ -988,13 +1400,19 @@ export default class Server implements Party.Server {
           now,
           roundDurationMs: DEFAULT_ROUND_DURATION_MS,
           roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
-        }));
+        }), {
+          ...commandContext,
+          reason: 'round_advanced',
+        });
         return;
       }
       case 'reset_game': {
         this.assertRoomCode(command.roomCode);
         this.assertHost(attachment);
-        await this.runTransition(resetGame(this.state, { now }));
+        await this.runTransition(resetGame(this.state, { now }), {
+          ...commandContext,
+          reason: 'game_reset',
+        });
         return;
       }
       case 'close_room': {
@@ -1003,7 +1421,10 @@ export default class Server implements Party.Server {
         await this.runTransition(closeRoomTransition(this.state, {
           now,
           reason: 'The host closed the room.',
-        }));
+        }), {
+          ...commandContext,
+          reason: 'room_closed',
+        });
         for (const connection of this.room.getConnections()) {
           connection.close(1000, 'The host closed the room.');
         }
@@ -1019,7 +1440,10 @@ export default class Server implements Party.Server {
           roundDurationMs: DEFAULT_ROUND_DURATION_MS,
           roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
         });
-        await this.runTransition(result);
+        await this.runTransition(result, {
+          ...commandContext,
+          reason: 'answer_accepted',
+        });
         if (result.ok && this.state.round.roundIndex != null) {
           this.sendRaw(sender, {
             type: 'answer_received',
@@ -1034,7 +1458,10 @@ export default class Server implements Party.Server {
         await this.runTransition(useHint(this.state, {
           participantId: command.playerId,
           now,
-        }));
+        }), {
+          ...commandContext,
+          reason: 'hint_used',
+        });
         return;
       }
       case 'mock': {
@@ -1054,32 +1481,79 @@ export default class Server implements Party.Server {
     }
   }
 
-  private async runTransition(result: GameTransitionResult) {
+  private async runTransition(
+    result: GameTransitionResult,
+    options?: {
+      reason?: string;
+      commandType?: string;
+      participantId?: string;
+      role?: ParticipantRole;
+      correlationId?: string;
+      markActivity?: boolean;
+      source?: string;
+    },
+  ) {
     if (!result.ok) {
       const error = result.error ?? {
         code: 'INVALID_PHASE' as const,
         message: 'Unknown game engine transition error',
       };
+      this.log('warn', 'transition_rejected', {
+        correlationId: options?.correlationId,
+        commandType: options?.commandType,
+        participantId: options?.participantId,
+        role: options?.role,
+        reason: error.message,
+        source: options?.source,
+      });
       throw new RoomRuntimeError(mapEngineError(error.code), error.message, 409);
     }
 
     this.state = result.state;
-    await this.persistCheckpoint();
-    await this.applyTimerIntent(result.timerIntent);
+    await this.commitCheckpoint(options?.reason ?? 'state_transition', {
+      now: this.state.updatedAt,
+      markActivity: options?.markActivity,
+    });
     await this.broadcastSnapshot();
 
     for (const event of result.events) {
-      this.emitDomainEvent(event);
+      this.emitDomainEvent(event, options);
     }
   }
 
-  private emitDomainEvent(event: GameEngineEvent) {
+  private emitDomainEvent(
+    event: GameEngineEvent,
+    context?: {
+      commandType?: string;
+      participantId?: string;
+      role?: ParticipantRole;
+      correlationId?: string;
+      source?: string;
+    },
+  ) {
     switch (event.type) {
       case 'lobby_updated': {
         this.broadcastLobbyUpdate();
         return;
       }
       case 'round_started': {
+        this.logMetric('round_transitions', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          transition: 'round_started',
+          roundIndex: event.round.roundIndex,
+        });
+        this.log('info', 'round_started', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          roundIndex: event.round.roundIndex,
+        });
         this.broadcast({
           type: 'game_state',
           state: 'playing',
@@ -1100,6 +1574,23 @@ export default class Server implements Party.Server {
         return;
       }
       case 'round_result_ready': {
+        this.logMetric('round_transitions', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          transition: 'round_result_ready',
+          roundIndex: event.result.roundIndex,
+        });
+        this.log('info', 'round_result_ready', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          roundIndex: event.result.roundIndex,
+        });
         this.broadcast({
           type: 'round_result',
           roomCode: this.state.roomCode,
@@ -1113,6 +1604,13 @@ export default class Server implements Party.Server {
         return;
       }
       case 'game_finished': {
+        this.log('info', 'game_finished', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+        });
         this.broadcast({
           type: 'final_leaderboard',
           roomCode: this.state.roomCode,
@@ -1121,6 +1619,13 @@ export default class Server implements Party.Server {
         return;
       }
       case 'game_paused': {
+        this.log('info', 'game_paused', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+        });
         this.broadcast({
           type: 'game_paused',
           roomCode: this.state.roomCode,
@@ -1129,6 +1634,13 @@ export default class Server implements Party.Server {
         return;
       }
       case 'game_resumed': {
+        this.log('info', 'game_resumed', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+        });
         this.broadcast({
           type: 'game_resumed',
           roomCode: this.state.roomCode,
@@ -1137,6 +1649,14 @@ export default class Server implements Party.Server {
         return;
       }
       case 'timer_updated': {
+        this.log('info', 'timer_updated', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          timerEndsAt: event.timerEndsAt,
+        });
         this.broadcast({
           type: 'timer_updated',
           roomCode: this.state.roomCode,
@@ -1146,6 +1666,13 @@ export default class Server implements Party.Server {
         return;
       }
       case 'player_answered': {
+        this.log('info', 'player_answered', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: event.playerId,
+          role: 'player',
+          source: context?.source,
+        });
         this.broadcast({
           type: 'player_answered',
           roomCode: this.state.roomCode,
@@ -1154,6 +1681,13 @@ export default class Server implements Party.Server {
         return;
       }
       case 'player_hint_used': {
+        this.log('info', 'player_hint_used', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: event.playerId,
+          role: 'player',
+          source: context?.source,
+        });
         this.broadcast({
           type: 'player_hint_used',
           playerId: event.playerId,
@@ -1161,6 +1695,14 @@ export default class Server implements Party.Server {
         return;
       }
       case 'room_closed': {
+        this.log('info', 'room_closed', {
+          correlationId: context?.correlationId,
+          commandType: context?.commandType,
+          participantId: context?.participantId,
+          role: context?.role,
+          source: context?.source,
+          reason: event.reason,
+        });
         this.broadcast({
           type: 'room_closed',
           roomCode: this.state.roomCode,
@@ -1183,25 +1725,6 @@ export default class Server implements Party.Server {
 
     const configuredToken = asEnvString(this.room.env.PARTYKIT_DEBUG_TOKEN);
     return Boolean(configuredToken && req.headers.get(DEBUG_TOKEN_HEADER) === configuredToken);
-  }
-
-  private async cleanupIfClosedAndIdle() {
-    if (!this.state.closedAt) {
-      return;
-    }
-
-    if (Array.from(this.room.getConnections()).length > 0) {
-      return;
-    }
-
-    await this.room.storage.deleteAll();
-    this.state = createRoomState({
-      roomCode: this.roomCode,
-      protocolVersion: PROTOCOL_VERSION,
-      now: Date.now(),
-    });
-    this.connectionIndex.clear();
-    this.participantConnections.clear();
   }
 }
 

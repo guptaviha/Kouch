@@ -6,6 +6,7 @@ Status
 - Legacy runtime kept temporarily during the monorepo split.
 - New realtime work should go into `apps/realtime`.
 - The web app now lives in `apps/web`.
+- This runtime now exists only as a staged rollback target during PartyKit cutover.
 
 Overview
 - Socket.IO endpoint (attached to HTTP server): ws://localhost:3001/ws (Socket.IO protocol)
@@ -16,7 +17,7 @@ Run (development)
    npm run dev
 
 2. In a second terminal, start the game server:
-   npm run dev:server
+  npm run dev:legacy-socket
 
 The server listens on port 3001 by default and proxies HTTP traffic to the Next.js dev server.
 
@@ -52,3 +53,6 @@ Notes
 
 Client hint
 - Use `socket.io-client` in the browser or React app and listen for `server` events. Emit `message` or `client` events with objects that include a `type` field (e.g. `{ type: 'join', roomCode: 'ABCD', name: 'Alice' }`).
+
+Removal plan
+- Remove this folder after the production PartyKit cutover has been stable long enough that rollback is no longer required.

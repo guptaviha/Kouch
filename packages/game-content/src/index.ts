@@ -265,6 +265,10 @@ export function createGameContentService(config: GameContentConfig) {
   }
 
   async function getAllTriviaPacks(): Promise<TriviaPack[]> {
+    if (!sql) {
+      return [];
+    }
+
     const query = requireSql();
     const rows = (await query`
       SELECT
@@ -286,6 +290,10 @@ export function createGameContentService(config: GameContentConfig) {
   }
 
   async function getTriviaPackById(id: number): Promise<TriviaPack | null> {
+    if (!sql) {
+      return null;
+    }
+
     const query = requireSql();
     const rows = (await query`
       SELECT
@@ -307,6 +315,10 @@ export function createGameContentService(config: GameContentConfig) {
   }
 
   async function getTriviaQuestionsForPack(id: number): Promise<TriviaGameQuestion[]> {
+    if (!sql) {
+      return [];
+    }
+
     const query = requireSql();
     const rows = (await query`
       SELECT

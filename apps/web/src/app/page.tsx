@@ -187,6 +187,15 @@ export default function Home() {
                             <GameCard key={game.id} game={game} />
                         ))}
                     </div>
+
+                    {games.length === 0 && (
+                        <div className="max-w-2xl mx-auto rounded-2xl border border-border/60 bg-card/70 px-6 py-10 text-center">
+                            <h3 className="text-xl font-semibold tracking-tight">No games available</h3>
+                            <p className="mt-2 text-muted-foreground">
+                                Add content or configure the data sources to populate the game library.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </section>
 

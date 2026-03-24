@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { RoomSnapshotSchema } from '@kouch/contracts';
 
+import { assertPartyKitRealtimeEnabled } from '@/lib/realtime/provider';
 import {
   buildRealtimeWebSocketUrl,
   callRealtimeBootstrap,
@@ -24,6 +25,7 @@ const RealtimeJoinBootstrapResponseSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    assertPartyKitRealtimeEnabled();
     const body = JoinSessionRequestSchema.parse(await request.json());
     const roomCode = normalizeRoomCode(body.roomCode);
     const realtimeResponse = RealtimeJoinBootstrapResponseSchema.parse(

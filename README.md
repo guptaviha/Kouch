@@ -8,6 +8,8 @@ This repo is now organized as a small workspace:
 - `apps/realtime` — PartyKit realtime runtime
 - `server` — legacy Socket.IO runtime kept temporarily during the migration
 
+Deployment and cutover guidance lives in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Getting Started
 
 First, run the development servers:
@@ -24,8 +26,20 @@ npm run dev:realtime
 ```
 
 For signed realtime bootstrap in local development, set the following shared env vars:
+- `NEXT_PUBLIC_REALTIME_PROVIDER` with `partykit` for the new runtime or `socketio` during rollback windows
 - `REALTIME_BASE_URL` for the web app to reach the PartyKit worker, typically `http://127.0.0.1:1999`
+- `NEXT_PUBLIC_REALTIME_BASE_URL` for the browser transport target
 - `KOUCH_SESSION_SECRET` with the same value in both the web and realtime runtimes
+
+## Validation
+
+Run the migration validation stack from the repo root:
+
+```bash
+npm run ci
+```
+
+This runs lint, workspace typecheck, unit tests, and realtime integration tests.
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the web app.
 

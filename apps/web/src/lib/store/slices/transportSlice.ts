@@ -3,12 +3,14 @@ import { StateCreator } from 'zustand';
 import type { ClientEvent, ParticipantSession, RoomSnapshot, ServerEvent } from '@kouch/contracts';
 import { toast } from '@/hooks/use-toast';
 import { getStorageItem, setStorageItem } from '@/hooks/use-local-storage';
+import { getRealtimeProvider, type RealtimeProvider } from '@/lib/realtime/provider';
 import {
 	authorizeJoinSession,
 	bootstrapHostSession,
 	createPartyKitTransport,
 	type RealtimeTransport,
 } from '@/lib/transport/partykit-transport';
+import { createSocketIoTransport } from '@/lib/transport/socketio-transport';
 import type { GamePack } from '@/types/game-types';
 
 import type { GameHostSlice } from './gameHostSlice';
@@ -18,6 +20,8 @@ import type { UserProfileSlice } from './userProfileSlice';
 import type { ConnectionState } from '../types';
 
 type TransportStoreState = GameSlice & TransportSlice & UserProfileSlice & GameHostSlice & GamePlayerSlice;
+
+const SOCKETIO_RESPONSE_TIMEOUT_MS = 6_000;
 
 export type TransportSlice = {
 	transport: RealtimeTransport | null;
@@ -45,6 +49,33 @@ function getStoredIdentity() {
 		participantId: getStorageItem('kouch_userId') || undefined,
 		avatar: getStorageItem('kouch_userAvatar') || undefined,
 	};
+}
+
+function createRealtimeTransport(provider: RealtimeProvider): RealtimeTransport {
+	return provider === 'socketio' ? createSocketIoTransport() : createPartyKitTransport();
+}
+
+function waitForServerEvent(
+	transport: RealtimeTransport,
+	predicate: (event: ServerEvent) => boolean,
+	timeoutMs = SOCKETIO_RESPONSE_TIMEOUT_MS,
+): Promise<ServerEvent> {
+	return new Promise((resolve, reject) => {
+		const timeoutId = setTimeout(() => {
+			unsubscribe();
+			reject(new Error('Timed out waiting for realtime response'));
+		}, timeoutMs);
+
+		const unsubscribe = transport.subscribe((event) => {
+			if (!predicate(event)) {
+				return;
+			}
+
+			clearTimeout(timeoutId);
+			unsubscribe();
+			resolve(event);
+		});
+	});
 }
 
 export const createTransportSlice: StateCreator<TransportStoreState, [], [], TransportSlice> = (set, get) => {
@@ -114,7 +145,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 			return existingTransport;
 		}
 
-		const nextTransport = createPartyKitTransport();
+		const nextTransport = createRealtimeTransport(getRealtimeProvider());
 		nextTransport.setConnectionStateListener(setConnectionState);
 		set({ transport: nextTransport });
 		return nextTransport;
@@ -135,7 +166,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 
 			get().transport?.disconnect();
 
-			const transport = createPartyKitTransport();
+			const transport = createRealtimeTransport(getRealtimeProvider());
 			transport.setConnectionStateListener(setConnectionState);
 
 			set({
@@ -171,6 +202,51 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 			try {
 				setConnectionState('connecting');
 				const { participantId, avatar } = getStoredIdentity();
+				const provider = getRealtimeProvider();
+
+				if (provider === 'socketio') {
+					const transport = ensureTransport();
+					const roomCreatedPromise = waitForServerEvent(
+						transport,
+						(event) => event.type === 'room_created' || event.type === 'error',
+					);
+
+					transport.connect({ websocketUrl: baseUrl });
+					transport.send({
+						type: 'fetch_room_for_game',
+						name,
+						pack,
+						userId: participantId,
+						avatar,
+					});
+
+					const event = await roomCreatedPromise;
+					if (event.type === 'error') {
+						throw new Error(event.message);
+					}
+
+					if (event.type !== 'room_created') {
+						throw new Error('Unexpected realtime response while creating room');
+					}
+
+					setStorageItem('kouch_userId', event.player.id);
+					if (event.player.avatar) {
+						setStorageItem('kouch_userAvatar', event.player.avatar);
+					}
+
+					get().setRoomCode(event.roomCode);
+					get().setPlayers(event.players ?? []);
+					get().setState(event.state ?? 'lobby');
+					get().setProfile(event.player);
+					if (pack) {
+						get().setSelectedPack(pack);
+					}
+
+					set({ transportSession: null });
+					get().setErrorMessage(null);
+					return;
+				}
+
 				const response = await bootstrapHostSession(baseUrl, {
 					participantId,
 					displayName: name,
@@ -215,6 +291,45 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 				get().setStatusMessage(null);
 				setConnectionState('connecting');
 				const { participantId, avatar } = getStoredIdentity();
+				const provider = getRealtimeProvider();
+
+				if (provider === 'socketio') {
+					const transport = ensureTransport();
+					const joinedPromise = waitForServerEvent(
+						transport,
+						(event) => event.type === 'joined' || event.type === 'error',
+					);
+
+					transport.connect({ websocketUrl: baseUrl });
+					transport.send({
+						type: 'join',
+						roomCode,
+						name,
+						userId: participantId,
+						avatar,
+					});
+
+					const event = await joinedPromise;
+					if (event.type === 'error') {
+						throw new Error(event.message);
+					}
+
+					if (event.type !== 'joined') {
+						throw new Error('Unexpected realtime response while joining room');
+					}
+
+					setStorageItem('kouch_userId', event.player.id);
+					if (event.player.avatar) {
+						setStorageItem('kouch_userAvatar', event.player.avatar);
+					}
+
+					set({ transportSession: null });
+					get().setRoomCode(event.roomCode);
+					get().setProfile(event.player);
+					get().setErrorMessage(null);
+					return;
+				}
+
 				const response = await authorizeJoinSession(baseUrl, {
 					roomCode,
 					participantId,
