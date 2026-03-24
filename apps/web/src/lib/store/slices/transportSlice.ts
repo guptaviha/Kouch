@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 
 import type { ClientEvent, ParticipantSession, RoomSnapshot, ServerEvent } from '@kouch/contracts';
 import { toast } from '@/hooks/use-toast';
-import { getStorageItem } from '@/hooks/use-local-storage';
+import { getStorageItem, setStorageItem } from '@/hooks/use-local-storage';
 import {
 	authorizeJoinSession,
 	bootstrapHostSession,
@@ -180,6 +180,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 
 				set({ transportSession: response.session });
 				applySnapshot(response.snapshot);
+				setStorageItem('kouch_userId', response.session.participantId);
 				get().setProfile({
 					...(get().profile || {}),
 					id: response.session.participantId,
@@ -187,10 +188,15 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 					avatar: response.session.avatar ?? avatar,
 				});
 
+				if (response.session.avatar) {
+					setStorageItem('kouch_userAvatar', response.session.avatar);
+				}
+
 				if (pack) {
 					get().setSelectedPack(pack);
 				}
 
+				get().setErrorMessage(null);
 				ensureTransport().connect({ websocketUrl: response.websocketUrl });
 			} catch (error) {
 				const message = error instanceof Error ? error.message : 'Unable to create room';
@@ -218,12 +224,17 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 
 				set({ transportSession: response.session });
 				applySnapshot(response.snapshot);
+				setStorageItem('kouch_userId', response.session.participantId);
 				get().setProfile({
 					...(get().profile || {}),
 					id: response.session.participantId,
 					name: response.session.displayName ?? name,
 					avatar: response.session.avatar ?? avatar,
 				});
+				if (response.session.avatar) {
+					setStorageItem('kouch_userAvatar', response.session.avatar);
+				}
+				get().setErrorMessage(null);
 				ensureTransport().connect({ websocketUrl: response.websocketUrl });
 			} catch (error) {
 				const message = error instanceof Error ? error.message : 'Unable to join room';

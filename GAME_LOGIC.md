@@ -327,6 +327,7 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 
 ### Real-Time Connection
 - All player actions are sent through the PartyKit realtime transport to the room runtime
+- The browser now gets a short-lived signed realtime session from the web app before opening the room websocket
 - Server broadcasts relevant updates to host and other players in real-time
 - Leaderboard updates immediately after each round scores are calculated
 - Player states (idle, active, waiting, answered, used_hint, answered_with_hint) are reflected visually on host

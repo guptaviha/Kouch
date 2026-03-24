@@ -6,6 +6,7 @@ import {
   ParticipantSessionSchema,
   PROTOCOL_VERSION,
   RoomSnapshotSchema,
+  verifyParticipantSessionToken,
   type ClientEvent,
   type GameType,
   type ParticipantRole,
@@ -49,9 +50,15 @@ import {
 const PARTY_NAME = 'main';
 const CHECKPOINT_STORAGE_KEY = 'room:checkpoint';
 const INTERNAL_HEADER = 'x-kouch-internal';
+const INTERNAL_TOKEN_HEADER = 'x-kouch-internal-token';
 const DEBUG_TOKEN_HEADER = 'x-kouch-debug-token';
 const ROOM_CODE_LENGTH = 4;
 const ROOM_CREATE_ATTEMPTS = 12;
+const INVALID_SESSION_WINDOW_MS = 15_000;
+const INVALID_SESSION_LIMIT = 6;
+const INVALID_SESSION_BLOCK_MS = 10_000;
+
+type RuntimeEnv = Record<string, unknown>;
 
 type ConnectionAttachment = {
   participantId: string;
@@ -96,6 +103,19 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function asEnvString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getSessionSecret(env: RuntimeEnv): string {
+  const configuredSecret = asEnvString(env.KOUCH_SESSION_SECRET);
+  if (configuredSecret) {
+    return configuredSecret;
+  }
+
+  if (asEnvString(env.NODE_ENV) !== 'production') {
+    return 'kouch-dev-session-secret';
+  }
+
+  throw new Error('KOUCH_SESSION_SECRET is required in production');
 }
 
 function createSession(params: {
@@ -176,22 +196,31 @@ function buildPartyWebSocketUrl(request: { url: string }, roomCode: string, enco
   return url.toString();
 }
 
-function parseSessionFromRequest(request: Party.Request, fallbackRoomCode: string): ParticipantSession {
+async function parseSessionFromRequest(
+  request: Party.Request,
+  fallbackRoomCode: string,
+  env: RuntimeEnv,
+): Promise<ParticipantSession> {
   const url = new URL(request.url);
-  const encodedSession = url.searchParams.get('session');
+  const sessionToken = url.searchParams.get('session');
 
-  if (encodedSession) {
-    return ParticipantSessionSchema.parse(JSON.parse(decodeBase64Url(encodedSession)));
+  if (sessionToken) {
+    const session = await verifyParticipantSessionToken(sessionToken, getSessionSecret(env));
+    return ParticipantSessionSchema.parse({
+      ...session,
+      roomCode: session.roomCode ?? fallbackRoomCode,
+    });
   }
 
-  return ParticipantSessionSchema.parse({
-    participantId: url.searchParams.get('participantId') ?? undefined,
-    role: url.searchParams.get('role') ?? undefined,
-    roomCode: url.searchParams.get('roomCode') ?? fallbackRoomCode,
-    displayName: url.searchParams.get('displayName') ?? undefined,
-    avatar: url.searchParams.get('avatar') ?? undefined,
-    protocolVersion: Number(url.searchParams.get('protocolVersion') ?? PROTOCOL_VERSION),
-  });
+  throw new RoomRuntimeError('INVALID_SESSION', 'Missing signed session token', 401);
+}
+
+function hasInternalAccess(req: Party.Request, env: RuntimeEnv): boolean {
+  if (req.headers.get(INTERNAL_HEADER) !== '1') {
+    return false;
+  }
+
+  return req.headers.get(INTERNAL_TOKEN_HEADER) === getSessionSecret(env);
 }
 
 function getPackIdentifier(pack?: string, packId?: number): { selectedPack?: string; resolvedPackId?: number } {
@@ -267,6 +296,10 @@ export default class Server implements Party.Server {
     }
 
     if (url.pathname === '/api/rooms' && req.method === 'POST') {
+      if (!hasInternalAccess(req, lobby.env)) {
+        return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Web bootstrap access required', 403);
+      }
+
       const body = CreateRoomRequestSchema.parse(await req.json());
 
       for (let attempt = 0; attempt < ROOM_CREATE_ATTEMPTS; attempt += 1) {
@@ -285,6 +318,7 @@ export default class Server implements Party.Server {
           headers: {
             'content-type': 'application/json',
             [INTERNAL_HEADER]: '1',
+            [INTERNAL_TOKEN_HEADER]: getSessionSecret(lobby.env),
           },
           body: JSON.stringify({
             session,
@@ -322,6 +356,10 @@ export default class Server implements Party.Server {
 
     const joinMatch = url.pathname.match(/^\/api\/rooms\/([A-Za-z]{4})\/join$/);
     if (joinMatch && req.method === 'POST') {
+      if (!hasInternalAccess(req, lobby.env)) {
+        return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Web bootstrap access required', 403);
+      }
+
       const roomCode = normalizeRoomCode(joinMatch[1]);
       const body = JoinRoomRequestSchema.parse(await req.json());
       const session = createSession({
@@ -338,6 +376,7 @@ export default class Server implements Party.Server {
         headers: {
           'content-type': 'application/json',
           [INTERNAL_HEADER]: '1',
+          [INTERNAL_TOKEN_HEADER]: getSessionSecret(lobby.env),
         },
         body: JSON.stringify({ session }),
       });
@@ -365,6 +404,9 @@ export default class Server implements Party.Server {
   private state: GameRoomState;
   private readonly connectionIndex = new Map<string, ConnectionAttachment>();
   private readonly participantConnections = new Map<string, Set<string>>();
+  private invalidSessionWindowStartedAt = 0;
+  private invalidSessionAttempts = 0;
+  private invalidSessionBlockedUntil = 0;
 
   constructor(readonly room: Party.Room) {
     this.state = createRoomState({
@@ -412,9 +454,12 @@ export default class Server implements Party.Server {
 
   async onConnect(connection: Party.Connection<ConnectionAttachment>, ctx: Party.ConnectionContext) {
     try {
-      const session = parseSessionFromRequest(ctx.request, this.roomCode);
+      this.assertInvalidSessionThrottle();
+      const session = await parseSessionFromRequest(ctx.request, this.roomCode, this.room.env);
+      this.resetInvalidSessionThrottle();
       await this.attachConnection(connection, session);
     } catch (error) {
+      this.recordInvalidSessionAttempt();
       if (error instanceof RoomRuntimeError) {
         this.sendRaw(connection, {
           type: 'error',
@@ -522,7 +567,7 @@ export default class Server implements Party.Server {
     }
 
     if (req.method === 'POST' && url.pathname === '/_internal/bootstrap-host') {
-      if (req.headers.get(INTERNAL_HEADER) !== '1') {
+      if (!hasInternalAccess(req, this.room.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Internal bootstrap only', 403);
       }
 
@@ -536,7 +581,7 @@ export default class Server implements Party.Server {
     }
 
     if (req.method === 'POST' && url.pathname === '/_internal/authorize-join') {
-      if (req.headers.get(INTERNAL_HEADER) !== '1') {
+      if (!hasInternalAccess(req, this.room.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Internal join authorization only', 403);
       }
 
@@ -573,6 +618,32 @@ export default class Server implements Party.Server {
 
   private getPlayerParticipants() {
     return this.state.participants.filter((participant) => participant.role === 'player');
+  }
+
+  private assertInvalidSessionThrottle(now = Date.now()) {
+    if (now < this.invalidSessionBlockedUntil) {
+      throw new RoomRuntimeError('INVALID_SESSION', 'Too many invalid session attempts. Try again shortly.', 429, true);
+    }
+  }
+
+  private resetInvalidSessionThrottle() {
+    this.invalidSessionWindowStartedAt = 0;
+    this.invalidSessionAttempts = 0;
+    this.invalidSessionBlockedUntil = 0;
+  }
+
+  private recordInvalidSessionAttempt(now = Date.now()) {
+    if (this.invalidSessionWindowStartedAt === 0 || now - this.invalidSessionWindowStartedAt > INVALID_SESSION_WINDOW_MS) {
+      this.invalidSessionWindowStartedAt = now;
+      this.invalidSessionAttempts = 0;
+    }
+
+    this.invalidSessionAttempts += 1;
+    if (this.invalidSessionAttempts >= INVALID_SESSION_LIMIT) {
+      this.invalidSessionBlockedUntil = now + INVALID_SESSION_BLOCK_MS;
+      this.invalidSessionWindowStartedAt = now;
+      this.invalidSessionAttempts = 0;
+    }
   }
 
   private getParticipant(participantId: string) {

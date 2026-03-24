@@ -1,14 +1,14 @@
-const LOCAL_REALTIME_PORT = 1999;
+const LOCAL_WEB_PORT = 3000;
 
 export function getRealtimeBaseUrl(): string {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_REALTIME_BASE_URL;
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_WEB_BASE_URL;
   if (configuredBaseUrl) {
     return configuredBaseUrl;
   }
 
   if (typeof window === 'undefined') {
-    return `http://localhost:${LOCAL_REALTIME_PORT}`;
+    return `http://localhost:${LOCAL_WEB_PORT}`;
   }
 
-  return `http://${window.location.hostname}:${LOCAL_REALTIME_PORT}`;
+  return window.location.origin;
 }

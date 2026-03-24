@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const textEncoder = new TextEncoder();
+
 export const PROTOCOL_VERSION = 1 as const;
 
 export const RoomPhaseSchema = z.enum(['lobby', 'playing', 'round_result', 'finished']);
@@ -51,6 +53,7 @@ export const RoundResultEntrySchema = z.object({
 export type RoundResultEntry = z.infer<typeof RoundResultEntrySchema>;
 
 const roomCodeSchema = z.string().trim().length(4).transform((value) => value.toUpperCase());
+export const RoomCodeSchema = roomCodeSchema;
 const optionalAvatarSchema = z.string().min(1).optional();
 const optionalNameSchema = z.string().min(1).optional();
 const optionalIdSchema = z.string().min(1).optional();
@@ -331,6 +334,18 @@ export const ParticipantSessionSchema = z.object({
 });
 export type ParticipantSession = z.infer<typeof ParticipantSessionSchema>;
 
+const SignedSessionTokenHeaderSchema = z.object({
+  alg: z.literal('HS256'),
+  typ: z.literal('JWT'),
+});
+
+export const SignedParticipantSessionSchema = ParticipantSessionSchema.extend({
+  exp: z.number().int().positive(),
+  issuedAt: z.number().int().positive(),
+  nonce: z.string().min(1),
+});
+export type SignedParticipantSession = z.infer<typeof SignedParticipantSessionSchema>;
+
 export const ProtocolEnvelopeSchema = z.object({
   protocolVersion: z.literal(PROTOCOL_VERSION),
   event: z.unknown(),
@@ -339,6 +354,91 @@ export type ProtocolEnvelope<TEvent = unknown> = {
   protocolVersion: typeof PROTOCOL_VERSION;
   event: TEvent;
 };
+
+function encodeBase64UrlBytes(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function encodeBase64UrlString(value: string): string {
+  return encodeBase64UrlBytes(textEncoder.encode(value));
+}
+
+function decodeBase64UrlBytes(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+}
+
+function decodeBase64UrlString(value: string): string {
+  return new TextDecoder().decode(decodeBase64UrlBytes(value));
+}
+
+async function importSessionKey(secret: string, usage: 'sign' | 'verify') {
+  return crypto.subtle.importKey(
+    'raw',
+    textEncoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    [usage],
+  );
+}
+
+export async function signParticipantSessionToken(session: SignedParticipantSession, secret: string): Promise<string> {
+  const payload = SignedParticipantSessionSchema.parse(session);
+  const header = SignedSessionTokenHeaderSchema.parse({ alg: 'HS256', typ: 'JWT' });
+  const encodedHeader = encodeBase64UrlString(JSON.stringify(header));
+  const encodedPayload = encodeBase64UrlString(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  const signingKey = await importSessionKey(secret, 'sign');
+  const signatureBuffer = await crypto.subtle.sign('HMAC', signingKey, textEncoder.encode(signingInput));
+  const signature = encodeBase64UrlBytes(new Uint8Array(signatureBuffer));
+
+  return `${signingInput}.${signature}`;
+}
+
+export async function verifyParticipantSessionToken(token: string, secret: string): Promise<SignedParticipantSession> {
+  const [encodedHeader, encodedPayload, encodedSignature] = token.split('.');
+  if (!encodedHeader || !encodedPayload || !encodedSignature) {
+    throw new Error('Invalid session token format');
+  }
+
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  const verificationKey = await importSessionKey(secret, 'verify');
+  const signatureBytes = decodeBase64UrlBytes(encodedSignature);
+  const signatureValid = await crypto.subtle.verify(
+    'HMAC',
+    verificationKey,
+    toArrayBuffer(signatureBytes),
+    textEncoder.encode(signingInput),
+  );
+
+  if (!signatureValid) {
+    throw new Error('Invalid session token signature');
+  }
+
+  const header = SignedSessionTokenHeaderSchema.parse(JSON.parse(decodeBase64UrlString(encodedHeader)));
+  if (header.alg !== 'HS256' || header.typ !== 'JWT') {
+    throw new Error('Unsupported session token header');
+  }
+
+  const payload = SignedParticipantSessionSchema.parse(JSON.parse(decodeBase64UrlString(encodedPayload)));
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  if (payload.exp <= nowInSeconds) {
+    throw new Error('Session token expired');
+  }
+
+  return payload;
+}
 
 export const RoomCommandSchema = ClientEventSchema;
 export type RoomCommand = ClientEvent;

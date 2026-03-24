@@ -23,6 +23,10 @@ npm run dev:web
 npm run dev:realtime
 ```
 
+For signed realtime bootstrap in local development, set the following shared env vars:
+- `REALTIME_BASE_URL` for the web app to reach the PartyKit worker, typically `http://127.0.0.1:1999`
+- `KOUCH_SESSION_SECRET` with the same value in both the web and realtime runtimes
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the web app.
 
 You can start editing the page in `apps/web/src/app/page.tsx`. The page auto-updates as you edit the file.

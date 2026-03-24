@@ -22,6 +22,11 @@ The room endpoint itself exposes:
 
 Clients connect to `ws://.../parties/main/:code?session=<encoded-session>` after obtaining a session from the HTTP bootstrap flow.
 
+The worker now expects that `session` query param to be a web-issued signed token. The following env vars must match the web app:
+- `KOUCH_SESSION_SECRET` — shared HMAC secret used to verify signed realtime session tokens
+
+Bootstrap HTTP endpoints are intended for the web app only and should be called with the internal headers the web app sends during session creation.
+
 ## Responsibilities
 - websocket/session attachment
 - room state orchestration

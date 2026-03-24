@@ -17,8 +17,7 @@ const RealtimeBootstrapResponseSchema = z.object({
   ok: z.literal(true),
   roomCode: z.string().trim().length(4),
   session: ParticipantSessionSchema,
-  encodedSession: z.string().min(1),
-  websocketPath: z.string().min(1),
+  sessionToken: z.string().min(1),
   websocketUrl: z.string().url(),
   snapshot: RoomSnapshotSchema,
 });
@@ -96,7 +95,7 @@ export async function bootstrapHostSession(
   baseUrl: string,
   input: HostBootstrapInput,
 ): Promise<RealtimeBootstrapResponse> {
-  return postRealtimeJson(`${normalizeBaseUrl(baseUrl)}/api/rooms`, {
+  return postRealtimeJson(`${normalizeBaseUrl(baseUrl)}/api/realtime/session/host`, {
     participantId: input.participantId,
     displayName: input.displayName,
     avatar: input.avatar,
@@ -108,7 +107,8 @@ export async function authorizeJoinSession(
   baseUrl: string,
   input: JoinRoomInput,
 ): Promise<RealtimeBootstrapResponse> {
-  return postRealtimeJson(`${normalizeBaseUrl(baseUrl)}/api/rooms/${input.roomCode.toUpperCase()}/join`, {
+  return postRealtimeJson(`${normalizeBaseUrl(baseUrl)}/api/realtime/session/join`, {
+    roomCode: input.roomCode.toUpperCase(),
     participantId: input.participantId,
     displayName: input.displayName,
     avatar: input.avatar,
