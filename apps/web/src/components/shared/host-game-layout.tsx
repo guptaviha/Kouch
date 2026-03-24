@@ -1,9 +1,8 @@
 "use client";
 
 import Header from '@/components/header';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/lib/store';
-import { useRouter } from 'next/navigation';
 import { RoomStates, PlayerInfo } from '@/lib/store/types';
 import { motion } from 'framer-motion';
 import { GamePack } from '@/types/game-types';
@@ -11,36 +10,28 @@ import HostLobbyView from '@/components/host/host-lobby-view';
 import HostPlayingView from '@/components/host/host-playing-view';
 import HostRoundResultView from '@/components/host/host-round-result-view';
 import HostFinishedView from '@/components/host/host-finished-view';
-import PausedOverlay from '@/components/shared/paused-overlay';
 import { useQRGenerator } from '@/hooks/useQRGenerator';
 import serverMessageHandler from '@/lib/socket/handleServerMessage';
 import { Button } from '@/components/ui/button';
 import { FaDoorClosed } from 'react-icons/fa';
 import SettingUp from '@/components/shared/setting-up';
 import ErrorState from '@/components/shared/error-state';
-
-const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || 'http://localhost:3001';
+import { getRealtimeBaseUrl } from '@/lib/transport/realtime-url';
 
 interface HostGameLayoutProps {
   game: GamePack;
 };
 
 export default function HostGameLayout({ game }: HostGameLayoutProps) {
-  const router = useRouter();
-  // websocket helpers
-  const connect = useGameStore((s) => s.connect);
-  const disconnect = useGameStore((s) => s.disconnect);
-  const on = useGameStore((s) => s.on);
-  const off = useGameStore((s) => s.off);
-  const emit = useGameStore((s) => s.emit);
-  // user profile
+  const initializeTransport = useGameStore((s) => s.initializeTransport);
+  const disconnectTransport = useGameStore((s) => s.disconnectTransport);
+  const subscribe = useGameStore((s) => s.subscribe);
+  const send = useGameStore((s) => s.send);
+  const createRoom = useGameStore((s) => s.createRoom);
   const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-  // room and players
   const roomCode = useGameStore((s) => s.roomCode);
-  // game state
   const gameStateValue = useGameStore((s) => s.state);
   const state: RoomStates = gameStateValue as RoomStates;
-  // timer state
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
   const setCountdown = useGameStore((s) => s.setCountdown);
   const roundResults = useGameStore((s) => s.roundResults);
@@ -73,18 +64,15 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   // }, [selectedPack, game, router]);
 
   useEffect(() => {
-    connect(SERVER);
-
-    // Register event handler synchronously to avoid race conditions
-    // where we emit 'fetch_room_for_game' before listening for 'room_created'
-    on('server', serverMessageHandler);
+    initializeTransport(getRealtimeBaseUrl());
+    const unsubscribe = subscribe(serverMessageHandler);
 
     return () => {
       if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current);
-      off('server', serverMessageHandler);
-      disconnect();
+      unsubscribe();
+      disconnectTransport();
     };
-  }, []);
+  }, [disconnectTransport, initializeTransport, subscribe]);
 
   useEffect(() => {
     if (paused) {
@@ -120,20 +108,20 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
     setMounted(true);
   }, []);
 
-  const createRoom = () => {
-    emit('message', { type: 'fetch_room_for_game', name: 'Host', pack: game });
+  const handleCreateRoom = async () => {
+    await createRoom({ name: 'Host', pack: game });
   };
 
   const closeRoom = () => {
     if (!roomCode) return;
-    emit('message', { type: 'close_room', roomCode });
+    send({ type: 'close_room', roomCode });
   };
 
   useEffect(() => {
     if (game && !roomCode) {
-      createRoom();
+      void handleCreateRoom();
     }
-  }, [game, roomCode]);
+  }, [createRoom, game, roomCode]);
 
   if (!mounted) return null;
 

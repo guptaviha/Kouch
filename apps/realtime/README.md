@@ -10,7 +10,17 @@ From the repo root:
 - `npm run dev:realtime`
 - `npm run build:realtime`
 
-For now, the build step is a strict TypeScript validation step until the PartyKit runtime is implemented beyond the starter room.
+Room bootstrap endpoints exposed by the realtime worker:
+- `POST /api/rooms` — allocate a 4-letter room and mint a host session
+- `POST /api/rooms/:code/join` — validate a room join and mint a player session
+- `GET /healthz` — worker health check
+
+The room endpoint itself exposes:
+- `GET /parties/main/:code/health` — per-room health summary
+- `GET /parties/main/:code/metadata` — safe room metadata lookup
+- `GET /parties/main/:code/debug` — debug snapshot in non-production, or when `x-kouch-debug-token` matches `PARTYKIT_DEBUG_TOKEN`
+
+Clients connect to `ws://.../parties/main/:code?session=<encoded-session>` after obtaining a session from the HTTP bootstrap flow.
 
 ## Responsibilities
 - websocket/session attachment

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Header from '@/components/header';
 import { RoomStates } from '@/lib/store/types';
 import { useGameStore } from '@/lib/store';
@@ -12,27 +12,14 @@ import PlayerPlayingView from '@/components/player/player-playing-view';
 import PlayerRoundResultView from '@/components/player/player-round-result-view';
 import PlayerFinishedView from '@/components/player/player-finished-view';
 import ErrorState from '@/components/shared/error-state';
-
-// Compute a sensible default server URL at runtime so LAN clients will
-// connect back to the host that served the page. This avoids the common
-// mistake where remote phones try to connect to their own localhost:3001.
-const DEFAULT_SERVER = typeof window !== 'undefined'
-  ? `${window.location.protocol}//${window.location.hostname}:3001`
-  : 'http://localhost:3001';
-
-const SERVER = process.env.NEXT_PUBLIC_GAME_SERVER || DEFAULT_SERVER;
+import serverMessageHandler from '@/lib/socket/handleServerMessage';
+import { getRealtimeBaseUrl } from '@/lib/transport/realtime-url';
 
 export default function PlayerPage() {
-  // websocket helpers
-  const emit = useGameStore((s) => s.emit);
-  const connect = useGameStore((s) => s.connect);
-  const disconnect = useGameStore((s) => s.disconnect);
-  const isConnectedToServer = useGameStore((s) => s.isConnectedToServer);
-  const on = useGameStore((s) => s.on);
-  const off = useGameStore((s) => s.off);
-  // roomCode moved into central store
+  const initializeTransport = useGameStore((s) => s.initializeTransport);
+  const disconnectTransport = useGameStore((s) => s.disconnectTransport);
+  const subscribe = useGameStore((s) => s.subscribe);
   const setRoomCode = useGameStore((s) => s.setRoomCode);
-  const roomCode = useGameStore((s) => s.roomCode);
   const setProfile = useGameStore((s) => s.setProfile);
   const joined = useGameStore((s) => s.joined);
   // profile lives in userProfileSlice and contains id/avatar/name for the current user
@@ -40,9 +27,7 @@ export default function PlayerPage() {
   // use central zustand store for lobby / current question
   const gameStateValue = useGameStore((s) => s.state);
 
-  // store uses shared RoomStates directly
   const state: RoomStates = gameStateValue as RoomStates;
-  // timer/round state moved to store
   const timerEndsAt = useGameStore((s) => s.timerEndsAt);
 
   const setCountdown = useGameStore((s) => s.setCountdown);
@@ -69,16 +54,13 @@ export default function PlayerPage() {
   useEffect(() => {
     // Load saved nickname on mount
     const savedName = localStorage.getItem('kouch_nickname');
-    if (savedName) setProfile({ ...(profile || {}), name: savedName });
+    if (savedName) {
+      const existingProfile = useGameStore.getState().profile;
+      setProfile({ ...(existingProfile || {}), name: savedName });
+    }
 
-    connect(SERVER);
-
-    let handler: any = null;
-    (async () => {
-      const mod = await import('@/lib/socket/handleServerMessage');
-      handler = mod.default;
-      on('server', handler);
-    })();
+    initializeTransport(getRealtimeBaseUrl());
+    const unsubscribe = subscribe(serverMessageHandler);
 
     // prefill room code from URL param if present
     try {
@@ -89,8 +71,12 @@ export default function PlayerPage() {
       }
     } catch (e) { }
 
-    return () => { if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current); if (handler) off('server', handler); disconnect(); };
-  }, []);
+    return () => {
+      if (splashTimerRef.current) window.clearTimeout(splashTimerRef.current);
+      unsubscribe();
+      disconnectTransport();
+    };
+  }, [disconnectTransport, initializeTransport, setProfile, setRoomCode, subscribe]);
 
   useEffect(() => {
     if (paused) {
@@ -121,12 +107,6 @@ export default function PlayerPage() {
       timerRef.current = null;
     };
   }, [timerEndsAt, paused, setCountdown]);
-
-  useEffect(() => {
-    if (roomCode && isConnectedToServer && profile?.name) {
-      emit('message', { type: 'join', roomCode: roomCode, name: profile?.name });
-    }
-  }, [isConnectedToServer]);
 
   if (!mounted) return null;
 

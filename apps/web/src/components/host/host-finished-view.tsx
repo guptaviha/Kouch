@@ -1,29 +1,15 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import GameOverHeader from '../shared/game-over-header';
 import Leaderboard from '../shared/leaderboard';
-import { PlayerInfo } from '@/lib/store/types';
 import { useGameStore } from '@/lib/store';
 import Link from 'next/link';
 
 export default function HostFinishedView() {
     // Store selectors
     const roundResults = useGameStore((s) => s.roundResults);
-    const roomCode = useGameStore((s) => s.roomCode);
-    const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-    const emit = useGameStore((s) => s.emit);
-    const setPlayAgainPending = useGameStore((s) => s.setPlayAgainPending);
-
-    // TODO: This needs some rework because all the players get disconnected when the host resets the game
-    const resetGame = () => {
-        if (!roomCode || !profile) return;
-        emit('message', { type: 'reset_game', roomCode, playerId: profile.id });
-        setPlayAgainPending(true);
-        emit('message', { type: 'fetch_room_for_game', name: 'Host' });
-    };
     return (
         <motion.div
             initial={{ opacity: 0 }}

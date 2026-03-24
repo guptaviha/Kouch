@@ -1,6 +1,5 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Pause, Play } from 'lucide-react';
@@ -20,16 +19,16 @@ export default function HostRoundResultView() {
     const countdown = useGameStore((s) => s.countdown);
     const roomCode = useGameStore((s) => s.roomCode);
     const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-    const emit = useGameStore((s) => s.emit);
+    const send = useGameStore((s) => s.send);
 
     const pauseGame = () => {
         if (!roomCode || !profile) return;
-        emit('message', { type: 'pause_game' });
+        send({ type: 'pause_game' });
     };
 
     const resumeGame = () => {
         if (!roomCode || !profile) return;
-        emit('message', { type: 'resume_game' });
+        send({ type: 'resume_game' });
     };
     return (
         <motion.div

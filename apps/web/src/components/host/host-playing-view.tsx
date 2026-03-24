@@ -1,6 +1,5 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import PlayerAvatar from '@/components/player-avatar';
@@ -35,11 +34,11 @@ export default function HostPlayingView() {
     const roundIndex = useGameStore((s) => s.roundIndex);
     const roomCode = useGameStore((s) => s.roomCode);
     const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-    const emit = useGameStore((s) => s.emit);
+    const send = useGameStore((s) => s.send);
 
     const extendTimer = () => {
         if (!roomCode) return;
-        emit('message', { type: 'extend_timer', roomCode, hostId: profile?.id });
+        send({ type: 'extend_timer', roomCode, hostId: profile?.id });
     };
     return (
         <>
@@ -194,7 +193,7 @@ export default function HostPlayingView() {
                         <Button
                             onClick={() => {
                                 if (!roomCode) return;
-                                emit('message', { type: 'skip_timer', roomCode, hostId: profile?.id });
+                                send({ type: 'skip_timer', roomCode, hostId: profile?.id });
                             }}
                             size="lg"
                             className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg px-6 py-4 rounded-xl shadow-lg cursor-pointer"

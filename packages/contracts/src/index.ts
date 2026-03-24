@@ -8,8 +8,24 @@ export type RoomPhase = z.infer<typeof RoomPhaseSchema>;
 export const QuestionTypeSchema = z.enum(['multiple_choice', 'open_ended', 'multi_part']);
 export type QuestionType = z.infer<typeof QuestionTypeSchema>;
 
+export const GameTypeSchema = z.enum(['trivia', 'rebus']);
+export type GameType = z.infer<typeof GameTypeSchema>;
+
 export const ParticipantRoleSchema = z.enum(['host', 'player']);
 export type ParticipantRole = z.infer<typeof ParticipantRoleSchema>;
+
+export const RoomErrorCodeSchema = z.enum([
+  'INVALID_PROTOCOL',
+  'INVALID_SESSION',
+  'ROOM_NOT_FOUND',
+  'ROOM_CLOSED',
+  'HOST_ALREADY_ASSIGNED',
+  'PARTICIPANT_ROLE_MISMATCH',
+  'COMMAND_NOT_ALLOWED',
+  'PACK_LOAD_FAILED',
+  'INTERNAL_ERROR',
+]);
+export type RoomErrorCode = z.infer<typeof RoomErrorCodeSchema>;
 
 export const PlayerWireSchema = z.object({
   id: z.string().min(1),
@@ -152,6 +168,29 @@ export const LobbyUpdateEventSchema = z.object({
   state: RoomPhaseSchema,
 });
 
+export const RoomSnapshotSchema = z.object({
+  roomCode: roomCodeSchema,
+  state: RoomPhaseSchema,
+  players: z.array(PlayerWireSchema),
+  hostId: z.string().min(1).optional(),
+  roundIndex: z.number().nullable().optional(),
+  currentPartIndex: z.number().nullable().optional(),
+  totalParts: z.number().nullable().optional(),
+  timerEndsAt: z.number().nullable().optional(),
+  totalQuestionDuration: z.number().nullable().optional(),
+  pauseRemainingMs: z.number().nullable().optional(),
+  closeReason: z.string().min(1).optional(),
+  closedAt: z.number().nullable().optional(),
+  stateVersion: z.number().int().nonnegative().default(0),
+  protocolVersion: z.literal(PROTOCOL_VERSION).default(PROTOCOL_VERSION),
+});
+export type RoomSnapshot = z.infer<typeof RoomSnapshotSchema>;
+
+export const RoomSnapshotEventSchema = z.object({
+  type: z.literal('room_snapshot'),
+  snapshot: RoomSnapshotSchema,
+});
+
 export const GameStateEventSchema = z.object({
   type: z.literal('game_state'),
   state: z.literal('playing'),
@@ -252,10 +291,13 @@ export const PongEventSchema = z.object({
 export const ErrorEventSchema = z.object({
   type: z.literal('error'),
   message: z.string().min(1),
+  code: RoomErrorCodeSchema.optional(),
+  retryable: z.boolean().optional(),
 });
 
 export const ServerEventSchema = z.discriminatedUnion('type', [
   RoomCreatedEventSchema,
+  RoomSnapshotEventSchema,
   LobbyUpdateEventSchema,
   GameStateEventSchema,
   RoundResultEventSchema,
@@ -275,21 +317,6 @@ export const ServerEventSchema = z.discriminatedUnion('type', [
 ]);
 export type ServerEvent = z.infer<typeof ServerEventSchema>;
 export type ServerMessage = ServerEvent;
-
-export const RoomSnapshotSchema = z.object({
-  roomCode: roomCodeSchema,
-  state: RoomPhaseSchema,
-  players: z.array(PlayerWireSchema),
-  hostId: z.string().min(1).optional(),
-  roundIndex: z.number().nullable().optional(),
-  currentPartIndex: z.number().nullable().optional(),
-  totalParts: z.number().nullable().optional(),
-  timerEndsAt: z.number().nullable().optional(),
-  totalQuestionDuration: z.number().nullable().optional(),
-  stateVersion: z.number().int().nonnegative().default(0),
-  protocolVersion: z.literal(PROTOCOL_VERSION).default(PROTOCOL_VERSION),
-});
-export type RoomSnapshot = z.infer<typeof RoomSnapshotSchema>;
 
 export const ParticipantSessionSchema = z.object({
   participantId: z.string().min(1),

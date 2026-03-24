@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/store';
@@ -25,7 +25,7 @@ export default function PlayerPlayingView() {
     const setAnswer = useGameStore((s) => s.setAnswer);
     const submitted = useGameStore((s) => s.submitted);
     const statusMessage = useGameStore((s) => s.statusMessage);
-    const emit = useGameStore((s) => s.emit);
+    const send = useGameStore((s) => s.send);
     const profile = useGameStore((s) => s.profile);
     const roomCode = useGameStore((s) => s.roomCode);
     const paused = useGameStore((s) => s.paused);
@@ -39,13 +39,13 @@ export default function PlayerPlayingView() {
 
     const useHint = () => {
         if (!profile?.id || !roomCode || paused || hintUsed) return;
-        emit('message', { type: 'use_hint', roomCode, playerId: profile.id });
+        send({ type: 'use_hint', roomCode, playerId: profile.id });
         setHintUsed(true);
     };
 
     const submitAnswer = () => {
         if (!profile?.id || !roomCode || paused) return;
-        emit('message', { type: 'submit_answer', roomCode, playerId: profile.id, answer });
+        send({ type: 'submit_answer', roomCode, playerId: profile.id, answer });
         setStatusMessage('Waiting for other players to answer...');
         setAnswer('');
         setSubmitted(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
     const joinUrl = useGameStore((s) => s.joinUrl);
     const players = useGameStore((s) => s.players as PlayerInfo[]);
     const profile = useGameStore((s) => s.profile as PlayerInfo | null);
-    const emit = useGameStore((s) => s.emit);
+    const send = useGameStore((s) => s.send);
 
     useEffect(() => {
         async function fetchGameDetails() {
@@ -44,7 +44,7 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
 
     const startGame = () => {
         if (!roomCode || !profile) return;
-        emit('message', { type: 'start_game', roomCode, playerId: profile.id });
+        send({ type: 'start_game', roomCode, playerId: profile.id });
     };
     return (
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 items-start pb-32">
@@ -114,7 +114,7 @@ export default function HostLobbyView({ game }: HostLobbyViewProps) {
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-800">
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h3>
                         {process.env.NODE_ENV === 'development' && (
-                            <Button variant="destructive" className="text-sm px-4 py-2" onClick={() => { if (roomCode) emit('message', { type: 'mock', roomCode }); }}>Load Mock Players</Button>
+                            <Button variant="destructive" className="text-sm px-4 py-2" onClick={() => { if (roomCode) send({ type: 'mock', roomCode }); }}>Load Mock Players</Button>
                         )}
                         <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full font-bold">{players.length} joined</span>
                     </div>

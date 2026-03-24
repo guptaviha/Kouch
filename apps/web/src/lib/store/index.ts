@@ -5,16 +5,16 @@
 
 import { create } from "zustand";
 import { createGameSlice, GameSlice } from './slices/gameSlice';
-import { createWebSocketSlice, WebSocketSlice } from './slices/websocketSlice';
+import { createTransportSlice, TransportSlice } from './slices/transportSlice';
 import { createUserProfileSlice, UserProfileSlice } from './slices/userProfileSlice';
 import { createGameHostSlice, GameHostSlice } from './slices/gameHostSlice';
 import { createGamePlayerSlice, GamePlayerSlice } from './slices/gamePlayerSlice';
 
-type StoreState = GameSlice & WebSocketSlice & UserProfileSlice & GameHostSlice & GamePlayerSlice;
+type StoreState = GameSlice & TransportSlice & UserProfileSlice & GameHostSlice & GamePlayerSlice;
 
 export const useGameStore = create<StoreState>()((...a) => ({
   ...createGameSlice(...a),
-  ...createWebSocketSlice(...a),
+  ...createTransportSlice(...a),
   ...createUserProfileSlice(...a),
   ...createGameHostSlice(...a),
   ...createGamePlayerSlice(...a),

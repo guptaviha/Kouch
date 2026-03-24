@@ -1,5 +1,5 @@
 import { useGameStore } from '@/lib/store';
-import type { PlayerWire, ServerEvent } from '@kouch/contracts';
+import type { PlayerWire, RoomSnapshot, ServerEvent } from '@kouch/contracts';
 import { GamePack, isValidGame } from '@/types/game-types';
 import { toast } from '@/hooks/use-toast';
 
@@ -16,7 +16,7 @@ export default function serverMessageHandler(msg: ServerEvent) {
     setProfile,
     playAgainPending,
     setPlayAgainPending,
-    emit,
+    send,
     setPlayers,
     setState,
     setCurrentQuestion,
@@ -45,6 +45,42 @@ export default function serverMessageHandler(msg: ServerEvent) {
     setStatusMessage,
     setErrorMessage,
   } = s;
+
+  const applyRoomSnapshot = (snapshot: RoomSnapshot) => {
+    const pauseRemainingMs = typeof snapshot.pauseRemainingMs === 'number' ? snapshot.pauseRemainingMs : null;
+    const isPaused = typeof pauseRemainingMs === 'number' && pauseRemainingMs > 0;
+    const currentPlayer = s.profile?.id
+      ? snapshot.players.find((player) => player.id === s.profile?.id)
+      : undefined;
+
+    setRoomCode?.(snapshot.roomCode);
+    setPlayers?.(snapshot.players);
+    setState?.(snapshot.state as any);
+    setRoundIndex?.(snapshot.roundIndex ?? null);
+    setCurrentPartIndex?.(snapshot.currentPartIndex ?? null);
+    setTotalParts?.(snapshot.totalParts ?? null);
+    setTimerEndsAt?.(snapshot.timerEndsAt ?? null);
+    setTotalQuestionDuration?.(snapshot.totalQuestionDuration ?? null);
+    setPauseRemainingMs?.(pauseRemainingMs);
+    setPaused?.(isPaused);
+
+    if (isPaused) {
+      setCountdown?.(Math.max(0, Math.ceil((pauseRemainingMs ?? 0) / 1000)));
+    }
+
+    if (snapshot.state === 'lobby') {
+      setRoundResults?.(null);
+      setAnsweredPlayers?.([]);
+      setSubmitted?.(false);
+    }
+
+    if (currentPlayer) {
+      setProfile?.({
+        ...(s.profile || {}),
+        ...currentPlayer,
+      });
+    }
+  };
 
   const resetStateForNewRoom = () => {
     setState?.('lobby');
@@ -100,9 +136,13 @@ export default function serverMessageHandler(msg: ServerEvent) {
         if (playAgainPending) {
           setPlayAgainPending?.(false);
           try {
-            emit?.('message', { type: 'start_game', roomCode: msg.roomCode, playerId: msg.player?.id });
+            send?.({ type: 'start_game', roomCode: msg.roomCode, playerId: msg.player?.id });
           } catch (e) { }
         }
+        break;
+
+      case 'room_snapshot':
+        applyRoomSnapshot(msg.snapshot);
         break;
 
       case 'lobby_update':
@@ -259,6 +299,11 @@ export default function serverMessageHandler(msg: ServerEvent) {
           setStorageItem('kouch_userId', msg.player.id);
           setStorageItem('kouch_userAvatar', msg.player.avatar);
         }
+        break;
+
+      case 'answer_received':
+        setStatusMessage?.('Answer received');
+        setSubmitted?.(true);
         break;
 
       case 'error':

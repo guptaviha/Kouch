@@ -326,7 +326,7 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 5. **Leave Room**: Player can disconnect and return to home screen or join another room
 
 ### Real-Time Connection
-- All player actions are sent via WebSocket to server
+- All player actions are sent through the PartyKit realtime transport to the room runtime
 - Server broadcasts relevant updates to host and other players in real-time
 - Leaderboard updates immediately after each round scores are calculated
 - Player states (idle, active, waiting, answered, used_hint, answered_with_hint) are reflected visually on host

@@ -1,6 +1,5 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/store';
@@ -11,10 +10,10 @@ export default function PlayerJoinView() {
     const profile = useGameStore((s) => s.profile);
     const setProfile = useGameStore((s) => s.setProfile);
     const statusMessage = useGameStore((s) => s.statusMessage);
-    const emit = useGameStore((s) => s.emit);
+    const joinRoom = useGameStore((s) => s.joinRoom);
     const setStatusMessage = useGameStore((s) => s.setStatusMessage);
 
-    const joinRoom = () => {
+    const handleJoinRoom = () => {
         setStatusMessage(null);
         if (!roomCode || !profile?.name) {
             setStatusMessage('Enter name and room code');
@@ -28,7 +27,7 @@ export default function PlayerJoinView() {
             // ignore
         }
 
-        emit('message', { type: 'join', roomCode: roomCode, name: profile?.name });
+        void joinRoom({ roomCode, name: profile.name });
 
         const requestFullscreen = () => {
             const docEl = document.documentElement as any;
@@ -81,7 +80,7 @@ export default function PlayerJoinView() {
                 <Button
                     variant="action"
                     className="w-full mt-2"
-                    onClick={joinRoom}
+                    onClick={handleJoinRoom}
                     disabled={!((profile?.name ?? '').trim()) || (roomCode ?? '').length < 4}
                 >
                     Join Game
