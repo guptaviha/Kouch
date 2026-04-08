@@ -1,5 +1,7 @@
 "use client";
 
+import Link from 'next/link';
+
 import { Button } from '@/components/ui/button';
 import type { GameCatalogGameRecord } from '@/types/game-catalog';
 
@@ -8,14 +10,10 @@ const inputClass =
 
 interface GameCatalogRecordListProps {
   games: GameCatalogGameRecord[];
-  activeGameId: number | null;
   searchValue: string;
   isLoading: boolean;
-  isLoadingRecord: boolean;
   onSearchChange: (value: string) => void;
-  onSelectGame: (gameId: number) => void;
-  onStartNew: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 function formatPlayerSummary(game: GameCatalogGameRecord): string {
@@ -38,39 +36,31 @@ function formatTimeSummary(game: GameCatalogGameRecord): string {
 
 export function GameCatalogRecordList({
   games,
-  activeGameId,
   searchValue,
   isLoading,
-  isLoadingRecord,
   onSearchChange,
-  onSelectGame,
-  onStartNew,
   onRefresh,
 }: GameCatalogRecordListProps) {
+  const resultLabel = `${games.length} ${games.length === 1 ? 'game' : 'games'}`;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">
-        <div className="flex items-center justify-between gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 dark:border-gray-800">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Existing Entries</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300">Open an existing record to edit it, or start a fresh one.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onRefresh}>
-              Refresh
-            </Button>
-            <Button type="button" size="sm" onClick={onStartNew}>
-              New
-            </Button>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Existing games</h2>
           </div>
         </div>
 
-        <input
-          value={searchValue}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className={inputClass}
-          placeholder="Search by game name"
-        />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <input
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            className={inputClass}
+            placeholder="Search by game name or slug"
+          />
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:min-w-fit">{resultLabel}</p>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -81,28 +71,25 @@ export function GameCatalogRecordList({
           </div>
         )}
 
-        {!isLoading && games.map((game) => {
-          const isActive = game.id === activeGameId;
-
-          return (
-            <button
-              key={game.id}
-              type="button"
-              onClick={() => onSelectGame(game.id)}
-              className={`w-full rounded-xl border px-4 py-4 text-left transition ${
-                isActive
-                  ? 'border-blue-500 bg-blue-50 shadow-sm dark:border-blue-400 dark:bg-blue-950/40'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:border-gray-700 dark:hover:bg-gray-900'
-              }`}
-            >
+        {!isLoading && games.map((game) => (
+          <Link
+            key={game.id}
+            href={`/admin/game-catalog/${game.id}`}
+            className="block rounded-xl border border-gray-200 bg-white px-4 py-4 text-left transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:border-gray-700 dark:hover:bg-gray-900"
+          >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-gray-900 dark:text-gray-50">{game.name}</p>
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{game.short_description}</p>
                 </div>
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                  {game.slug}
-                </span>
+                <div className="flex flex-col items-end gap-2 text-right">
+                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    {game.slug}
+                  </span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">
+                    Open editor
+                  </span>
+                </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -130,13 +117,8 @@ export function GameCatalogRecordList({
               <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                 Updated {new Date(game.updated_at).toLocaleDateString()}
               </div>
-            </button>
-          );
-        })}
-
-        {isLoadingRecord && (
-          <p className="text-sm text-gray-600 dark:text-gray-300">Loading selected record...</p>
-        )}
+          </Link>
+        ))}
       </div>
     </div>
   );

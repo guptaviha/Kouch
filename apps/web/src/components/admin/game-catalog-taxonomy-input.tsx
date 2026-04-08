@@ -9,7 +9,7 @@ const inputClass =
 
 interface GameCatalogTaxonomyInputProps {
   label: string;
-  helperText: string;
+  helperText?: string;
   placeholder: string;
   query: string;
   selectedValues: string[];
@@ -49,13 +49,10 @@ export function GameCatalogTaxonomyInput({
     <div className="space-y-3">
       <div>
         <label className={labelClass}>{label}</label>
-        <p className={helperClass}>{helperText}</p>
+        {helperText && <p className={helperClass}>{helperText}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {selectedValues.length === 0 && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">No values selected yet.</span>
-        )}
         {selectedValues.map((value) => (
           <span
             key={value}
