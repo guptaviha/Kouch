@@ -4,8 +4,8 @@ import test from 'node:test';
 import {
   createGameCatalogSlug,
   normalizeGameCatalogNames,
-  parseGameCatalogFilters,
-} from '@/services/game-catalog-service';
+} from '@/lib/game-catalog';
+import { parseGameCatalogFilters } from '@/services/game-catalog-service';
 
 test('createGameCatalogSlug normalizes a readable slug', () => {
   assert.equal(createGameCatalogSlug('  Mafia: The Party Game  '), 'mafia-the-party-game');

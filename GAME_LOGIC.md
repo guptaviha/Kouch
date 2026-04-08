@@ -11,6 +11,7 @@ This document describes the critical business logic and flow for the Kouch app, 
 - [4. Rebus Scoring](#4-rebus-scoring)
 - [5. User Journey](#5-user-journey)
 - [6. Trivia Content Contribution](#6-trivia-content-contribution)
+- [7. Game Database Contribution](#7-game-database-contribution)
 
 ---
 
@@ -342,6 +343,42 @@ Final Score = Base Points + Speed Bonus + First Correct Bonus - Hint Penalty
 - Tags are suggested from existing entries; new tags entered on a question are auto-created and attached. Tags are normalized to lowercase for reuse.
 - Packs are ordered sets of questions; at least one question is required when creating a pack so hosts can run complete rounds.
 - Every record (tags, questions, packs, and their links) carries `created_at`, `updated_at`, and `user_id` metadata, defaulting to `admin` for now.
+
+---
+
+## 7. Game Database Contribution
+
+### Overview
+The Game Database is a curated catalog of social and party games that lives inside the existing web app. It is separate from playable trivia and rebus packs and exists to help users discover games by metadata, rules, and equipment needs.
+
+### Admin Workflow
+- Admin entry point: `/admin/game-catalog`
+- Data source: Neon DB tables under the `game_catalog_*` namespace
+- Admins can create and edit records from a single page without writing SQL
+- Existing records appear in the admin list so editors can reopen and update them
+
+### Stored Metadata
+Each game entry can store:
+- Name and slug
+- Short description
+- Rules content
+- Minimum and maximum players
+- Ideal player range
+- Minimum and maximum play time in minutes
+- Ease of learning on a 1-5 scale
+- General tags such as `party` or `strategy`
+- Equipment required flag
+- Equipment tags such as `cards`, `dice`, or `paper`
+- `created_by`, `created_at`, and `updated_at`
+
+### Taxonomy Rules
+- General tags and equipment tags are stored separately so the public browse experience can filter them independently
+- Both taxonomies are open-ended and normalized to lowercase on write
+- Equipment tags are hidden in the admin UI unless the game is marked as requiring equipment
+
+### Public Browse Dependency
+- The public Game Database browse and detail pages depend on this curated content being present
+- The admin screen is responsible for shaping records so the future public grid and filter sidebar can stay thin
 
 ---
 

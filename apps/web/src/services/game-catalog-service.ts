@@ -4,6 +4,10 @@ import {
   type SqlClient,
   withTransaction,
 } from '@/lib/neon';
+import {
+  createGameCatalogSlug,
+  normalizeGameCatalogNames,
+} from '@/lib/game-catalog';
 import type {
   CreateGameCatalogGamePayload,
   CreateGameCatalogTagPayload,
@@ -191,24 +195,6 @@ function readIntegerListSearchParam(searchParams: URLSearchParams, keys: string[
     .filter((value): value is number => value !== null && value >= 1 && value <= 5);
 
   return Array.from(new Set(parsed));
-}
-
-export function createGameCatalogSlug(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-');
-}
-
-export function normalizeGameCatalogNames(values: string[] | undefined): string[] {
-  return Array.from(new Set(
-    (values ?? [])
-      .map((value) => sanitizeString(value).toLowerCase())
-      .filter((value) => value.length > 0),
-  ));
 }
 
 export function parseGameCatalogFilters(searchParams: URLSearchParams): GameCatalogFilters {

@@ -27,6 +27,9 @@ function AdminHeader() {
             <Link href="/admin/contribute" className="rounded-full px-3 py-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
               Contribute
             </Link>
+            <Link href="/admin/game-catalog" className="rounded-full px-3 py-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
+              Game Database
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3">
