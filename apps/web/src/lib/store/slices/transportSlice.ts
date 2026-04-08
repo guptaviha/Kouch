@@ -1,6 +1,11 @@
 import { StateCreator } from 'zustand';
 
-import type { ClientEvent, ParticipantSession, RoomSnapshot, ServerEvent } from '@kouch/contracts';
+import type {
+	ParticipantSession,
+	RoomSnapshot,
+	TransportClientEvent,
+	TransportServerEvent,
+} from '@kouch/contracts';
 import { toast } from '@/hooks/use-toast';
 import { getStorageItem, setStorageItem } from '@/hooks/use-local-storage';
 import { getRealtimeProvider, type RealtimeProvider } from '@/lib/realtime/provider';
@@ -33,8 +38,8 @@ export type TransportSlice = {
 	roomCreationPending: boolean;
 	initializeTransport: (baseUrl: string) => void;
 	disconnectTransport: () => void;
-	send: (event: ClientEvent) => void;
-	subscribe: (handler: (event: ServerEvent) => void) => () => void;
+	send: (event: TransportClientEvent) => void;
+	subscribe: (handler: (event: TransportServerEvent) => void) => () => void;
 	createRoom: (input: { name?: string; pack?: GamePack }) => Promise<void>;
 	joinRoom: (input: { roomCode: string; name?: string }) => Promise<void>;
 };
@@ -58,9 +63,9 @@ function createRealtimeTransport(provider: RealtimeProvider): RealtimeTransport 
 
 function waitForServerEvent(
 	transport: RealtimeTransport,
-	predicate: (event: ServerEvent) => boolean,
+	predicate: (event: TransportServerEvent) => boolean,
 	timeoutMs = SOCKETIO_RESPONSE_TIMEOUT_MS,
-): Promise<ServerEvent> {
+): Promise<TransportServerEvent> {
 	return new Promise((resolve, reject) => {
 		const timeoutId = setTimeout(() => {
 			unsubscribe();
@@ -159,6 +164,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 		connectionState: 'idle',
 		isConnectedToServer: false,
 		isReconnecting: false,
+		roomCreationPending: false,
 		initializeTransport: (baseUrl: string) => {
 			const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
 			if (get().transport && get().transportBaseUrl === normalizedBaseUrl) {
@@ -177,6 +183,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 				connectionState: 'idle',
 				isConnectedToServer: false,
 				isReconnecting: false,
+				roomCreationPending: false,
 			});
 		},
 		disconnectTransport: () => {
@@ -186,12 +193,13 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 				connectionState: 'disconnected',
 				isConnectedToServer: false,
 				isReconnecting: false,
+				roomCreationPending: false,
 			});
 		},
-		send: (event: ClientEvent) => {
+		send: (event: TransportClientEvent) => {
 			get().transport?.send(event);
 		},
-		subscribe: (handler: (event: ServerEvent) => void) => {
+		subscribe: (handler: (event: TransportServerEvent) => void) => {
 			return ensureTransport().subscribe(handler);
 		},
 		createRoom: async ({ name, pack }) => {
@@ -278,6 +286,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 					get().setSelectedPack(pack);
 				}
 
+				get().setJoined(false);
 				get().setErrorMessage(null);
 				ensureTransport().connect({ websocketUrl: response.websocketUrl });
 			} catch (error) {
@@ -357,6 +366,7 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 				if (response.session.avatar) {
 					setStorageItem('kouch_userAvatar', response.session.avatar);
 				}
+				get().setJoined(true);
 				get().setErrorMessage(null);
 				ensureTransport().connect({ websocketUrl: response.websocketUrl });
 			} catch (error) {

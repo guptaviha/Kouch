@@ -3,7 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "lib": [
-      "es2022"
+      "es2022",
+      "dom"
+    ],
+    "types": [
+      "node"
     ]
   },
   "include": [

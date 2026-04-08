@@ -346,6 +346,9 @@ test('room creation accepts the root bootstrap path used by local worker fallbac
   const payload = await response?.json();
   assert.equal(payload?.ok, true);
   assert.equal(typeof payload?.roomCode, 'string');
+  assert.equal(typeof payload?.sessionToken, 'string');
+  assert.equal(payload?.encodedSession, undefined);
+  assert.match(String(payload?.websocketUrl ?? ''), /\?session=/);
 });
 
 test('room creation accepts the PartyKit local-dev prefixed bootstrap path', async () => {
@@ -396,4 +399,7 @@ test('room creation accepts the PartyKit local-dev prefixed bootstrap path', asy
   const payload = await response?.json();
   assert.equal(payload?.ok, true);
   assert.equal(typeof payload?.roomCode, 'string');
+  assert.equal(typeof payload?.sessionToken, 'string');
+  assert.equal(payload?.encodedSession, undefined);
+  assert.match(String(payload?.websocketUrl ?? ''), /\?session=/);
 });

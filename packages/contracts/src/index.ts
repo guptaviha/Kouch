@@ -34,10 +34,14 @@ export const PlayerWireSchema = z.object({
   name: z.string().min(1),
   score: z.number(),
   avatar: z.string().min(1).optional(),
-  isNewUser: z.boolean().optional(),
   connected: z.boolean().optional(),
 });
 export type PlayerWire = z.infer<typeof PlayerWireSchema>;
+
+export const LegacyPlayerWireSchema = PlayerWireSchema.extend({
+  isNewUser: z.boolean().optional(),
+});
+export type LegacyPlayerWire = z.infer<typeof LegacyPlayerWireSchema>;
 
 export const RoundResultEntrySchema = z.object({
   playerId: z.string().min(1),
@@ -137,6 +141,31 @@ export const MockEventSchema = z.object({
 });
 
 export const ClientEventSchema = z.discriminatedUnion('type', [
+  StartGameEventSchema,
+  CloseRoomEventSchema,
+  PauseGameEventSchema,
+  ResumeGameEventSchema,
+  SubmitAnswerEventSchema,
+  UseHintEventSchema,
+  ResetGameEventSchema,
+  ExtendTimerEventSchema,
+  SkipTimerEventSchema,
+  PingEventSchema,
+]);
+export type ClientEvent = z.infer<typeof ClientEventSchema>;
+
+export const LegacyClientEventSchema = z.discriminatedUnion('type', [
+  HostCreateRoomEventSchema,
+  PlayerJoinRoomEventSchema,
+]);
+export type LegacyClientEvent = z.infer<typeof LegacyClientEventSchema>;
+
+export const DebugClientEventSchema = z.discriminatedUnion('type', [
+  MockEventSchema,
+]);
+export type DebugClientEvent = z.infer<typeof DebugClientEventSchema>;
+
+export const TransportClientEventSchema = z.discriminatedUnion('type', [
   HostCreateRoomEventSchema,
   PlayerJoinRoomEventSchema,
   StartGameEventSchema,
@@ -151,18 +180,19 @@ export const ClientEventSchema = z.discriminatedUnion('type', [
   PingEventSchema,
   MockEventSchema,
 ]);
-export type ClientEvent = z.infer<typeof ClientEventSchema>;
-export type ClientMessage = ClientEvent;
+export type TransportClientEvent = z.infer<typeof TransportClientEventSchema>;
+export type ClientMessage = TransportClientEvent;
 
-export const RoomCreatedEventSchema = z.object({
+export const LegacyRoomCreatedEventSchema = z.object({
   type: z.literal('room_created'),
   roomCode: roomCodeSchema,
-  player: PlayerWireSchema,
+  player: LegacyPlayerWireSchema,
   pack: z.string().min(1).optional(),
   reused: z.boolean().optional(),
-  players: z.array(PlayerWireSchema).optional(),
+  players: z.array(LegacyPlayerWireSchema).optional(),
   state: RoomPhaseSchema.optional(),
 });
+export type LegacyRoomCreatedEvent = z.infer<typeof LegacyRoomCreatedEventSchema>;
 
 export const LobbyUpdateEventSchema = z.object({
   type: z.literal('lobby_update'),
@@ -254,11 +284,12 @@ export const TimerUpdatedEventSchema = z.object({
   totalQuestionDuration: z.number(),
 });
 
-export const JoinedEventSchema = z.object({
+export const LegacyJoinedEventSchema = z.object({
   type: z.literal('joined'),
   roomCode: roomCodeSchema,
-  player: PlayerWireSchema,
+  player: LegacyPlayerWireSchema,
 });
+export type LegacyJoinedEvent = z.infer<typeof LegacyJoinedEventSchema>;
 
 export const AnswerReceivedEventSchema = z.object({
   type: z.literal('answer_received'),
@@ -280,12 +311,14 @@ export const MockAddedEventSchema = z.object({
   type: z.literal('mock_added'),
   roomCode: roomCodeSchema,
 });
+export type MockAddedEvent = z.infer<typeof MockAddedEventSchema>;
 
 export const HostPromotedEventSchema = z.object({
   type: z.literal('host_promoted'),
   roomCode: roomCodeSchema,
   hostId: z.string().min(1),
 });
+export type HostPromotedEvent = z.infer<typeof HostPromotedEventSchema>;
 
 export const PongEventSchema = z.object({
   type: z.literal('pong'),
@@ -299,7 +332,6 @@ export const ErrorEventSchema = z.object({
 });
 
 export const ServerEventSchema = z.discriminatedUnion('type', [
-  RoomCreatedEventSchema,
   RoomSnapshotEventSchema,
   LobbyUpdateEventSchema,
   GameStateEventSchema,
@@ -309,7 +341,38 @@ export const ServerEventSchema = z.discriminatedUnion('type', [
   GamePausedEventSchema,
   GameResumedEventSchema,
   TimerUpdatedEventSchema,
-  JoinedEventSchema,
+  AnswerReceivedEventSchema,
+  PlayerAnsweredEventSchema,
+  PlayerHintUsedEventSchema,
+  PongEventSchema,
+  ErrorEventSchema,
+]);
+export type ServerEvent = z.infer<typeof ServerEventSchema>;
+
+export const LegacyServerEventSchema = z.discriminatedUnion('type', [
+  LegacyRoomCreatedEventSchema,
+  LegacyJoinedEventSchema,
+]);
+export type LegacyServerEvent = z.infer<typeof LegacyServerEventSchema>;
+
+export const DebugServerEventSchema = z.discriminatedUnion('type', [
+  MockAddedEventSchema,
+  HostPromotedEventSchema,
+]);
+export type DebugServerEvent = z.infer<typeof DebugServerEventSchema>;
+
+export const TransportServerEventSchema = z.discriminatedUnion('type', [
+  LegacyRoomCreatedEventSchema,
+  RoomSnapshotEventSchema,
+  LobbyUpdateEventSchema,
+  GameStateEventSchema,
+  RoundResultEventSchema,
+  FinalLeaderboardEventSchema,
+  RoomClosedEventSchema,
+  GamePausedEventSchema,
+  GameResumedEventSchema,
+  TimerUpdatedEventSchema,
+  LegacyJoinedEventSchema,
   AnswerReceivedEventSchema,
   PlayerAnsweredEventSchema,
   PlayerHintUsedEventSchema,
@@ -318,8 +381,8 @@ export const ServerEventSchema = z.discriminatedUnion('type', [
   PongEventSchema,
   ErrorEventSchema,
 ]);
-export type ServerEvent = z.infer<typeof ServerEventSchema>;
-export type ServerMessage = ServerEvent;
+export type TransportServerEvent = z.infer<typeof TransportServerEventSchema>;
+export type ServerMessage = TransportServerEvent;
 
 export const ParticipantSessionSchema = z.object({
   participantId: z.string().min(1),
@@ -345,6 +408,17 @@ export const SignedParticipantSessionSchema = ParticipantSessionSchema.extend({
   nonce: z.string().min(1),
 });
 export type SignedParticipantSession = z.infer<typeof SignedParticipantSessionSchema>;
+
+export type CreateSignedParticipantSessionInput = {
+  role: ParticipantRole;
+  roomCode: string;
+  participantId?: string;
+  displayName?: string;
+  avatar?: string;
+  protocolVersion?: typeof PROTOCOL_VERSION;
+  ttlSeconds?: number;
+  secret: string;
+};
 
 export const ProtocolEnvelopeSchema = z.object({
   protocolVersion: z.literal(PROTOCOL_VERSION),
@@ -391,6 +465,37 @@ async function importSessionKey(secret: string, usage: 'sign' | 'verify') {
     false,
     [usage],
   );
+}
+
+function sanitizeOptionalSessionString(value: string | undefined): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export async function createSignedParticipantSession(
+  input: CreateSignedParticipantSessionInput,
+): Promise<{ session: SignedParticipantSession; sessionToken: string }> {
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const session: SignedParticipantSession = {
+    participantId: input.participantId ?? crypto.randomUUID(),
+    role: input.role,
+    roomCode: RoomCodeSchema.parse(input.roomCode),
+    displayName: sanitizeOptionalSessionString(input.displayName),
+    avatar: sanitizeOptionalSessionString(input.avatar),
+    protocolVersion: input.protocolVersion ?? PROTOCOL_VERSION,
+    nonce: crypto.randomUUID(),
+    issuedAt: nowInSeconds,
+    exp: nowInSeconds + (input.ttlSeconds ?? 60 * 60),
+  };
+
+  return {
+    session,
+    sessionToken: await signParticipantSessionToken(session, input.secret),
+  };
 }
 
 export async function signParticipantSessionToken(session: SignedParticipantSession, secret: string): Promise<string> {
@@ -451,12 +556,12 @@ export const SocketDataSchema = z.object({
 export type SocketData = z.infer<typeof SocketDataSchema>;
 
 export interface ClientToServerEvents {
-  message: (payload: ClientEvent) => void;
-  client: (payload: ClientEvent) => void;
+  message: (payload: TransportClientEvent) => void;
+  client: (payload: TransportClientEvent) => void;
 }
 
 export interface ServerToClientEvents {
-  server: (payload: ServerEvent) => void;
+  server: (payload: TransportServerEvent) => void;
 }
 
 function parseJsonIfNeeded(value: unknown): unknown {
@@ -480,12 +585,28 @@ export function safeParseClientEvent(value: unknown) {
   return ClientEventSchema.safeParse(safeParseJsonIfNeeded(value));
 }
 
+export function parseTransportClientEvent(value: unknown): TransportClientEvent {
+  return TransportClientEventSchema.parse(parseJsonIfNeeded(value));
+}
+
+export function safeParseTransportClientEvent(value: unknown) {
+  return TransportClientEventSchema.safeParse(safeParseJsonIfNeeded(value));
+}
+
 export function parseServerEvent(value: unknown): ServerEvent {
   return ServerEventSchema.parse(parseJsonIfNeeded(value));
 }
 
 export function isServerEvent(value: unknown): value is ServerEvent {
   return ServerEventSchema.safeParse(safeParseJsonIfNeeded(value)).success;
+}
+
+export function parseTransportServerEvent(value: unknown): TransportServerEvent {
+  return TransportServerEventSchema.parse(parseJsonIfNeeded(value));
+}
+
+export function isTransportServerEvent(value: unknown): value is TransportServerEvent {
+  return TransportServerEventSchema.safeParse(safeParseJsonIfNeeded(value)).success;
 }
 
 export function createProtocolEnvelope<TEvent>(event: TEvent): ProtocolEnvelope<TEvent> {

@@ -1,9 +1,8 @@
 import { io, type Socket } from 'socket.io-client';
 import {
-  ClientEventSchema,
-  parseServerEvent,
-  type ClientEvent,
-  type ServerEvent,
+  parseTransportServerEvent,
+  type TransportClientEvent,
+  type TransportServerEvent,
 } from '@kouch/contracts';
 
 import type { ConnectionState } from '@/lib/store/types';
@@ -76,13 +75,13 @@ export function createSocketIoTransport(): RealtimeTransport {
         notifyState('connected');
       });
 
-      nextSocket.on('server', (event: ServerEvent) => {
+      nextSocket.on('server', (event: TransportServerEvent) => {
         if (socket !== nextSocket) {
           return;
         }
 
         try {
-          const parsedEvent = parseServerEvent(event);
+          const parsedEvent = parseTransportServerEvent(event);
           subscribers.forEach((handler) => handler(parsedEvent));
         } catch (error) {
           console.error('Failed to parse legacy realtime event', error);
@@ -132,9 +131,8 @@ export function createSocketIoTransport(): RealtimeTransport {
       teardownSocket();
       notifyState('disconnected');
     },
-    send(event: ClientEvent) {
-      const payload = ClientEventSchema.parse(event);
-      socket?.emit('message', payload);
+    send(event: TransportClientEvent) {
+      socket?.emit('message', event);
     },
     subscribe(handler: TransportSubscriptionHandler) {
       subscribers.add(handler);

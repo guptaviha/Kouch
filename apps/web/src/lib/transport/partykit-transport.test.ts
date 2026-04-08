@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PROTOCOL_VERSION, type ServerEvent } from '@kouch/contracts';
+import { PROTOCOL_VERSION, type TransportServerEvent } from '@kouch/contracts';
 
 import {
   authorizeJoinSession,
@@ -34,7 +34,7 @@ class MockWebSocket {
     this.onopen?.();
   }
 
-  receive(event: ServerEvent) {
+  receive(event: TransportServerEvent) {
     this.onmessage?.({ data: JSON.stringify(event) });
   }
 
@@ -117,7 +117,7 @@ test('PartyKit transport connects, emits envelopes, and forwards server events',
 
   const transport = createPartyKitTransport();
   const seenStates: string[] = [];
-  const receivedEvents: ServerEvent[] = [];
+  const receivedEvents: TransportServerEvent[] = [];
 
   transport.setConnectionStateListener((state) => {
     seenStates.push(state);

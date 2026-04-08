@@ -1,10 +1,10 @@
 export type {
-  ClientEvent as ClientMessage,
+  TransportClientEvent as ClientMessage,
   ClientToServerEvents,
   PlayerWire,
   RoomPhase,
   RoundResultEntry,
-  ServerEvent as ServerMessage,
+  TransportServerEvent as ServerMessage,
   ServerToClientEvents,
   SocketData,
 } from '@kouch/contracts';

@@ -1,12 +1,11 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
-import { RoomSnapshotSchema } from '@kouch/contracts';
+import { RoomSnapshotSchema, SignedParticipantSessionSchema } from '@kouch/contracts';
 
 import { assertPartyKitRealtimeEnabled } from '@/lib/realtime/provider';
 import {
   buildRealtimeWebSocketUrl,
   callRealtimeBootstrap,
-  createSignedRealtimeSession,
   getRealtimeServerBaseUrl,
   getRequestPublicHost,
 } from '@/lib/realtime/session-bootstrap';
@@ -20,6 +19,8 @@ const HostSessionRequestSchema = z.object({
 
 const RealtimeHostBootstrapResponseSchema = z.object({
   roomCode: z.string().trim().length(4),
+  session: SignedParticipantSessionSchema,
+  sessionToken: z.string().min(1),
   snapshot: RoomSnapshotSchema,
 });
 
@@ -36,23 +37,15 @@ export async function POST(request: Request) {
       }),
     );
 
-    const { session, sessionToken } = await createSignedRealtimeSession({
-      role: 'host',
-      roomCode: realtimeResponse.roomCode,
-      participantId: body.participantId,
-      displayName: body.displayName ?? 'Host',
-      avatar: body.avatar,
-    });
-
     return NextResponse.json({
       ok: true,
       roomCode: realtimeResponse.roomCode,
-      session,
-      sessionToken,
+      session: realtimeResponse.session,
+      sessionToken: realtimeResponse.sessionToken,
       websocketUrl: buildRealtimeWebSocketUrl(
         getRealtimeServerBaseUrl(),
         realtimeResponse.roomCode,
-        sessionToken,
+        realtimeResponse.sessionToken,
         getRequestPublicHost(request),
       ),
       snapshot: realtimeResponse.snapshot,

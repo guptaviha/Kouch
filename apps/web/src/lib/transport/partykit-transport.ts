@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import {
   ClientEventSchema,
-  ParticipantSessionSchema,
+  SignedParticipantSessionSchema,
   RoomSnapshotSchema,
   createProtocolEnvelope,
-  parseServerEvent,
+  parseTransportServerEvent,
   type ClientEvent,
-  type ParticipantSession,
+  type SignedParticipantSession,
   type RoomSnapshot,
-  type ServerEvent,
+  type TransportClientEvent,
+  type TransportServerEvent,
 } from '@kouch/contracts';
 
 import type { ConnectionState } from '@/lib/store/types';
@@ -16,7 +17,7 @@ import type { ConnectionState } from '@/lib/store/types';
 const RealtimeBootstrapResponseSchema = z.object({
   ok: z.literal(true),
   roomCode: z.string().trim().length(4),
-  session: ParticipantSessionSchema,
+  session: SignedParticipantSessionSchema,
   sessionToken: z.string().min(1),
   websocketUrl: z.string().url(),
   snapshot: RoomSnapshotSchema,
@@ -48,13 +49,13 @@ export type RealtimeSessionConnectParams = {
   websocketUrl: string;
 };
 
-export type TransportSubscriptionHandler = (event: ServerEvent) => void;
+export type TransportSubscriptionHandler = (event: TransportServerEvent) => void;
 export type ConnectionStateListener = (state: ConnectionState) => void;
 
 export interface RealtimeTransport {
   connect(session: RealtimeSessionConnectParams): void;
   disconnect(): void;
-  send(event: ClientEvent): void;
+  send(event: TransportClientEvent): void;
   subscribe(handler: TransportSubscriptionHandler): () => void;
   setConnectionStateListener(listener?: ConnectionStateListener): void;
 }
@@ -161,7 +162,7 @@ export function createPartyKitTransport(): RealtimeTransport {
       }
 
       try {
-        const serverEvent = parseServerEvent(event.data);
+        const serverEvent = parseTransportServerEvent(event.data);
         subscribers.forEach((handler) => handler(serverEvent));
       } catch (error) {
         console.error('Failed to parse realtime event', error);
@@ -245,12 +246,13 @@ export function createPartyKitTransport(): RealtimeTransport {
       notifyState('disconnected');
     },
     send(event) {
-      const payload = ClientEventSchema.parse(event);
+      const payload = ClientEventSchema.safeParse(event);
+      const outboundEvent = payload.success ? payload.data : event as ClientEvent;
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         return;
       }
 
-      socket.send(JSON.stringify(createProtocolEnvelope(payload)));
+      socket.send(JSON.stringify(createProtocolEnvelope(outboundEvent)));
     },
     subscribe(handler) {
       subscribers.add(handler);
@@ -264,4 +266,4 @@ export function createPartyKitTransport(): RealtimeTransport {
   };
 }
 
-export type { ParticipantSession, RoomSnapshot };
+export type { RoomSnapshot, SignedParticipantSession as ParticipantSession };

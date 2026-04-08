@@ -98,6 +98,11 @@ export function getSqlClient(): SqlClient {
   return cachedSql;
 }
 
+export async function queryRows<T>(text: string, values: unknown[] = []): Promise<T[]> {
+  const result = await getPool().query(text, values);
+  return result.rows as T[];
+}
+
 export async function withTransaction<T>(fn: (tx: SqlClient) => Promise<T>): Promise<T> {
   const sql = getSqlClient();
   return sql.begin(fn);

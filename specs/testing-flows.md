@@ -176,3 +176,65 @@ Expected result:
 10. Room close and cleanup
 11. Idle room expiration
 12. Recovery after worker restart
+
+## MCP execution results on March 24, 2026
+
+Environment used:
+- Web app at `http://127.0.0.1:3001`
+- Realtime app at `http://127.0.0.1:1999`
+- Browser automation and request inspection through MCP tooling
+
+### Result summary
+| Flow | Result | Notes |
+| --- | --- | --- |
+| Host creates room | Blocked | Direct host bootstrap failed before a room could be created |
+| Player joins existing room | Blocked | Could not create a valid room first |
+| Host starts game | Not reached | Depended on successful room creation |
+| Player submits an answer | Not reached | Depended on successful room creation |
+| Timer expiry without answers | Not reached | Depended on successful room creation |
+| Multi-part round progression | Not reached | Depended on successful room creation |
+| Reconnect during active round | Not reached | Depended on successful room creation |
+| Invalid join rejection | Partial | UI rejected the join, but with a generic error message |
+| Upstream content failure on room creation | Observed indirectly | Game catalog and host route were blocked by content/bootstrap issues |
+| Room close and cleanup | Not reached | Depended on successful room creation |
+| Idle room expiration | Not reached | Depended on successful room creation |
+| Recovery after worker restart | Not reached in UI | Covered by automated tests, not reachable through live browser flow because bootstrap was blocked |
+
+### Issues found
+
+#### 1. Host bootstrap is failing in the realtime worker
+Observed behavior:
+- `POST /api/realtime/session/host` returned `400` from the web app.
+- Direct call to `POST http://127.0.0.1:1999/api/rooms` returned `500`.
+
+Observed error:
+- `TypeError: Body has already been used. It can only be used once.`
+
+Impact:
+- Prevents host room creation.
+- Blocks all downstream end-to-end gameplay flows.
+
+#### 2. Game catalog is empty on the home page
+Observed behavior:
+- The home page showed `No games available`.
+- `GET /api/games` returned an empty array.
+- Navigating to `/host/1` triggered `GET /api/games/1` and failed.
+
+Observed server signal:
+- The web server logged content access failures around missing Rebus configuration.
+
+Impact:
+- Prevents normal UI-based host flow from starting from the game library.
+
+#### 3. Invalid join errors are too generic
+Observed behavior:
+- Submitting the player join form with `ZZZZ` showed `Realtime bootstrap failed`.
+
+Impact:
+- The flow does fail safely, but it does not expose a helpful user-facing reason such as `Room not found`.
+
+### Flows that were confirmed to load correctly
+- Home page renders.
+- Player join page renders.
+- Join form enables only after nickname and 4-letter room code are entered.
+- Realtime health endpoint responds successfully at `/healthz`.

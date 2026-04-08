@@ -1,5 +1,5 @@
 import { useGameStore } from '@/lib/store';
-import type { PlayerWire, RoomSnapshot, ServerEvent } from '@kouch/contracts';
+import type { PlayerWire, RoomSnapshot, TransportServerEvent } from '@kouch/contracts';
 import { GamePack, isValidGame } from '@/types/game-types';
 import { toast } from '@/hooks/use-toast';
 
@@ -7,7 +7,7 @@ import { setStorageItem } from '@/hooks/use-local-storage';
 
 // Centralized server message handler. Reads and writes the zustand store directly
 // so components/pages don't need to duplicate message parsing logic.
-export default function serverMessageHandler(msg: ServerEvent) {
+export default function serverMessageHandler(msg: TransportServerEvent) {
   if (!msg || !msg.type) return;
   const s = useGameStore.getState();
 
@@ -75,6 +75,7 @@ export default function serverMessageHandler(msg: ServerEvent) {
     }
 
     if (currentPlayer) {
+      setJoined?.(true);
       setProfile?.({
         ...(s.profile || {}),
         ...currentPlayer,

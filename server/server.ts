@@ -19,7 +19,7 @@ Server emits 'server' events to clients with payloads containing `type`.
 import http from 'http';
 import httpProxy from 'http-proxy';
 import { Server as IOServer, Socket } from 'socket.io';
-import { parseClientEvent } from '@kouch/contracts';
+import { parseTransportClientEvent } from '@kouch/contracts';
 import { createGameContentService, getGameContentConfigFromEnv } from '@kouch/game-content';
 import type {
   ClientMessage,
@@ -30,8 +30,8 @@ import type {
   ServerMessage,
   ServerToClientEvents,
   SocketData,
-  TriviaGameQuestion,
 } from '@kouch/contracts';
+import type { TriviaGameQuestion } from '@kouch/game-content';
 
 type ServerQuestion = TriviaGameQuestion;
 
@@ -212,7 +212,7 @@ function broadcastLobby(room: Room) {
 // Safely parse incoming payloads into typed client messages.
 function parseClientMessage(msg: ClientMessage | string): ClientMessage | null {
   try {
-    return parseClientEvent(msg);
+    return parseTransportClientEvent(msg);
   } catch (e) {
     return null;
   }

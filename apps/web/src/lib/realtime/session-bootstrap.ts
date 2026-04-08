@@ -1,16 +1,12 @@
 import {
-  PROTOCOL_VERSION,
   RoomCodeSchema,
-  signParticipantSessionToken,
-  type ParticipantRole,
-  type RoomSnapshot,
   type SignedParticipantSession,
+  type RoomSnapshot,
 } from '@kouch/contracts';
 
 const INTERNAL_HEADER = 'x-kouch-internal';
 const INTERNAL_TOKEN_HEADER = 'x-kouch-internal-token';
 const DEFAULT_REALTIME_BASE_URL = 'http://127.0.0.1:1999';
-const DEFAULT_SESSION_TTL_SECONDS = 60 * 60;
 
 export type RealtimeBootstrapPayload = {
   roomCode: string;
@@ -49,15 +45,6 @@ export function getRealtimeSessionSecret(): string {
   }
 
   throw new Error('KOUCH_SESSION_SECRET is required in production');
-}
-
-function sanitizeOptionalString(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 function isLoopbackHost(hostname: string): boolean {
@@ -158,31 +145,4 @@ export async function callRealtimeBootstrap<TResponse>(path: string, body: Recor
   }
 
   return payload.data as TResponse;
-}
-
-export async function createSignedRealtimeSession(params: {
-  role: ParticipantRole;
-  roomCode: string;
-  participantId?: string;
-  displayName?: string;
-  avatar?: string;
-  ttlSeconds?: number;
-}): Promise<{ session: SignedParticipantSession; sessionToken: string }> {
-  const nowInSeconds = Math.floor(Date.now() / 1000);
-  const session: SignedParticipantSession = {
-    participantId: params.participantId ?? crypto.randomUUID(),
-    role: params.role,
-    roomCode: normalizeRoomCode(params.roomCode),
-    displayName: sanitizeOptionalString(params.displayName),
-    avatar: sanitizeOptionalString(params.avatar),
-    protocolVersion: PROTOCOL_VERSION,
-    nonce: crypto.randomUUID(),
-    issuedAt: nowInSeconds,
-    exp: nowInSeconds + (params.ttlSeconds ?? DEFAULT_SESSION_TTL_SECONDS),
-  };
-
-  return {
-    session,
-    sessionToken: await signParticipantSessionToken(session, getRealtimeSessionSecret()),
-  };
 }
