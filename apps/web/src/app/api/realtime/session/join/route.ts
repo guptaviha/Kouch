@@ -8,6 +8,7 @@ import {
   callRealtimeBootstrap,
   createSignedRealtimeSession,
   getRealtimeServerBaseUrl,
+  getRequestPublicHost,
   normalizeRoomCode,
 } from '@/lib/realtime/session-bootstrap';
 
@@ -49,7 +50,12 @@ export async function POST(request: Request) {
       roomCode: realtimeResponse.roomCode,
       session,
       sessionToken,
-      websocketUrl: buildRealtimeWebSocketUrl(getRealtimeServerBaseUrl(), realtimeResponse.roomCode, sessionToken),
+      websocketUrl: buildRealtimeWebSocketUrl(
+        getRealtimeServerBaseUrl(),
+        realtimeResponse.roomCode,
+        sessionToken,
+        getRequestPublicHost(request),
+      ),
       snapshot: realtimeResponse.snapshot,
     });
   } catch (error) {

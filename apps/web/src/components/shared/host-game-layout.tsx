@@ -28,6 +28,7 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   const subscribe = useGameStore((s) => s.subscribe);
   const send = useGameStore((s) => s.send);
   const createRoom = useGameStore((s) => s.createRoom);
+  const roomCreationPending = useGameStore((s) => s.roomCreationPending);
   const profile = useGameStore((s) => s.profile as PlayerInfo | null);
   const roomCode = useGameStore((s) => s.roomCode);
   const gameStateValue = useGameStore((s) => s.state);
@@ -118,10 +119,10 @@ export default function HostGameLayout({ game }: HostGameLayoutProps) {
   };
 
   useEffect(() => {
-    if (game && !roomCode) {
+    if (game && !roomCode && !roomCreationPending) {
       void handleCreateRoom();
     }
-  }, [createRoom, game, roomCode]);
+  }, [createRoom, game, roomCode, roomCreationPending]);
 
   if (!mounted) return null;
 

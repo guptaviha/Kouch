@@ -30,6 +30,7 @@ export type TransportSlice = {
 	connectionState: ConnectionState;
 	isConnectedToServer: boolean;
 	isReconnecting: boolean;
+	roomCreationPending: boolean;
 	initializeTransport: (baseUrl: string) => void;
 	disconnectTransport: () => void;
 	send: (event: ClientEvent) => void;
@@ -194,12 +195,17 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 			return ensureTransport().subscribe(handler);
 		},
 		createRoom: async ({ name, pack }) => {
+			if (get().roomCreationPending) {
+				return;
+			}
+
 			const baseUrl = get().transportBaseUrl;
 			if (!baseUrl) {
 				throw new Error('Realtime transport not initialized');
 			}
 
 			try {
+				set({ roomCreationPending: true });
 				setConnectionState('connecting');
 				const { participantId, avatar } = getStoredIdentity();
 				const provider = getRealtimeProvider();
@@ -279,6 +285,8 @@ export const createTransportSlice: StateCreator<TransportStoreState, [], [], Tra
 				setConnectionState('failed');
 				get().setState('error');
 				get().setErrorMessage(message);
+			} finally {
+				set({ roomCreationPending: false });
 			}
 		},
 		joinRoom: async ({ roomCode, name }) => {

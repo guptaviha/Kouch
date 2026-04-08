@@ -209,8 +209,8 @@ export default function serverMessageHandler(msg: ServerEvent) {
         setTotalParts?.(typeof msg.totalParts === 'number' ? msg.totalParts : null);
         setQuestionImage?.(msg.image || null);
         setCurrentHint?.(msg.hint || undefined); // Update current hint
-        setTimerEndsAt?.(msg.timerEndsAt || null);
-        if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
+        setTimerEndsAt?.(typeof msg.timerEndsAt === 'number' ? msg.timerEndsAt : null);
+        if (typeof msg.totalQuestionDuration === 'number') setTotalQuestionDuration?.(msg.totalQuestionDuration);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         setRoundResults?.(null);
         setAnsweredPlayers?.(msg.answeredPlayers || []);
@@ -246,7 +246,7 @@ export default function serverMessageHandler(msg: ServerEvent) {
         setCurrentPrompts?.([]);
         setCurrentPartIndex?.(null);
         setTotalParts?.(null);
-        if (msg.nextTimerEndsAt) setTimerEndsAt?.(msg.nextTimerEndsAt);
+        if (typeof msg.nextTimerEndsAt === 'number') setTimerEndsAt?.(msg.nextTimerEndsAt);
         setRoundIndex?.(typeof msg.roundIndex === 'number' ? msg.roundIndex : null);
         if (typeof msg.nextTimerDurationMs === 'number') setNextTimerDurationMs?.(msg.nextTimerDurationMs);
         break;
@@ -283,13 +283,13 @@ export default function serverMessageHandler(msg: ServerEvent) {
 
       case 'game_resumed':
         setPaused?.(false);
-        if (msg.nextTimerEndsAt) setTimerEndsAt?.(msg.nextTimerEndsAt);
+        if (typeof msg.nextTimerEndsAt === 'number') setTimerEndsAt?.(msg.nextTimerEndsAt);
         setPauseRemainingMs?.(null);
         break;
 
       case 'timer_updated':
-        if (msg.timerEndsAt) setTimerEndsAt?.(msg.timerEndsAt);
-        if (msg.totalQuestionDuration) setTotalQuestionDuration?.(msg.totalQuestionDuration);
+        if (typeof msg.timerEndsAt === 'number') setTimerEndsAt?.(msg.timerEndsAt);
+        if (typeof msg.totalQuestionDuration === 'number') setTotalQuestionDuration?.(msg.totalQuestionDuration);
         break;
 
       case 'joined':

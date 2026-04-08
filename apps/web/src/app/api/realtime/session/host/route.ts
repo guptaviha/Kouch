@@ -8,6 +8,7 @@ import {
   callRealtimeBootstrap,
   createSignedRealtimeSession,
   getRealtimeServerBaseUrl,
+  getRequestPublicHost,
 } from '@/lib/realtime/session-bootstrap';
 
 const HostSessionRequestSchema = z.object({
@@ -48,7 +49,12 @@ export async function POST(request: Request) {
       roomCode: realtimeResponse.roomCode,
       session,
       sessionToken,
-      websocketUrl: buildRealtimeWebSocketUrl(getRealtimeServerBaseUrl(), realtimeResponse.roomCode, sessionToken),
+      websocketUrl: buildRealtimeWebSocketUrl(
+        getRealtimeServerBaseUrl(),
+        realtimeResponse.roomCode,
+        sessionToken,
+        getRequestPublicHost(request),
+      ),
       snapshot: realtimeResponse.snapshot,
     });
   } catch (error) {

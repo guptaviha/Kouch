@@ -91,6 +91,7 @@ export interface GameContentConfig {
   neonDatabaseUrl?: string;
   rebusApiBaseUrl?: string;
   rebusApiKey?: string;
+  enableFallbackPack?: boolean;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }
@@ -118,6 +119,46 @@ interface TriviaQuestionRow {
 
 const DEFAULT_REBUS_API_BASE_URL = 'https://rebus.games/api/admin';
 const DEFAULT_TIMEOUT_MS = 8_000;
+const FALLBACK_PACK_ID = 900001;
+const FALLBACK_PACK_UPDATED_AT = '2026-03-24T00:00:00.000Z';
+
+const FALLBACK_TRIVIA_PACK: TriviaPack = {
+  id: FALLBACK_PACK_ID,
+  name: 'Demo Party Pack',
+  description: 'A built-in trivia pack for local room setup and regression testing.',
+  image_url: '/demo-pack.svg',
+  gameType: 'trivia',
+  user_id: 'system',
+  created_at: FALLBACK_PACK_UPDATED_AT,
+  updated_at: FALLBACK_PACK_UPDATED_AT,
+  question_ids: [1, 2, 3],
+};
+
+const FALLBACK_TRIVIA_QUESTIONS: TriviaGameQuestion[] = [
+  {
+    question: 'What city is known as the City of Lights?',
+    answers: ['Paris'],
+    hint: 'It is the capital of France.',
+    questionType: 'open_ended',
+  },
+  {
+    question: 'Solve each stage to reveal the final phrase.',
+    answers: ['camera'],
+    hint: 'Think of a device that captures a moment.',
+    questionType: 'multi_part',
+    prompts: [
+      'Stage 1: A place where performers stand under bright lights.',
+      'Stage 2: Add the item you say before the picture is taken.',
+    ],
+    promptImages: [null, null],
+  },
+  {
+    question: 'Which planet is known as the Red Planet?',
+    answers: ['Mars'],
+    hint: 'It is the fourth planet from the Sun.',
+    questionType: 'open_ended',
+  },
+];
 
 function withTimeoutSignal(timeoutMs: number): AbortSignal | undefined {
   if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
@@ -208,6 +249,7 @@ export function getGameContentConfigFromEnv(
     neonDatabaseUrl: env.NEXT_PUBLIC_NEON_URL,
     rebusApiBaseUrl: env.REBUS_API_BASE_URL,
     rebusApiKey: env.REBUS_PACKS_API_SECRET_KEY,
+    enableFallbackPack: env.NODE_ENV !== 'production',
   };
 }
 
@@ -215,8 +257,29 @@ export function createGameContentService(config: GameContentConfig) {
   const runtimeFetch = config.fetch ?? fetch;
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const rebusApiBaseUrl = config.rebusApiBaseUrl ?? DEFAULT_REBUS_API_BASE_URL;
+  const enableFallbackPack = config.enableFallbackPack ?? false;
 
   const sql = config.neonDatabaseUrl ? neon(config.neonDatabaseUrl) : null;
+
+  function getFallbackPack(): TriviaPack | null {
+    if (!enableFallbackPack) {
+      return null;
+    }
+
+    return {
+      ...FALLBACK_TRIVIA_PACK,
+      question_ids: [...(FALLBACK_TRIVIA_PACK.question_ids ?? [])],
+    };
+  }
+
+  function getFallbackQuestions(): TriviaGameQuestion[] {
+    return FALLBACK_TRIVIA_QUESTIONS.map((question) => ({
+      ...question,
+      answers: [...question.answers],
+      prompts: question.prompts ? [...question.prompts] : undefined,
+      promptImages: question.promptImages ? [...question.promptImages] : question.promptImages,
+    }));
+  }
 
   function requireSql() {
     if (!sql) {
@@ -373,7 +436,13 @@ export function createGameContentService(config: GameContentConfig) {
         console.error('Failed to fetch rebus packs; continuing with trivia packs only.', error);
       }
 
-      return [...triviaPacks, ...rebusPacks];
+      const packs = [...triviaPacks, ...rebusPacks];
+      if (packs.length > 0) {
+        return packs;
+      }
+
+      const fallbackPack = getFallbackPack();
+      return fallbackPack ? [fallbackPack] : [];
     },
 
     async getAllPackSummaries(): Promise<GamePackSummary[]> {
@@ -382,6 +451,11 @@ export function createGameContentService(config: GameContentConfig) {
     },
 
     async getPackById(id: number, gameType?: GameType): Promise<GamePackDetail | null> {
+      const fallbackPack = getFallbackPack();
+      if (fallbackPack && id === fallbackPack.id && gameType !== 'rebus') {
+        return fallbackPack;
+      }
+
       if (gameType === 'trivia') {
         return getTriviaPackById(id);
       }
@@ -399,6 +473,11 @@ export function createGameContentService(config: GameContentConfig) {
     },
 
     async getQuestionsForPack(id: number, gameType?: GameType): Promise<TriviaGameQuestion[]> {
+      const fallbackPack = getFallbackPack();
+      if (fallbackPack && id === fallbackPack.id && gameType !== 'rebus') {
+        return getFallbackQuestions();
+      }
+
       if (gameType === 'trivia') {
         return getTriviaQuestionsForPack(id);
       }

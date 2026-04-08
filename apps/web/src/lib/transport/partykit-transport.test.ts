@@ -88,6 +88,28 @@ test('bootstrap helpers call the Next.js realtime session routes', async () => {
   globalThis.fetch = originalFetch;
 });
 
+test('bootstrap helpers surface JSON error messages from the session routes', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    error: {
+      message: 'Room not found',
+    },
+  }), {
+    status: 404,
+    headers: {
+      'content-type': 'application/json',
+    },
+  })) as typeof fetch;
+
+  await assert.rejects(
+    () => authorizeJoinSession('http://localhost:3000', { roomCode: 'ZZZZ', displayName: 'Ada' }),
+    /Room not found/,
+  );
+
+  globalThis.fetch = originalFetch;
+});
+
 test('PartyKit transport connects, emits envelopes, and forwards server events', async () => {
   const originalWebSocket = globalThis.WebSocket;
   MockWebSocket.instances.length = 0;

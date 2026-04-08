@@ -20,6 +20,12 @@ export type RealtimeBootstrapPayload = {
   snapshot: RoomSnapshot;
 };
 
+type RealtimeBootstrapErrorResponse = {
+  error?: {
+    message?: string;
+  };
+};
+
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, '');
 }
@@ -54,38 +60,104 @@ function sanitizeOptionalString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === '127.0.0.1' || hostname === '::1' || hostname === 'localhost';
+}
+
 export function normalizeRoomCode(value: string): string {
   return RoomCodeSchema.parse(value);
 }
 
-export function buildRealtimeWebSocketUrl(baseUrl: string, roomCode: string, sessionToken: string): string {
+export function buildRealtimeWebSocketUrl(
+  baseUrl: string,
+  roomCode: string,
+  sessionToken: string,
+  publicHost?: string,
+): string {
   const url = new URL(baseUrl);
+  if (publicHost && isLoopbackHost(url.hostname)) {
+    url.hostname = publicHost;
+  }
+
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = `/parties/main/${normalizeRoomCode(roomCode)}`;
   url.search = `session=${encodeURIComponent(sessionToken)}`;
   return url.toString();
 }
 
+export function getRequestPublicHost(request: Request): string | undefined {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const hostHeader = forwardedHost || request.headers.get('host');
+  if (!hostHeader) {
+    return undefined;
+  }
+
+  const host = hostHeader.split(',')[0].trim();
+  try {
+    return new URL(`http://${host}`).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
+async function readRealtimePayload(response: Response): Promise<{ data: unknown; message?: string }> {
+  const text = await response.text().catch(() => '');
+  if (!text) {
+    return { data: null, message: undefined };
+  }
+
+  try {
+    const data = JSON.parse(text) as RealtimeBootstrapErrorResponse;
+    return {
+      data,
+      message: data.error?.message,
+    };
+  } catch {
+    return {
+      data: text,
+      message: text,
+    };
+  }
+}
+
+function getFallbackRealtimePath(path: string): string | null {
+  if (!path.startsWith('/api/')) {
+    return null;
+  }
+
+  return path.replace(/^\/api/, '');
+}
+
 export async function callRealtimeBootstrap<TResponse>(path: string, body: Record<string, unknown>): Promise<TResponse> {
   const realtimeBaseUrl = getRealtimeServerBaseUrl();
-  const response = await fetch(`${realtimeBaseUrl}${path}`, {
+  const headers = {
+    'content-type': 'application/json',
+    [INTERNAL_HEADER]: '1',
+    [INTERNAL_TOKEN_HEADER]: getRealtimeSessionSecret(),
+  };
+  const payloadBody = JSON.stringify(body);
+
+  const tryFetch = async (targetPath: string) => fetch(`${realtimeBaseUrl}${targetPath}`, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      [INTERNAL_HEADER]: '1',
-      [INTERNAL_TOKEN_HEADER]: getRealtimeSessionSecret(),
-    },
-    body: JSON.stringify(body),
+    headers,
+    body: payloadBody,
     cache: 'no-store',
   });
 
-  const payload = await response.json().catch(() => ({ error: { message: 'Realtime bootstrap failed' } }));
-  if (!response.ok) {
-    const error = payload as { error?: { message?: string } };
-    throw new Error(error.error?.message || 'Realtime bootstrap failed');
+  let response = await tryFetch(path);
+  if (response.status === 404) {
+    const fallbackPath = getFallbackRealtimePath(path);
+    if (fallbackPath) {
+      response = await tryFetch(fallbackPath);
+    }
   }
 
-  return payload as TResponse;
+  const payload = await readRealtimePayload(response);
+  if (!response.ok) {
+    throw new Error(payload.message || 'Realtime bootstrap failed');
+  }
+
+  return payload.data as TResponse;
 }
 
 export async function createSignedRealtimeSession(params: {

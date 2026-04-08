@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "partykit dev",
+    "dev": "bash ./scripts/cleanup-partykit.sh && partykit dev --port 1999",
     "build": "tsc --noEmit -p tsconfig.json",
     "deploy": "partykit deploy",
     "typecheck": "tsc --noEmit -p tsconfig.json",

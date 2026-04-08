@@ -256,6 +256,34 @@ function getPackIdentifier(pack?: string, packId?: number): { selectedPack?: str
   return { selectedPack, resolvedPackId };
 }
 
+function isCreateRoomPath(pathname: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '');
+  return normalized === '/api/rooms'
+    || normalized === '/rooms'
+    || normalized.endsWith('/api/rooms')
+    || normalized.endsWith('/rooms')
+    || normalized === '/api/bootstrap/host'
+    || normalized === '/bootstrap/host'
+    || normalized.endsWith('/api/bootstrap/host')
+    || normalized.endsWith('/bootstrap/host');
+}
+
+function getJoinRoomCode(pathname: string): string | null {
+  const normalized = pathname.replace(/\/+$/, '');
+  const match = normalized.match(/(?:\/parties\/[^/]+)?\/(?:api\/)?rooms\/([A-Za-z]{4})\/join$/)
+    ?? normalized.match(/(?:\/parties\/[^/]+)?\/(?:api\/)?bootstrap\/join\/([A-Za-z]{4})$/);
+  return match ? normalizeRoomCode(match[1]) : null;
+}
+
+function normalizeLobbyPath(pathname: string): string {
+  const prefix = `/parties/${PARTY_NAME}`;
+  if (pathname === prefix) {
+    return '/';
+  }
+
+  return pathname.startsWith(`${prefix}/`) ? pathname.slice(prefix.length) : pathname;
+}
+
 function isGameRoomState(value: unknown): value is GameRoomState {
   return isObject(value)
     && typeof value.roomCode === 'string'
@@ -342,12 +370,13 @@ export default class Server implements Party.Server {
 
   static async onFetch(req: Party.Request, lobby: Party.FetchLobby, _ctx: Party.ExecutionContext) {
     const url = new URL(req.url);
+    const pathname = normalizeLobbyPath(url.pathname);
 
-    if (url.pathname === '/healthz') {
+    if (pathname === '/healthz') {
       return jsonResponse({ ok: true, service: 'realtime', protocolVersion: PROTOCOL_VERSION });
     }
 
-    if (url.pathname === '/api/rooms' && req.method === 'POST') {
+    if (isCreateRoomPath(pathname) && req.method === 'POST') {
       if (!hasInternalAccess(req, lobby.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Web bootstrap access required', 403);
       }
@@ -394,7 +423,7 @@ export default class Server implements Party.Server {
           });
         }
 
-        const errorBody = await response.json().catch(() => null);
+        const errorBody = await response.clone().json().catch(() => null);
         const errorCode = errorBody?.error?.code as RoomErrorCode | undefined;
         if (errorCode === 'HOST_ALREADY_ASSIGNED') {
           continue;
@@ -406,13 +435,13 @@ export default class Server implements Party.Server {
       return toRoomErrorBody('INTERNAL_ERROR', 'Unable to allocate a room code', 503, true);
     }
 
-    const joinMatch = url.pathname.match(/^\/api\/rooms\/([A-Za-z]{4})\/join$/);
-    if (joinMatch && req.method === 'POST') {
+    const joinRoomCode = getJoinRoomCode(pathname);
+    if (joinRoomCode && req.method === 'POST') {
       if (!hasInternalAccess(req, lobby.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Web bootstrap access required', 403);
       }
 
-      const roomCode = normalizeRoomCode(joinMatch[1]);
+      const roomCode = joinRoomCode;
       const body = JoinRoomRequestSchema.parse(await req.json());
       const session = createSession({
         roomCode,
@@ -454,6 +483,7 @@ export default class Server implements Party.Server {
   }
 
   private state: GameRoomState;
+  private _roomCode?: string;
   private readonly connectionIndex = new Map<string, ConnectionAttachment>();
   private readonly participantConnections = new Map<string, Set<string>>();
   private invalidSessionWindowStartedAt = 0;
@@ -464,8 +494,13 @@ export default class Server implements Party.Server {
   private lastCheckpointReason = 'room_initialized';
 
   constructor(readonly room: Party.Room) {
+    // Avoid accessing `room.id` here — it may not be initialized yet in some
+    // PartyKit worker initialization flows (e.g. alarm-based instantiation).
+    // Defer reading `room.id` until it's safe (onStart or first use via the
+    // `roomCode` getter). Use a generated temporary code for initial state.
+    this._roomCode = undefined;
     this.state = createRoomState({
-      roomCode: normalizeRoomCode(room.id),
+      roomCode: Server.generateRoomCode(),
       protocolVersion: PROTOCOL_VERSION,
       now: Date.now(),
     });
@@ -473,7 +508,16 @@ export default class Server implements Party.Server {
   }
 
   private get roomCode() {
-    return normalizeRoomCode(this.room.id);
+    if (this._roomCode) return this._roomCode;
+    try {
+      // Try to read the real room id provided by PartyKit. If it's not yet
+      // initialized the accessor may throw; catch and fall back to the
+      // current in-memory state room code.
+      this._roomCode = normalizeRoomCode(this.room.id);
+      return this._roomCode;
+    } catch (err) {
+      return this.state?.roomCode ?? Server.generateRoomCode();
+    }
   }
 
   private get gameContentService() {
@@ -481,6 +525,7 @@ export default class Server implements Party.Server {
       neonDatabaseUrl: asEnvString(this.room.env.NEXT_PUBLIC_NEON_URL),
       rebusApiBaseUrl: asEnvString(this.room.env.REBUS_API_BASE_URL),
       rebusApiKey: asEnvString(this.room.env.REBUS_PACKS_API_SECRET_KEY),
+      enableFallbackPack: asEnvString(this.room.env.NODE_ENV) !== 'production',
       fetch,
     });
   }
@@ -687,7 +732,7 @@ export default class Server implements Party.Server {
       });
     }
 
-    if (req.method === 'POST' && url.pathname === '/_internal/bootstrap-host') {
+    if (req.method === 'POST' && (url.pathname === '/_internal/bootstrap-host' || url.pathname.endsWith('/_internal/bootstrap-host'))) {
       if (!hasInternalAccess(req, this.room.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Internal bootstrap only', 403);
       }
@@ -705,7 +750,7 @@ export default class Server implements Party.Server {
       }
     }
 
-    if (req.method === 'POST' && url.pathname === '/_internal/authorize-join') {
+    if (req.method === 'POST' && (url.pathname === '/_internal/authorize-join' || url.pathname.endsWith('/_internal/authorize-join'))) {
       if (!hasInternalAccess(req, this.room.env)) {
         return toRoomErrorBody('COMMAND_NOT_ALLOWED', 'Internal join authorization only', 403);
       }
@@ -746,16 +791,26 @@ export default class Server implements Party.Server {
     }
 
     if (this.shouldAdvanceExpiredTimer(now)) {
-      await this.runTransition(advanceRound(this.state, {
-        now: Date.now(),
-        roundDurationMs: DEFAULT_ROUND_DURATION_MS,
-        roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
-      }), {
-        reason: 'round_advanced',
-        commandType: 'alarm',
-        markActivity: false,
-        source: 'alarm',
-      });
+      try {
+        await this.runTransition(advanceRound(this.state, {
+          now,
+          roundDurationMs: DEFAULT_ROUND_DURATION_MS,
+          roundResultDurationMs: DEFAULT_ROUND_RESULT_DURATION_MS,
+        }), {
+          reason: 'round_advanced',
+          commandType: 'alarm',
+          markActivity: false,
+          source: 'alarm',
+        });
+      } catch (err) {
+        this.log('error', 'alarm_transition_failed', { reason: err instanceof Error ? err.message : String(err) });
+        try {
+          await this.commitCheckpoint('alarm_failed', { now, markActivity: false });
+        } catch (e) {
+          this.log('error', 'alarm_reschedule_failed', { reason: e instanceof Error ? e.message : String(e) });
+        }
+      }
+
       return;
     }
 

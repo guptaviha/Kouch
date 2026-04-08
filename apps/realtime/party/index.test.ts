@@ -241,3 +241,159 @@ test('room runtime restores an expired checkpoint and reschedules the next alarm
   assert.equal(recoveredState.phase, 'round_result');
   assert.ok(room.storage.alarm && room.storage.alarm > Date.now());
 });
+
+test('room creation preserves upstream error bodies for the web bootstrap caller', async () => {
+  const request = new Request('http://localhost/api/rooms', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-kouch-internal': '1',
+      'x-kouch-internal-token': SESSION_SECRET,
+    },
+    body: JSON.stringify({
+      participantId: 'host-1',
+      displayName: 'Host',
+      protocolVersion: PROTOCOL_VERSION,
+      pack: 'missing-pack',
+    }),
+  });
+
+  const response = await Server.onFetch(request as never, {
+    env: {
+      KOUCH_SESSION_SECRET: SESSION_SECRET,
+      NODE_ENV: 'test',
+    },
+    parties: {
+      main: {
+        get() {
+          return {
+            fetch: async () => new Response(JSON.stringify({
+              ok: false,
+              error: {
+                code: 'PACK_LOAD_FAILED',
+                message: 'Unable to load pack definition',
+                retryable: false,
+              },
+            }), {
+              status: 422,
+              headers: {
+                'content-type': 'application/json',
+              },
+            }),
+          };
+        },
+      },
+    },
+  } as never, {} as never);
+
+  assert.ok(response);
+  assert.equal(response?.status, 422);
+  assert.deepEqual(await response?.json(), {
+    ok: false,
+    error: {
+      code: 'PACK_LOAD_FAILED',
+      message: 'Unable to load pack definition',
+      retryable: false,
+    },
+  });
+});
+
+test('room creation accepts the root bootstrap path used by local worker fallback', async () => {
+  const response = await Server.onFetch(new Request('http://localhost/rooms', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-kouch-internal': '1',
+      'x-kouch-internal-token': SESSION_SECRET,
+    },
+    body: JSON.stringify({
+      participantId: 'host-1',
+      displayName: 'Host',
+      protocolVersion: PROTOCOL_VERSION,
+      pack: '1',
+    }),
+  }) as never, {
+    env: {
+      KOUCH_SESSION_SECRET: SESSION_SECRET,
+      NODE_ENV: 'test',
+    },
+    parties: {
+      main: {
+        get(roomCode: string) {
+          return {
+            fetch: async () => new Response(JSON.stringify({
+              ok: true,
+              snapshot: {
+                roomCode,
+                state: 'lobby',
+                players: [],
+                stateVersion: 0,
+                protocolVersion: PROTOCOL_VERSION,
+              },
+            }), {
+              status: 200,
+              headers: {
+                'content-type': 'application/json',
+              },
+            }),
+          };
+        },
+      },
+    },
+  } as never, {} as never);
+
+  assert.equal(response?.status, 200);
+  const payload = await response?.json();
+  assert.equal(payload?.ok, true);
+  assert.equal(typeof payload?.roomCode, 'string');
+});
+
+test('room creation accepts the PartyKit local-dev prefixed bootstrap path', async () => {
+  const response = await Server.onFetch(new Request('http://localhost/parties/main/api/rooms', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-kouch-internal': '1',
+      'x-kouch-internal-token': SESSION_SECRET,
+    },
+    body: JSON.stringify({
+      participantId: 'host-1',
+      displayName: 'Host',
+      protocolVersion: PROTOCOL_VERSION,
+      pack: '1',
+    }),
+  }) as never, {
+    env: {
+      KOUCH_SESSION_SECRET: SESSION_SECRET,
+      NODE_ENV: 'test',
+    },
+    parties: {
+      main: {
+        get(roomCode: string) {
+          return {
+            fetch: async () => new Response(JSON.stringify({
+              ok: true,
+              snapshot: {
+                roomCode,
+                state: 'lobby',
+                players: [],
+                stateVersion: 0,
+                protocolVersion: PROTOCOL_VERSION,
+              },
+            }), {
+              status: 200,
+              headers: {
+                'content-type': 'application/json',
+              },
+            }),
+          };
+        },
+      },
+    },
+  } as never, {} as never);
+
+  assert.equal(response?.status, 200);
+  const payload = await response?.json();
+  assert.equal(payload?.ok, true);
+  assert.equal(typeof payload?.roomCode, 'string');
+});

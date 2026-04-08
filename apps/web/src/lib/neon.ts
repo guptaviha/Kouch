@@ -1,7 +1,13 @@
 import { Pool } from '@neondatabase/serverless';
 import type { PoolClient } from '@neondatabase/serverless';
 
-const connectionString = process.env.NEXT_PUBLIC_NEON_URL;
+function getConnectionString(): string {
+  const connectionString = process.env.NEXT_PUBLIC_NEON_URL ?? process.env.NEON_URL;
+  if (!connectionString?.trim()) {
+    throw new Error('Missing NEXT_PUBLIC_NEON_URL or NEON_URL for database connection');
+  }
+  return connectionString.trim();
+}
 
 // Define the interface for our SQL client which supports:
 // 1. Tagged template literal execution: await sql`SELECT ...`
@@ -18,10 +24,7 @@ let pool: Pool | null = null;
 
 function getPool(): Pool {
   if (!pool) {
-    if (!connectionString) {
-      throw new Error('Missing NEXT_PUBLIC_NEON_URL for database connection');
-    }
-    pool = new Pool({ connectionString });
+    pool = new Pool({ connectionString: getConnectionString() });
   }
   return pool;
 }

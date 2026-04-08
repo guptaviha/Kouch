@@ -9,3 +9,5 @@ dist
 certificates
 .env.local
 tsconfig.tsbuildinfo
+.partykit/
+apps/realtime/.partykit/
